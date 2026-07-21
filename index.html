@@ -1,0 +1,59 @@
+<!doctype html>
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>SIGVTR</title>
+
+    <meta name="theme-color" content="#1565C0" />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <link rel="stylesheet" href="css/base/style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>SIGVTR</h1>
+
+        <p>Sistema Integrado de Gestão de Viaturas</p>
+      </header>
+
+      <main>
+        <section class="card">
+          <h2>Projeto iniciado com sucesso</h2>
+
+          <p>
+            Bem-vindo ao SIGVTR. A estrutura principal foi carregada
+            corretamente.
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <p>Versão 0.1.0</p>
+      </footer>
+    </div>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("sw.js")
+
+            .then(() => {
+              console.log("Service Worker registrado.");
+            })
+
+            .catch((err) => {
+              console.error(err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

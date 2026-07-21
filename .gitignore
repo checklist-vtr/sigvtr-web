@@ -1,0 +1,48 @@
+# ============================
+# SIGVTR
+# ============================
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VSCode
+.vscode/settings.json
+.vscode/launch.json
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+tmp/
+temp/
+
+# Node (caso seja utilizado futuramente)
+node_modules/
+
+# Build
+dist/
+build/
+
+# Testes
+coverage/
+
+# Ambiente
+.env
+.env.local
+
+# Arquivos do sistema operacional
+*.swp
+*.bak
+*.tmp
+
+# Google Apps Script (backup)
+gas-backup/
+
+# Arquivos compactados
+*.zip
+*.rar
+*.7z

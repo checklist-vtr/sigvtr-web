@@ -1,0 +1,162 @@
+@import url("variables.css");
+@import url("../components/buttons.css");
+@import url("../components/cards.css");
+@import url("../components/forms.css");
+@import url("../components/progress.css");
+@import url("../components/toast.css");
+@import url("../layout/header.css");
+@import url("../layout/footer.css");
+@import url("../layout/grid.css");
+@import url("../responsive/mobile.css");
+
+/* ===================================================
+RESET
+=================================================== */
+
+*{
+
+margin:0;
+
+padding:0;
+
+box-sizing:border-box;
+
+}
+
+/* ===================================================
+HTML
+=================================================== */
+
+html{
+
+scroll-behavior:smooth;
+
+}
+
+/* ===================================================
+BODY
+=================================================== */
+
+body{
+
+font-family:var(--font-family);
+
+background:var(--color-background);
+
+color:var(--color-text);
+
+min-height:100vh;
+
+line-height:1.5;
+
+}
+
+/* ===================================================
+LINKS
+=================================================== */
+
+a{
+
+text-decoration:none;
+
+color:inherit;
+
+}
+
+/* ===================================================
+IMAGENS
+=================================================== */
+
+img{
+
+display:block;
+
+max-width:100%;
+
+}
+
+/* ===================================================
+LISTAS
+=================================================== */
+
+ul{
+
+list-style:none;
+
+}
+
+/* ===================================================
+BOTÕES
+=================================================== */
+
+button{
+
+font-family:inherit;
+
+cursor:pointer;
+
+}
+
+/* ===================================================
+FORMULÁRIOS
+=================================================== */
+
+input,
+select,
+textarea{
+
+font-family:inherit;
+
+}
+
+/* ===================================================
+CONTAINER
+=================================================== */
+
+.container{
+
+width:100%;
+
+max-width:var(--container-width);
+
+margin:auto;
+
+padding:var(--space-5);
+
+}
+
+/* ===================================================
+UTILITÁRIOS
+=================================================== */
+
+.text-center{
+
+text-align:center;
+
+}
+
+.hidden{
+
+display:none;
+
+}
+
+.mt-1{margin-top:var(--space-1);}
+.mt-2{margin-top:var(--space-2);}
+.mt-3{margin-top:var(--space-3);}
+.mt-4{margin-top:var(--space-4);}
+.mt-5{margin-top:var(--space-5);}
+.mt-6{margin-top:var(--space-6);}
+.mt-7{margin-top:var(--space-7);}
+
+.mb-1{margin-bottom:var(--space-1);}
+.mb-2{margin-bottom:var(--space-2);}
+.mb-3{margin-bottom:var(--space-3);}
+.mb-4{margin-bottom:var(--space-4);}
+.mb-5{margin-bottom:var(--space-5);}
+
+.p-1{padding:var(--space-1);}
+.p-2{padding:var(--space-2);}
+.p-3{padding:var(--space-3);}
+.p-4{padding:var(--space-4);}
+.p-5{padding:var(--space-5);}

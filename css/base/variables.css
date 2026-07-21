@@ -1,0 +1,119 @@
+/**
+=====================================================
+SIGVTR
+Design System
+Versão 0.1.0
+=====================================================
+*/
+
+:root{
+
+/* ===========================
+   CORES
+=========================== */
+
+--color-primary:#1565C0;
+--color-primary-dark:#0D47A1;
+--color-primary-light:#42A5F5;
+
+--color-success:#2E7D32;
+--color-warning:#F9A825;
+--color-danger:#C62828;
+--color-info:#0288D1;
+
+--color-white:#FFFFFF;
+--color-black:#212121;
+
+--color-background:#F5F7FA;
+
+--color-surface:#FFFFFF;
+
+--color-border:#CFD8DC;
+
+--color-text:#263238;
+--color-text-light:#607D8B;
+
+/* ===========================
+   TIPOGRAFIA
+=========================== */
+
+--font-family:
+Inter,
+"Segoe UI",
+Roboto,
+Arial,
+sans-serif;
+
+--font-xs:12px;
+--font-sm:14px;
+--font-md:16px;
+--font-lg:18px;
+--font-xl:24px;
+--font-xxl:32px;
+
+/* ===========================
+   PESOS
+=========================== */
+
+--weight-light:300;
+--weight-normal:400;
+--weight-medium:500;
+--weight-bold:700;
+
+/* ===========================
+   ESPAÇAMENTOS
+=========================== */
+
+--space-1:4px;
+--space-2:8px;
+--space-3:12px;
+--space-4:16px;
+--space-5:20px;
+--space-6:24px;
+--space-7:32px;
+--space-8:40px;
+--space-9:48px;
+--space-10:64px;
+
+/* ===========================
+   BORDAS
+=========================== */
+
+--radius-sm:8px;
+--radius-md:12px;
+--radius-lg:16px;
+--radius-xl:24px;
+
+/* ===========================
+   SOMBRAS
+=========================== */
+
+--shadow-sm:
+0 2px 4px rgba(0,0,0,.08);
+
+--shadow-md:
+0 4px 10px rgba(0,0,0,.10);
+
+--shadow-lg:
+0 10px 24px rgba(0,0,0,.12);
+
+/* ===========================
+   TRANSIÇÕES
+=========================== */
+
+--transition-fast:.15s ease;
+--transition:.30s ease;
+
+/* ===========================
+   LAYOUT
+=========================== */
+
+--container-width:1200px;
+
+--header-height:72px;
+
+--sidebar-width:260px;
+
+--footer-height:60px;
+
+}
