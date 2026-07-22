@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -13,47 +12,51 @@
     <link rel="manifest" href="manifest.json" />
 
     <link rel="stylesheet" href="css/base/style.css" />
+
+    <link
+      rel="icon"
+      href="assets/icons/favicon.svg"
+      type="image/svg+xml"
+    />
   </head>
 
   <body>
-    <div class="container">
-      <header>
-        <h1>SIGVTR</h1>
+    <!-- Cabeçalho -->
+    <app-header></app-header>
 
-        <p>Sistema Integrado de Gestão de Viaturas</p>
-      </header>
+    <!-- Área principal da aplicação (SPA) -->
+    <main id="app" class="container"></main>
 
-      <main>
-        <section class="card">
-          <h2>Projeto iniciado com sucesso</h2>
+    <!-- Rodapé -->
+    <app-footer></app-footer>
 
-          <p>
-            Bem-vindo ao SIGVTR. A estrutura principal foi carregada
-            corretamente.
-          </p>
-        </section>
-      </main>
+    <!-- ==========================
+         COMPONENTES
+    =========================== -->
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
 
-      <footer>
-        <p>Versão 0.1.0</p>
-      </footer>
-    </div>
+    <!-- ==========================
+         CONFIGURAÇÃO
+    =========================== -->
+    <script src="js/config.js"></script>
 
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("sw.js")
+    <!-- ==========================
+         PÁGINAS
+    =========================== -->
+    <script src="js/pages/home.js"></script>
 
-            .then(() => {
-              console.log("Service Worker registrado.");
-            })
+    <!-- ==========================
+         CORE DA APLICAÇÃO
+    =========================== -->
+    <script src="js/router.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
 
-            .catch((err) => {
-              console.error(err);
-            });
-        });
-      }
-    </script>
+    <!-- ==========================
+         PWA
+    =========================== -->
+    <script src="js/sw-register.js"></script>
   </body>
 </html>
