@@ -1,1 +1,2 @@
-Sprint 01 - Parte 01
+# Sprint 01 - Parte 03B
+Arquivo: imageMetadata.js
