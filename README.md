@@ -1,2 +1,2 @@
-# Sprint 01 - Parte 03B
-Arquivo: imageMetadata.js
+# Sprint01 Parte04B
+cameraUtils.js

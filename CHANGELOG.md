@@ -1,1 +1,1 @@
-- Adicionado imageMetadata.js
+- Adicionado cameraUtils.js
