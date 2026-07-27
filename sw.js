@@ -1,80 +1,42 @@
-/**
- * =====================================================
- * SIGVTR
- * Service Worker
- * Versão 0.1.0
- * =====================================================
- */
-
-const CACHE_NAME = "sigvtr-v0.1.0";
-
-const FILES_TO_CACHE = [
-    "./",
-    "./index.html",
-    "./manifest.json"
+const CACHE_NAME = "sigvtr-mobile-v4";
+const APP_FILES = [
+  "./",
+  "./index.html",
+  "./css/style.css",
+  "./js/app.js",
+  "./manifest.json",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/icon-512.png",
+  "./assets/logo/brasao-20bpm.webp",
+  "./assets/logo/brasao-20bpm.png"
 ];
 
-// Instalação
-self.addEventListener("install", (event) => {
-
-    event.waitUntil(
-
-        caches.open(CACHE_NAME)
-
-        .then(cache => {
-
-            return cache.addAll(FILES_TO_CACHE);
-
-        })
-
-    );
-
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES))
+  );
+  self.skipWaiting();
 });
 
-// Ativação
-
-self.addEventListener("activate", (event) => {
-
-    event.waitUntil(
-
-        caches.keys()
-
-        .then(keys => {
-
-            return Promise.all(
-
-                keys.map(key => {
-
-                    if(key !== CACHE_NAME){
-
-                        return caches.delete(key);
-
-                    }
-
-                })
-
-            );
-
-        })
-
-    );
-
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
 });
 
-// Cache
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
 
-self.addEventListener("fetch", (event) => {
-
-    event.respondWith(
-
-        caches.match(event.request)
-
-        .then(response => {
-
-            return response || fetch(event.request);
-
-        })
-
-    );
-
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      return cached || fetch(event.request).catch(() => caches.match("./index.html"));
+    })
+  );
 });
