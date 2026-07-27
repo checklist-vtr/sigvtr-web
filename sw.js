@@ -1,4 +1,4 @@
-const CACHE_NAME = "sigvtr-mobile-v4";
+const CACHE_NAME = "sigvtr-mobile-v6";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -34,9 +34,58 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
+  const request = event.request;
+  const requestUrl = new URL(request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+
+  // Não interfere em chamadas externas, como a API do Google Apps Script.
+  if (!isSameOrigin) return;
+
+  const isMainResource =
+    request.mode === "navigate" ||
+    requestUrl.pathname.endsWith("/index.html") ||
+    requestUrl.pathname.endsWith("/js/app.js") ||
+    requestUrl.pathname.endsWith("/css/style.css") ||
+    requestUrl.pathname.endsWith("/manifest.json");
+
+  if (isMainResource) {
+    // Arquivos principais: tenta obter a versão nova primeiro.
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            const responseCopy = response.clone();
+
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, responseCopy);
+            });
+          }
+
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match("./index.html");
+        })
+    );
+
+    return;
+  }
+
+  // Imagens e demais arquivos estáticos: usa cache e busca na rede se necessário.
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).catch(() => caches.match("./index.html"));
+    caches.match(request).then(cached => {
+      return cached || fetch(request).then(response => {
+        if (response && response.ok) {
+          const responseCopy = response.clone();
+
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseCopy);
+          });
+        }
+
+        return response;
+      });
     })
   );
 });

@@ -24,6 +24,8 @@ const state = {
   itemStatus: {},
   itemDescriptions: {},
   photos: {
+    frontal: null,
+    traseira: null,
     lado_esquerdo: null,
     lado_direito: null,
     odometro: null
@@ -76,6 +78,7 @@ function bindEvents() {
   $("#checklistForm").addEventListener("submit", submitChecklist);
   $("#themeToggle").addEventListener("click", toggleTheme);
   $("#newChecklistButton").addEventListener("click", resetForm);
+  $("#closeAndRefreshButton")?.addEventListener("click", clearAppCacheAndRefresh);
   $("#installButton").addEventListener("click", installApp);
 
   $("#prefixo").addEventListener("change", syncPrefixSelector);
@@ -342,6 +345,7 @@ function validateIdentification() {
   const fields = [
     $("#prefixo"),
     $("#data"),
+    $("#condutor"),
     $("#postoGraduacao"),
     $("#rg"),
     $("#turno"),
@@ -427,7 +431,7 @@ function validateFinalStep() {
   $("#photoError").hidden = photosComplete;
 
   if (!photosComplete) {
-    showToast("Adicione as três fotografias obrigatórias.", "error");
+    showToast("Adicione as cinco fotografias obrigatórias.", "error");
     return false;
   }
 
@@ -451,7 +455,7 @@ async function handlePhoto(type, event) {
   }
 
   try {
-    const compressed = await compressImage(file, 1600, 0.76);
+    const compressed = await compressImage(file, 1280, 0.68);
 
     state.photos[type] = {
       tipo: type,
@@ -510,6 +514,7 @@ async function submitChecklist(event) {
     data: {
       prefixo: getPrefixValue(),
       dataCliente: $("#data").value,
+      condutor: $("#condutor").value.trim(),
       postoGraduacao: $("#postoGraduacao").value,
       rg: $("#rg").value.trim(),
       turno: $("#turno").value,
@@ -562,12 +567,70 @@ function setSubmitting(value) {
   $("#submitSpinner").hidden = !value;
 }
 
+async function clearAppCacheAndRefresh() {
+  const button = $("#closeAndRefreshButton");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "ATUALIZANDO...";
+  }
+
+  try {
+    // Remove somente os caches pertencentes ao SIGVTR.
+    if ("caches" in window) {
+      const cacheNames = await caches.keys();
+
+      await Promise.all(
+        cacheNames
+          .filter(cacheName => cacheName.startsWith("sigvtr-"))
+          .map(cacheName => caches.delete(cacheName))
+      );
+    }
+
+    // Desregistra versões antigas do Service Worker do SIGVTR.
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+
+      await Promise.all(
+        registrations.map(registration => registration.unregister())
+      );
+    }
+
+    // Limpa apenas os dados temporários desta sessão.
+    sessionStorage.clear();
+
+    // Mantém a preferência de tema do usuário.
+    const selectedTheme = localStorage.getItem("sigvtr-theme");
+
+    Object.keys(localStorage)
+      .filter(key => key.startsWith("sigvtr-"))
+      .forEach(key => localStorage.removeItem(key));
+
+    if (selectedTheme) {
+      localStorage.setItem("sigvtr-theme", selectedTheme);
+    }
+
+    // Reabre o sistema com um parâmetro único para evitar arquivos antigos.
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.search = "";
+    cleanUrl.hash = "";
+    cleanUrl.searchParams.set("atualizacao", Date.now().toString());
+
+    window.location.replace(cleanUrl.toString());
+  } catch (error) {
+    console.error("Falha ao atualizar o SIGVTR:", error);
+    window.location.reload();
+  }
+}
+
 function resetForm() {
   $("#checklistForm").reset();
 
   state.itemStatus = {};
   state.itemDescriptions = {};
   state.photos = {
+    frontal: null,
+    traseira: null,
     lado_esquerdo: null,
     lado_direito: null,
     odometro: null

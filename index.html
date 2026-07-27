@@ -109,6 +109,13 @@
             <input id="data" name="data" type="date" required readonly>
           </label>
 
+          <label class="field full">
+            <span>Condutor *</span>
+            <input id="condutor" name="condutor" type="text" maxlength="120" required
+                   placeholder="Nome completo do condutor" autocomplete="name"
+                   autocapitalize="words">
+          </label>
+
           <label class="field">
             <span>Posto/Graduação *</span>
             <select id="postoGraduacao" name="postoGraduacao" required>
@@ -203,11 +210,37 @@
           <span class="page-number">3</span>
           <div>
             <h2>Fotos e confirmação</h2>
-            <p>Registre os dois lados da viatura e o odômetro.</p>
+            <p>Registre a parte frontal, traseira, os dois lados da viatura e o odômetro.</p>
           </div>
         </div>
 
         <div class="photo-grid">
+          <article class="photo-slot" data-photo-type="frontal">
+            <div class="photo-slot-header">
+              <span class="photo-icon">📷</span>
+              <div>
+                <strong>Foto frontal *</strong>
+                <small>Fotografe toda a parte frontal.</small>
+              </div>
+            </div>
+            <button class="capture-button" type="button" data-capture="frontal">Tirar foto</button>
+            <input id="photo_frontal" type="file" accept="image/*" capture="environment" hidden>
+            <div class="photo-preview" id="preview_frontal"></div>
+          </article>
+
+          <article class="photo-slot" data-photo-type="traseira">
+            <div class="photo-slot-header">
+              <span class="photo-icon">📷</span>
+              <div>
+                <strong>Foto traseira *</strong>
+                <small>Fotografe toda a parte traseira.</small>
+              </div>
+            </div>
+            <button class="capture-button" type="button" data-capture="traseira">Tirar foto</button>
+            <input id="photo_traseira" type="file" accept="image/*" capture="environment" hidden>
+            <div class="photo-preview" id="preview_traseira"></div>
+          </article>
+
           <article class="photo-slot" data-photo-type="lado_esquerdo">
             <div class="photo-slot-header">
               <span class="photo-icon">📷</span>
@@ -255,7 +288,7 @@
         </div>
 
         <p id="photoError" class="form-error" hidden>
-          As três fotografias obrigatórias devem ser adicionadas.
+          As cinco fotografias obrigatórias devem ser adicionadas.
         </p>
 
         <label class="confirmation-card">
@@ -292,15 +325,26 @@
       <div class="success-icon">✓</div>
       <h2>Checklist enviado</h2>
       <p id="successMessage">Registro realizado com sucesso.</p>
-      <button id="newChecklistButton" class="primary-button" type="button">
-        NOVO CHECKLIST
-      </button>
+      <div class="success-actions">
+  <button id="newChecklistButton" class="primary-button" type="button">
+    NOVO CHECKLIST
+  </button>
+
+  <button id="closeAndRefreshButton" class="secondary-button" type="button">
+    FECHAR E ATUALIZAR
+  </button>
+</div>
     </div>
   </div>
 
   <footer>
     <p>P4 – 20º Batalhão da Polícia Militar do Pará</p>
     <p>SIGVTR · © 2026</p>
+    <p class="support-text">
+      Dúvidas ou sugestões? Escreva para
+      <a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a>.
+      Respondemos em dias úteis, das 9h às 16h.
+    </p>
   </footer>
 
   <script src="js/app.js"></script>
