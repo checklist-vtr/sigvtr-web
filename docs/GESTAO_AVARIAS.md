@@ -1,19 +1,42 @@
 # Gestão de Avarias — SIGVTR
 
-## Regra oficial
+## Versão 1.6
 
-O SIGVTR não bloqueia automaticamente uma viatura em razão de uma avaria.
+O painel administrativo passa a reconhecer as seguintes categorias:
 
-O sistema registra a ocorrência, associa à viatura, preserva fotos e histórico, informa ocorrências preexistentes aos próximos condutores e permite acompanhamento e encerramento pela Administração.
+- Lataria
+- Sinalização
+- Equipamentos
+- Estrutura
+- Freios
+- Pneus
+- Vidros
+- Elétrica
+- Mecânica
+- Interior
+- Outros
 
-## Ciclo
+Cada ocorrência possui:
 
-Registrada → Em análise → Em acompanhamento → Encaminhada → Resolvida
+- categoria;
+- componente;
+- descrição;
+- status;
+- observação administrativa;
+- histórico;
+- fotos;
+- protocolo de origem.
+
+A Administração pode editar a ocorrência e alterar seu status.
 
 ## Duplicidade
 
-A futura integração com o Checklist Mobile deverá permitir confirmar uma avaria existente, informar agravamento ou registrar uma ocorrência diferente.
+A prevenção de duplicidade deve acontecer no Checklist Mobile, antes do envio da ocorrência.
 
-## Versão v1.3
+A comparação deverá usar, no mínimo:
 
-Os dados ainda são simulados. A persistência no Google Sheets e no Google Drive será implementada posteriormente.
+- viatura;
+- componente;
+- status ainda aberto.
+
+O condutor deverá poder confirmar a avaria existente, informar agravamento ou registrar uma avaria diferente.

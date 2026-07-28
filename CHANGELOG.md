@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [1.6.0-admin-alpha] - 2026-07-28
+
+### Adicionado
+
+- categorias Lataria, Sinalização, Equipamentos, Estrutura, Freios e Outros
+- campo Componente na ocorrência
+- edição administrativa de avarias
+- edição de dados no Prontuário Digital
+- sincronização temporária entre Viaturas, Avarias e Prontuário
+
+### Mantido
+
+- encerramento administrativo de avarias
+- regra de não bloqueio automático da viatura
+
+### Pendente em outra branch
+
+- prevenção de avaria duplicada no Checklist Mobile
+
 ## [1.5.0-admin-alpha] - 2026-07-28
 
 ### Adicionado

@@ -62,3 +62,13 @@ Após publicar, faça uma atualização forçada no navegador:
 A página `viaturas.html` agora oferece cadastro, edição, indicadores, filtros e acesso direto ao Prontuário Digital.
 
 Os dados são simulados e as alterações permanecem durante a sessão do navegador.
+
+
+## Revisão administrativa — v1.6
+
+- amplia categorias da Gestão de Avarias;
+- adiciona componente da avaria;
+- permite editar ocorrência;
+- mantém resolução funcionando;
+- permite editar dados diretamente no Prontuário;
+- sincroniza dados administrativos durante a sessão.

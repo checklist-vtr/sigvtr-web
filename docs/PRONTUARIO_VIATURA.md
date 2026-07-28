@@ -1,24 +1,20 @@
 # Prontuário Digital da Viatura — SIGVTR
 
-## Objetivo
+## Versão 1.6
 
-Concentrar em uma única página o histórico operacional e administrativo de cada viatura.
+O prontuário agora permite editar:
 
-## Conteúdo inicial
-
-- dados cadastrais;
+- prefixo;
+- placa;
+- ano;
+- marca;
+- modelo;
+- companhia;
 - quilometragem;
 - combustível;
-- último checklist;
-- último condutor;
-- avarias vinculadas;
-- checklists recentes;
-- linha do tempo.
+- situação;
+- observações administrativas.
 
-## Regra
+As alterações são compartilhadas com a Gestão de Viaturas por meio do `sessionStorage`.
 
-O prontuário é permanente. Avarias resolvidas e checklists antigos não são apagados, apenas deixam de aparecer como pendências abertas.
-
-## Versão v1.4
-
-Os dados são simulados. A integração com Google Sheets e Google Drive será realizada posteriormente.
+O prontuário também passa a ler as avarias salvas pela Gestão de Avarias, mantendo os indicadores e a aba de ocorrências sincronizados durante a sessão.
