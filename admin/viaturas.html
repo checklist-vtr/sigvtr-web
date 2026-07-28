@@ -1,2 +1,248 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="robots" content="noindex,nofollow"><title>SIGVTR | Viaturas</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"></head><body class="bg-light"><main class="min-vh-100 d-flex align-items-center justify-content-center p-3"><section class="bg-white border rounded-4 shadow-sm p-4 p-md-5 text-center" style="max-width:620px"><i class="bi bi-truck-front-fill text-primary" style="font-size:3.5rem"></i><p class="text-primary fw-bold text-uppercase small mt-3 mb-1">Painel Administrativo</p><h1 class="h2">Viaturas</h1><p class="text-secondary">Cadastro e situação operacional da frota.</p><div class="alert alert-info text-start"><strong>Estrutura protegida:</strong> o conteúdo funcional será implementado na branch específica deste módulo.</div><a class="btn btn-primary" href="index.html"><i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard</a></section></main><script src="assets/js/auth.js?v=1.4.1"></script><script>AuthService.requireAuthentication();</script></body></html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0d47a1">
+  <title>SIGVTR | Gestão de Viaturas</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="assets/css/admin.css">
+  <link rel="stylesheet" href="assets/css/viaturas.css">
+</head>
+<body>
+<div class="admin-shell">
+  <aside id="sidebar" class="sidebar"></aside>
+
+  <div class="admin-main">
+    <header id="navbar"></header>
+
+    <main class="content-wrapper">
+      <div class="container-fluid px-3 px-lg-4 py-4">
+        <section class="page-header mb-4">
+          <div>
+            <p class="eyebrow mb-1">Cadastro e controle</p>
+            <h1 class="h3 mb-1">Gestão de Viaturas</h1>
+            <p class="text-secondary mb-0">
+              Cadastre, edite e consulte os veículos vinculados à OPM.
+            </p>
+          </div>
+
+          <button id="newVehicleButton" class="btn btn-primary" type="button">
+            <i class="bi bi-plus-lg me-2"></i>Nova viatura
+          </button>
+        </section>
+
+        <section id="vehicleKpis" class="row g-3 mb-4"></section>
+
+        <section class="panel-card mb-4">
+          <div class="panel-card-header">
+            <div>
+              <h2 class="h5 mb-1">Filtros</h2>
+              <p class="text-secondary small mb-0">Localize rapidamente uma viatura.</p>
+            </div>
+
+            <button id="clearVehicleFilters" class="btn btn-sm btn-outline-secondary" type="button">
+              Limpar filtros
+            </button>
+          </div>
+
+          <div class="p-3 p-lg-4">
+            <div class="row g-3">
+              <div class="col-12 col-lg-4">
+                <label class="form-label" for="vehicleSearch">Pesquisa</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input id="vehicleSearch" class="form-control" type="search"
+                    placeholder="Prefixo, placa, marca ou modelo">
+                </div>
+              </div>
+
+              <div class="col-6 col-lg-2">
+                <label class="form-label" for="vehicleStatusFilter">Situação</label>
+                <select id="vehicleStatusFilter" class="form-select">
+                  <option value="">Todas</option>
+                  <option value="ATIVA">Ativa</option>
+                  <option value="MANUTENCAO">Em manutenção</option>
+                  <option value="RESERVA">Reserva</option>
+                  <option value="INATIVA">Inativa</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-lg-2">
+                <label class="form-label" for="vehicleCompanyFilter">Companhia</label>
+                <select id="vehicleCompanyFilter" class="form-select">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-lg-2">
+                <label class="form-label" for="vehicleDamageFilter">Avarias</label>
+                <select id="vehicleDamageFilter" class="form-select">
+                  <option value="">Todas</option>
+                  <option value="COM_AVARIAS">Com avarias abertas</option>
+                  <option value="SEM_AVARIAS">Sem avarias abertas</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-lg-2">
+                <label class="form-label" for="vehicleSort">Ordenar</label>
+                <select id="vehicleSort" class="form-select">
+                  <option value="PREFIX_ASC">Prefixo A–Z</option>
+                  <option value="PREFIX_DESC">Prefixo Z–A</option>
+                  <option value="KM_DESC">Maior quilometragem</option>
+                  <option value="KM_ASC">Menor quilometragem</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h2 class="h5 mb-1">Viaturas cadastradas</h2>
+              <p id="vehicleResultCount" class="text-secondary small mb-0">0 registros encontrados</p>
+            </div>
+          </div>
+
+          <div id="vehiclesGrid" class="vehicle-grid p-3 p-lg-4"></div>
+
+          <div id="vehicleEmptyState" class="empty-state d-none">
+            <i class="bi bi-truck-front"></i>
+            <h3 class="h5">Nenhuma viatura encontrada</h3>
+            <p class="text-secondary mb-0">Ajuste os filtros ou cadastre uma nova viatura.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer id="footer"></footer>
+  </div>
+</div>
+
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+<div class="modal fade" id="vehicleModal" tabindex="-1" aria-labelledby="vehicleModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="vehicleForm" novalidate>
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow mb-1">Cadastro de frota</p>
+            <h2 id="vehicleModalTitle" class="modal-title fs-5">Nova viatura</h2>
+          </div>
+          <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <input id="vehicleId" type="hidden">
+
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehiclePrefix">Prefixo</label>
+              <input id="vehiclePrefix" class="form-control" required maxlength="20"
+                placeholder="Ex.: VTR-2025">
+              <div class="invalid-feedback">Informe o prefixo.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehiclePlate">Placa</label>
+              <input id="vehiclePlate" class="form-control" required maxlength="10"
+                placeholder="Ex.: QVE-2A12">
+              <div class="invalid-feedback">Informe a placa.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleYear">Ano</label>
+              <input id="vehicleYear" class="form-control" type="number" min="1990" max="2100" required>
+              <div class="invalid-feedback">Informe um ano válido.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleBrand">Marca</label>
+              <input id="vehicleBrand" class="form-control" required placeholder="Ex.: Chevrolet">
+              <div class="invalid-feedback">Informe a marca.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleModel">Modelo</label>
+              <input id="vehicleModel" class="form-control" required placeholder="Ex.: Trailblazer">
+              <div class="invalid-feedback">Informe o modelo.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleCompany">Companhia</label>
+              <input id="vehicleCompany" class="form-control" required placeholder="Ex.: 1ª Companhia">
+              <div class="invalid-feedback">Informe a companhia.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleKm">Quilometragem</label>
+              <input id="vehicleKm" class="form-control" type="number" min="0" step="1" required>
+              <div class="invalid-feedback">Informe a quilometragem.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleFuel">Combustível (%)</label>
+              <input id="vehicleFuel" class="form-control" type="number" min="0" max="100" required>
+              <div class="invalid-feedback">Informe um valor entre 0 e 100.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="vehicleStatus">Situação</label>
+              <select id="vehicleStatus" class="form-select" required>
+                <option value="ATIVA">Ativa</option>
+                <option value="MANUTENCAO">Em manutenção</option>
+                <option value="RESERVA">Reserva</option>
+                <option value="INATIVA">Inativa</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="vehicleNotes">Observações administrativas</label>
+              <textarea id="vehicleNotes" class="form-control" rows="3"
+                placeholder="Informações relevantes sobre a viatura"></textarea>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-4 mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            Nesta versão, o cadastro fica salvo apenas durante a sessão do navegador.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+          <button id="saveVehicleButton" class="btn btn-primary" type="submit">
+            <span class="button-label"><i class="bi bi-check2 me-2"></i>Salvar viatura</span>
+            <span class="button-loading d-none">
+              <span class="spinner-border spinner-border-sm me-2"></span>Salvando
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="vehicleToast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="toast-header">
+      <i class="bi bi-check-circle-fill me-2 text-success"></i>
+      <strong class="me-auto">SIGVTR</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fechar"></button>
+    </div>
+    <div id="vehicleToastBody" class="toast-body"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/api.js?v=1.5"></script>
+<script src="assets/js/auth.js?v=1.5"></script>
+<script src="assets/js/menu.js?v=1.5"></script>
+<script src="assets/js/admin-layout.js?v=1.5"></script>
+<script src="assets/js/viaturas.js?v=1.5"></script>
+</body>
+</html>

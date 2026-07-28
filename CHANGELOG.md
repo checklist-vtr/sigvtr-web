@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## [1.5.0-admin-alpha] - 2026-07-28
+
+### Adicionado
+
+- Gestão de Viaturas
+- indicadores da frota
+- pesquisa, filtros e ordenação
+- cadastro de nova viatura
+- edição de dados cadastrais
+- validação de prefixo e placa duplicados
+- acesso direto ao Prontuário Digital
+- persistência temporária em sessionStorage
+
 ## [1.4.1-admin-hotfix] - 2026-07-28
 
 ### Corrigido

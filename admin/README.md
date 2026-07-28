@@ -55,3 +55,10 @@ Após publicar, faça uma atualização forçada no navegador:
 
 - Windows/Linux: `Ctrl + F5` ou `Ctrl + Shift + R`
 - macOS: `Command + Shift + R`
+
+
+## Gestão de Viaturas — v1.5
+
+A página `viaturas.html` agora oferece cadastro, edição, indicadores, filtros e acesso direto ao Prontuário Digital.
+
+Os dados são simulados e as alterações permanecem durante a sessão do navegador.
