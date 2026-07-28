@@ -27,3 +27,7 @@ Use o Live Server do VS Code e abra `admin/login.html`.
 ## Limitação de segurança
 
 A autenticação desta versão ocorre no navegador. Ela valida fluxo, interface, sessão e permissões, mas não representa autenticação segura de produção. A próxima integração deverá validar credenciais exclusivamente no backend e retornar uma sessão assinada ou token temporário.
+
+## Perfil de acesso
+
+O Painel Administrativo é exclusivo para o perfil **Administrador**.
