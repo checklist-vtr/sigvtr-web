@@ -38,3 +38,10 @@ O Painel Administrativo é exclusivo para o perfil **Administrador**.
 Inclui indicadores, filtros, pesquisa, tabela responsiva, detalhes, fotos simuladas, linha do tempo e encerramento administrativo simulado.
 
 Regra oficial: uma avaria não bloqueia automaticamente a viatura.
+
+
+## Prontuário Digital — v1.4
+
+A página `prontuario.html` centraliza dados cadastrais, indicadores, avarias, checklists e linha do tempo da viatura.
+
+O botão “Ver prontuário” da Gestão de Avarias agora direciona para a viatura correspondente.
