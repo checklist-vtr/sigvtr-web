@@ -187,11 +187,9 @@ const AdminApp = (() => {
   }
 
   function initSession() {
-    const session = AuthService.getSession();
+    const session = AuthService.requireAuthentication();
 
-    if (!session) {
-      return;
-    }
+    if (!session) return;
 
     document.getElementById("userName").textContent = session.user.name;
     document.getElementById("userRole").textContent = session.user.role;

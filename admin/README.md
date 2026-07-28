@@ -1,33 +1,29 @@
-# SIGVTR — Painel Administrativo
+# SIGVTR — Painel Administrativo v1.1
 
-## Escopo desta entrega
-
-Primeira estrutura funcional do módulo administrativo do SIGVTR.
-
-### Incluído
+## Entrega atual
 
 - Dashboard administrativo responsivo
-- Sidebar mobile e desktop
-- Navbar fixa
-- Tema claro e escuro
-- KPIs simulados
-- Atividade recente simulada
-- Lista de pendências
-- Estrutura de serviços para API e autenticação
-- Páginas reservadas para módulos futuros
+- Login administrativo em modo protótipo
+- Sessão com duração de 8 horas
+- Proteção de rotas
+- Controle inicial de permissões por perfil
+- Bloqueio local após cinco tentativas inválidas
+- Bloqueio temporário de cinco minutos
+- Logout com remoção da sessão
+- Opção de lembrar apenas o e-mail
+- Redirecionamento para a página originalmente solicitada
 
-## Execução local
+## Credenciais temporárias
 
-Abra `admin/index.html` em um navegador moderno.
+- E-mail: `admin@sigvtr.local`
+- Senha: `SIGVTR@2026`
 
-Para evitar limitações de segurança do navegador durante desenvolvimento, recomenda-se usar a extensão Live Server no VS Code.
+Estas credenciais existem somente para testes locais e devem ser removidas na integração com o Google Apps Script.
 
-## Integração futura
+## Execução
 
-O arquivo `assets/js/api.js` centralizará toda comunicação com o Google Apps Script.
+Use o Live Server do VS Code e abra `admin/login.html`.
 
-O arquivo `assets/js/auth.js` será expandido para autenticação e controle de sessão.
+## Limitação de segurança
 
-## Regra arquitetural
-
-Nenhuma página deve realizar chamadas diretas ao Google Apps Script. Toda comunicação deverá passar pelo `ApiService`.
+A autenticação desta versão ocorre no navegador. Ela valida fluxo, interface, sessão e permissões, mas não representa autenticação segura de produção. A próxima integração deverá validar credenciais exclusivamente no backend e retornar uma sessão assinada ou token temporário.
