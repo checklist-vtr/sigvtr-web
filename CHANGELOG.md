@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [1.3.0-admin-alpha] - 2026-07-28
+
+### Adicionado
+
+- interface de Gestão de Avarias
+- indicadores, filtros e pesquisa
+- modal de detalhes e linha do tempo
+- encerramento administrativo simulado
+- documentação da regra oficial de avarias
+
+### Regra de negócio
+
+- avarias não bloqueiam automaticamente a viatura
+- ocorrências permanecem vinculadas à viatura até encerramento administrativo
+
 ## [1.2.0-admin-alpha] - 2026-07-28
 
 ### Alterado

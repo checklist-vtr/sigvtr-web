@@ -31,3 +31,10 @@ A autenticação desta versão ocorre no navegador. Ela valida fluxo, interface,
 ## Perfil de acesso
 
 O Painel Administrativo é exclusivo para o perfil **Administrador**.
+
+
+## Gestão de Avarias — v1.3
+
+Inclui indicadores, filtros, pesquisa, tabela responsiva, detalhes, fotos simuladas, linha do tempo e encerramento administrativo simulado.
+
+Regra oficial: uma avaria não bloqueia automaticamente a viatura.
