@@ -72,3 +72,18 @@ Os dados são simulados e as alterações permanecem durante a sessão do navega
 - mantém resolução funcionando;
 - permite editar dados diretamente no Prontuário;
 - sincroniza dados administrativos durante a sessão.
+
+
+## Identidade visual — v1.6.1
+
+Adicionado favicon inspirado na Chevrolet S10 operacional com faixa xadrez, detalhes vermelhos e giroflex.
+
+Arquivos:
+
+- `assets/icons/favicon.ico`
+- `assets/icons/favicon-16x16.png`
+- `assets/icons/favicon-32x32.png`
+- `assets/icons/apple-touch-icon.png`
+- `assets/icons/android-chrome-192x192.png`
+- `assets/icons/android-chrome-512x512.png`
+- `assets/icons/maskable-icon-512.png`

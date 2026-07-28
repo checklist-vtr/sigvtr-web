@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [1.6.1-admin-visual] - 2026-07-28
+
+### Adicionado
+
+- favicon inspirado na Chevrolet S10 operacional com xadrez
+- ícones para navegador, Android, iOS e PWA
+- manifest do Painel Administrativo
+- versionamento dos ícones para evitar cache
+
 ## [1.6.0-admin-alpha] - 2026-07-28
 
 ### Adicionado
