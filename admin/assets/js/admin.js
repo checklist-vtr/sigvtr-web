@@ -76,7 +76,7 @@ const AdminApp = (() => {
     `,
     footer: `
       <div class="app-footer">
-        SIGVTR — Sistema Integrado de Gestão de Viaturas · v1.0 · 20º BPM/PMPA
+        SIGVTR — Sistema Integrado de Gestão de Viaturas · v1.4.1 · 20º BPM/PMPA
       </div>
     `
   };

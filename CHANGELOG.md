@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## [1.4.1-admin-hotfix] - 2026-07-28
+
+### Corrigido
+
+- incompatibilidade entre `login.js` e `auth.js`
+- sessão administrativa não criada no GitHub Pages
+- redirecionamento após autenticação
+- recuperação do e-mail lembrado
+- contagem regressiva de bloqueio por tentativas
+
+### Melhorado
+
+- adiciona versionamento `?v=1.4.1` aos scripts locais
+- reduz risco de cache antigo no GitHub Pages
+
+## [1.4.0-admin-alpha] - 2026-07-28
+
+### Adicionado
+
+- Prontuário Digital da Viatura
+- seleção de viaturas
+- resumo cadastral
+- indicadores de quilometragem, combustível, checklists e avarias
+- abas de avarias, checklists e histórico
+- integração visual entre Gestão de Avarias e Prontuário
+
 ## [1.3.0-admin-alpha] - 2026-07-28
 
 ### Adicionado

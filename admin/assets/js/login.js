@@ -32,25 +32,42 @@ const LoginPage = (() => {
   function formatRemaining(ms) {
     const seconds = Math.max(0, Math.ceil(ms / 1000));
     const minutes = Math.floor(seconds / 60);
-    const rest = String(seconds % 60).padStart(2, "0");
-    return `${minutes}:${rest}`;
+    return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
   }
 
-  function startLockCountdown(initialMs) {
+  function startLockCountdown() {
     clearInterval(lockTimer);
     elements.button.disabled = true;
+
     const update = () => {
       const remaining = AuthService.getLockRemainingMs();
+
       if (remaining <= 0) {
         clearInterval(lockTimer);
         elements.button.disabled = false;
         showAlert("Bloqueio encerrado. Você pode tentar novamente.", "success");
         return;
       }
-      showAlert(`Muitas tentativas. Novo acesso permitido em ${formatRemaining(remaining)}.`, "warning");
+
+      showAlert(
+        `Muitas tentativas. Novo acesso permitido em ${formatRemaining(remaining)}.`,
+        "warning"
+      );
     };
+
     update();
     lockTimer = setInterval(update, 1000);
+  }
+
+  function getSafeReturnUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("return") || params.get("redirect");
+
+    if (!value || value.includes("://") || value.startsWith("//")) {
+      return "index.html";
+    }
+
+    return value;
   }
 
   async function handleSubmit(event) {
@@ -63,52 +80,90 @@ const LoginPage = (() => {
     }
 
     setLoading(true);
-    const result = await AuthService.authenticate(elements.email.value.trim(), elements.password.value);
-    setLoading(false);
 
-    if (!result.ok) {
-      elements.password.value = "";
-      elements.password.focus();
-      if (result.code === "LOCKED") {
-        startLockCountdown(result.remainingMs);
-      } else {
-        showAlert(`Credenciais inválidas. Restam ${result.remainingAttempts} tentativa(s).`);
+    try {
+      const result = await AuthService.login(
+        elements.email.value,
+        elements.password.value
+      );
+
+      if (!result.success) {
+        elements.password.value = "";
+        elements.password.focus();
+
+        if (result.blocked) {
+          startLockCountdown();
+        } else {
+          const attempts = Number.isInteger(result.remainingAttempts)
+            ? ` Restam ${result.remainingAttempts} tentativa(s).`
+            : "";
+
+          showAlert(`${result.message}${attempts}`);
+        }
+
+        return;
       }
-      return;
-    }
 
-    AuthService.rememberEmail(elements.email.value.trim(), elements.remember.checked);
-    showAlert("Acesso autorizado. Redirecionando...", "success");
-    const params = new URLSearchParams(location.search);
-    location.replace(params.get("redirect") || "index.html");
+      AuthService.rememberEmail(
+        elements.email.value,
+        elements.remember.checked
+      );
+
+      showAlert("Acesso autorizado. Redirecionando...", "success");
+
+      window.setTimeout(() => {
+        window.location.replace(getSafeReturnUrl());
+      }, 250);
+    } catch (error) {
+      console.error("Falha inesperada no login:", error);
+      showAlert("Não foi possível concluir o login. Atualize a página e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function bindEvents() {
     elements.form.addEventListener("submit", handleSubmit);
+
     document.getElementById("togglePassword").addEventListener("click", (event) => {
       const visible = elements.password.type === "text";
       elements.password.type = visible ? "password" : "text";
-      event.currentTarget.innerHTML = visible ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
-      event.currentTarget.setAttribute("aria-label", visible ? "Mostrar senha" : "Ocultar senha");
+      event.currentTarget.innerHTML = visible
+        ? '<i class="bi bi-eye"></i>'
+        : '<i class="bi bi-eye-slash"></i>';
+      event.currentTarget.setAttribute(
+        "aria-label",
+        visible ? "Mostrar senha" : "Ocultar senha"
+      );
     });
+
     document.getElementById("forgotPassword").addEventListener("click", () => {
-      showAlert("A recuperação de senha será habilitada após a integração com o backend oficial.", "info");
+      showAlert(
+        "A recuperação de senha será habilitada após a integração com o backend oficial.",
+        "info"
+      );
     });
   }
 
   function init() {
-    AuthService.redirectAuthenticatedUser();
     cacheElements();
+
+    if (AuthService.redirectAuthenticatedUser()) {
+      return;
+    }
+
     const remembered = AuthService.getRememberedEmail();
+
     if (remembered) {
       elements.email.value = remembered;
       elements.remember.checked = true;
       elements.password.focus();
     }
-    const params = new URLSearchParams(location.search);
-    if (params.get("logout") === "1") showAlert("Sessão encerrada com segurança.", "success");
-    const lockRemaining = AuthService.getLockRemainingMs();
-    if (lockRemaining > 0) startLockCountdown(lockRemaining);
+
+    if (AuthService.getLockRemainingMs() > 0) {
+      startLockCountdown();
+    }
+
     bindEvents();
   }
 

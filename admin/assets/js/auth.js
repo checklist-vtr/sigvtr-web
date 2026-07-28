@@ -1,6 +1,7 @@
 const AuthService = (() => {
   const SESSION_KEY = "sigvtr_admin_session";
   const LOGIN_ATTEMPTS_KEY = "sigvtr_login_attempts";
+  const REMEMBERED_EMAIL_KEY = "sigvtr_admin_remembered_email";
 
   const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
   const MAX_ATTEMPTS = 5;
@@ -195,6 +196,57 @@ const AuthService = (() => {
     };
   }
 
+  function getLockRemainingMs() {
+    return getBlockStatus().remainingMs;
+  }
+
+  function rememberEmail(email, shouldRemember) {
+    if (shouldRemember) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, normalizeEmail(email));
+      return;
+    }
+
+    localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+  }
+
+  function getRememberedEmail() {
+    return localStorage.getItem(REMEMBERED_EMAIL_KEY) || "";
+  }
+
+  function redirectAuthenticatedUser() {
+    const session = getSession();
+
+    if (!session) {
+      return false;
+    }
+
+    window.location.replace(getReturnUrl());
+    return true;
+  }
+
+  async function authenticate(email, password) {
+    const result = await login(email, password);
+
+    if (result.success) {
+      return {
+        ok: true,
+        code: "AUTHORIZED",
+        session: result.session,
+        redirectUrl: result.redirectUrl
+      };
+    }
+
+    return {
+      ok: false,
+      code: result.blocked ? "LOCKED" : "INVALID_CREDENTIALS",
+      remainingAttempts: Number.isInteger(result.remainingAttempts)
+        ? result.remainingAttempts
+        : 0,
+      remainingMs: result.remainingMs || 0,
+      message: result.message
+    };
+  }
+
   function logout() {
     sessionStorage.removeItem(SESSION_KEY);
     window.location.replace("login.html");
@@ -202,9 +254,14 @@ const AuthService = (() => {
 
   return {
     login,
+    authenticate,
     logout,
     getSession,
     requireAuthentication,
-    getBlockStatus
+    getBlockStatus,
+    getLockRemainingMs,
+    rememberEmail,
+    getRememberedEmail,
+    redirectAuthenticatedUser
   };
 })();

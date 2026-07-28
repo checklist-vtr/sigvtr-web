@@ -45,3 +45,13 @@ Regra oficial: uma avaria não bloqueia automaticamente a viatura.
 A página `prontuario.html` centraliza dados cadastrais, indicadores, avarias, checklists e linha do tempo da viatura.
 
 O botão “Ver prontuário” da Gestão de Avarias agora direciona para a viatura correspondente.
+
+
+## Hotfix de autenticação — v1.4.1
+
+Corrigida a incompatibilidade entre `login.js` e `auth.js` que impedia a criação da sessão no GitHub Pages.
+
+Após publicar, faça uma atualização forçada no navegador:
+
+- Windows/Linux: `Ctrl + F5` ou `Ctrl + Shift + R`
+- macOS: `Command + Shift + R`
