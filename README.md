@@ -273,3 +273,21 @@ Projeto SIGVTR
 Sistema de Gestão de Viaturas
 
 Versão inicial: 1.0
+## Checklist Mobile v1.7.0
+
+O checklist principal utiliza o `index.html` da raiz e foi organizado em 12 etapas:
+
+1. Identificação
+2. Pneus e Rodas
+3. Iluminação e Faróis
+4. Sinalização e Comunicação
+5. Lataria Externa
+6. Vidros, Limpadores e Retrovisores
+7. Cabine
+8. Compartimento de Detidos (Xadrez)
+9. Equipamentos Obrigatórios
+10. Mecânica e Segurança
+11. Fotos e Confirmação
+12. Resumo e Envio
+
+A interface mantém o contrato atual com o Google Apps Script e a tela final de protocolo. Durante o envio, o usuário acompanha uma sequência visual de processamento para evitar a percepção de travamento.
