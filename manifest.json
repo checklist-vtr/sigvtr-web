@@ -1,24 +1,32 @@
 {
-  "name": "SIGVTR - Checklist de Viaturas",
+  "name": "SIGVTR — Checklist de Viaturas",
   "short_name": "SIGVTR",
-  "description": "Checklist operacional de viaturas",
-  "start_url": "./",
+  "description": "Checklist operacional de viaturas do 20º Batalhão da Polícia Militar do Pará",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f2f5f8",
-  "theme_color": "#0b4f8a",
   "orientation": "portrait-primary",
-  
+  "background_color": "#ffffff",
+  "theme_color": "#0d47a1",
   "icons": [
     {
       "src": "assets/icons/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "assets/icons/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
