@@ -42,14 +42,17 @@
         <span id="stepCounter">Etapa 1 de 12</span>
       </div>
       <div class="progress-track"><div id="progressBar" class="progress-bar" style="width:8.33%"></div></div>
-      <div id="stepDots" class="step-dots compact-dots" aria-label="Etapas do checklist"></div>
+      <div id="stepDots" class="step-dots compact" aria-label="Etapas do checklist"></div>
     </section>
 
     <form id="checklistForm" novalidate>
       <section class="form-page active" data-page="1">
-        <div class="page-heading"><span class="page-number">1</span><div><h2>Identificação</h2><p>Dados da viatura, do condutor e do serviço.</p></div></div>
+        <div class="page-heading">
+          <span class="page-number">1</span>
+          <div><h2>Identificação</h2><p>Dados da viatura, do condutor e do serviço.</p></div>
+        </div>
         <div class="field-grid">
-          <label class="field full"><span>Prefixo da VTR *</span><input id="prefixo" name="prefixo" type="text" maxlength="7" required placeholder="Ex.: 50-2001 ou 110" autocomplete="off" autocapitalize="characters"><small class="field-hint">Frota fixa: 50-2001 a 50-2021. Reserva: informe o prefixo recebido da locadora.</small></label>
+          <label class="field full"><span>Prefixo da VTR *</span><input id="prefixo" name="prefixo" type="text" maxlength="7" required placeholder="Ex.: 50-2001 ou 110" autocomplete="off" autocapitalize="characters"><small class="field-hint">Selecione uma VTR da frota fixa ou informe uma viatura reserva.</small></label>
           <label class="field"><span>Data *</span><input id="data" name="data" type="date" required readonly></label>
           <label class="field full"><span>Condutor *</span><input id="condutor" name="condutor" type="text" maxlength="120" required placeholder="Nome completo do condutor" autocomplete="name" autocapitalize="words"></label>
           <label class="field"><span>Posto/Graduação *</span><select id="postoGraduacao" name="postoGraduacao" required><option value="">Selecione</option><option>SD</option><option>CB</option><option>3º SGT</option><option>2º SGT</option><option>1º SGT</option><option>SUB TEN</option><option>2º TEN</option><option>1º TEN</option><option>CAP</option><option>MAJ</option><option>TEN CEL</option><option>CEL</option></select></label>
@@ -75,13 +78,13 @@
         <p id="photoError" class="form-error" hidden>As cinco fotografias obrigatórias devem ser adicionadas.</p>
         <label class="confirmation-card"><input id="confirmacao" type="checkbox" required><span>Confirmo que revisei as informações e que os dados registrados correspondem à situação observada.</span></label>
         <div class="technical-card"><strong>Registro técnico</strong><span id="deviceSummary">Identificando dispositivo...</span></div>
-        <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="10"><span aria-hidden="true">←</span> VOLTAR</button><button class="primary-button next-button" type="button" data-next="12">REVISAR CHECKLIST <span aria-hidden="true">→</span></button></div>
+        <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="10"><span aria-hidden="true">←</span> VOLTAR</button><button class="primary-button next-button" type="button" data-next="12">REVISAR <span aria-hidden="true">→</span></button></div>
       </section>
 
       <section class="form-page" data-page="12" hidden>
-        <div class="page-heading"><span class="page-number">12</span><div><h2>Resumo e envio</h2><p>Revise os dados antes de registrar definitivamente o checklist.</p></div></div>
-        <div id="reviewSummary" class="review-summary"></div>
-        <div class="review-warning">Após o envio, as informações somente poderão ser tratadas pelo setor administrativo.</div>
+        <div class="page-heading"><span class="page-number">12</span><div><h2>Resumo e envio</h2><p>Confira os dados antes de registrar o checklist.</p></div></div>
+        <div id="checklistSummary" class="summary-card"></div>
+        <div class="summary-warning">Após o envio, as informações somente poderão ser corrigidas pela Administração.</div>
         <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="11"><span aria-hidden="true">←</span> VOLTAR</button><button id="submitButton" class="submit-button" type="submit"><span id="submitText">ENVIAR CHECKLIST</span><span id="submitSpinner" class="spinner" hidden></span></button></div>
       </section>
     </form>
@@ -89,24 +92,22 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <div id="sendingModal" class="modal" hidden aria-live="polite" aria-modal="true" role="dialog">
+  <div id="sendingModal" class="modal" hidden>
     <div class="modal-panel sending-panel">
-      <div class="sending-spinner"></div>
-      <h2>Enviando checklist</h2>
-      <p>Aguarde enquanto o SIGVTR registra as informações.</p>
-      <div id="sendingStages" class="sending-stages"></div>
-      <small class="sending-note">Não feche o navegador durante este processo.</small>
+      <h2>Enviando checklist</h2><p>Aguarde enquanto processamos os dados.</p>
+      <div class="sending-steps">
+        <div data-send-step="validate"><i></i><span>Validando informações</span></div>
+        <div data-send-step="prepare"><i></i><span>Preparando fotografias</span></div>
+        <div data-send-step="send"><i></i><span>Enviando dados ao sistema</span></div>
+        <div data-send-step="server"><i></i><span>Aguardando confirmação do servidor</span></div>
+        <div data-send-step="protocol"><i></i><span>Gerando protocolo</span></div>
+        <div data-send-step="finish"><i></i><span>Finalizando</span></div>
+      </div>
+      <div class="sending-note">Não feche o navegador. O processo pode levar alguns segundos.</div>
     </div>
   </div>
 
-  <div id="successModal" class="modal" hidden>
-    <div class="modal-panel">
-      <div class="success-icon">✓</div>
-      <h2>Checklist enviado</h2>
-      <p id="successMessage">Registro realizado com sucesso.</p>
-      <div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div>
-    </div>
-  </div>
+  <div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage">Registro realizado com sucesso.</p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
 
   <footer><p>P4 – 20º Batalhão da Polícia Militar do Pará</p><p>SIGVTR · © 2026</p><p class="support-text">Dúvidas ou sugestões? Escreva para <a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a>. Respondemos em dias úteis, das 9h às 16h.</p></footer>
   <script src="js/app.js?v=1.7.0"></script>

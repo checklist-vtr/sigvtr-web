@@ -119,20 +119,19 @@
 ## [1.7.0] - 2026-07-29
 
 ### Adicionado
-- Fluxo do Checklist Mobile dividido em 12 etapas.
-- Nove páginas específicas de inspeção por categoria.
-- Lista ampliada e detalhada de componentes da viatura.
-- Página exclusiva para o compartimento de detidos (xadrez).
-- Resumo completo antes do envio definitivo.
-- Tela de acompanhamento visual durante o envio ao Apps Script.
+- Fluxo guiado com 12 etapas no Checklist Mobile.
+- Nove categorias específicas de inspeção entre identificação e fotografias.
+- Resumo completo antes do envio.
+- Tela visual de acompanhamento durante o processamento do checklist.
+- Itens detalhados de pneus, iluminação, lataria, cabine e compartimento de detidos.
 
 ### Corrigido
-- Removida a duplicidade genérica de "Limpador de Para-brisa".
-- Limpadores especificados como dianteiro e traseiro.
-- Faróis, lanternas, pneus, rodas, portas e demais componentes separados por posição.
+- Removida a duplicidade do item limpador de para-brisa.
+- Diferenciados o limpador dianteiro e o limpador do vidro traseiro.
+- Substituída a referência genérica a porta-malas pelo compartimento de detidos (xadrez).
 
 ### Mantido
+- Contrato atual `salvarRetiradaMobile` com o Google Apps Script.
 - Cinco fotografias obrigatórias.
-- Confirmação final do usuário.
-- Contrato de envio `salvarRetiradaMobile`.
-- Modal final de sucesso com protocolo, novo checklist e atualização.
+- Tela final de protocolo e os botões de novo checklist e atualização.
+- Painel administrativo sem alterações.
