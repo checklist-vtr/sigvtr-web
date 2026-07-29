@@ -1,4 +1,4 @@
-# CHANGELOG — SIGVTR v1.8.2
+# CHANGELOG — SIGVTR v1.8.3
 
 ## Frota
 
@@ -19,5 +19,5 @@
 
 ## PWA
 
-- Cache atualizado para `sigvtr-mobile-v182`.
+- Cache atualizado para `sigvtr-mobile-v183`.
 - Correção dos caminhos dos ícones no Service Worker.

@@ -1,7 +1,7 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
 
-const APP_VERSION = "1.8.2";
+const APP_VERSION = "1.8.3";
 const FIXED_PREFIX_PATTERN = /^50-(200[1-9]|201[0-9]|202[0-1])$/;
 const EXTERNAL_PREFIX_PATTERN = /^\d{1,20}$/;
 const PERSON_NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿ ]{2,120}$/;

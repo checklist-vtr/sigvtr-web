@@ -1,4 +1,4 @@
-# SIGVTR v1.8.2 — Instalação segura
+# SIGVTR v1.8.3 — Instalação segura
 
 ## 1. Backup
 
@@ -34,7 +34,7 @@ Na primeira execução, o Google poderá solicitar autorização.
 
 ### Teste pela implantação de desenvolvimento
 
-Abra a URL `/dev` sem parâmetros. Deve retornar `packageVersion: 1.8.2`.
+Abra a URL `/dev` sem parâmetros. Deve retornar `packageVersion: 1.8.3`.
 
 Depois teste:
 
@@ -46,7 +46,7 @@ O retorno esperado é uma lista ou `{"success":true,"avarias":[]}`.
 
 Após os testes:
 
-`Implantar` → `Gerenciar implantações` → editar a implantação atual → `Nova versão` → descrição `SIGVTR Backend v1.8.2` → `Implantar`.
+`Implantar` → `Gerenciar implantações` → editar a implantação atual → `Nova versão` → descrição `SIGVTR Backend v1.8.3` → `Implantar`.
 
 Mantenha a URL `/exec` já usada no frontend.
 
@@ -54,7 +54,7 @@ Mantenha a URL `/exec` já usada no frontend.
 
 Substitua o projeto publicado pelos arquivos completos deste pacote. O diretório `admin/` foi preservado.
 
-O Service Worker usa o cache `sigvtr-mobile-v182`.
+O Service Worker usa o cache `sigvtr-mobile-v183`.
 
 Depois de publicar no GitHub Pages:
 
