@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0d47a1">
-  <link rel="icon" href="favicon.ico?v=1.7.0" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.7.0">
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.7.0">
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.7.0">
-  <link rel="manifest" href="manifest.json?v=1.7.0">
+  <link rel="icon" href="favicon.ico?v=1.8.0" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.8.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.8.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.8.0">
+  <link rel="manifest" href="manifest.json?v=1.8.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SIGVTR">
   <meta name="description" content="Checklist operacional de viaturas do SIGVTR">
-  <link rel="stylesheet" href="css/style.css?v=1.7.0">
+  <link rel="stylesheet" href="css/style.css?v=1.8.0">
   <title>SIGVTR | Checklist de Viaturas</title>
 </head>
 <body>
@@ -61,6 +61,10 @@
           <label class="field"><span>KM *</span><input id="km" name="km" type="number" min="0" step="1" required inputmode="numeric" placeholder="Quilometragem atual"></label>
           <label class="field full"><span>Equipe *</span><textarea id="equipe" name="equipe" rows="3" maxlength="300" required placeholder="Informe os integrantes da equipe"></textarea></label>
         </div>
+        <section id="pendingDamagesPanel" class="pending-damages-panel" aria-live="polite">
+          <div class="pending-damages-title"><div><strong>Avarias já registradas</strong><small>Confirme a situação antes de iniciar a inspeção.</small></div></div>
+          <div id="pendingDamagesList"><p class="damage-empty">Selecione a viatura para consultar avarias já registradas.</p></div>
+        </section>
         <div class="page-actions single"><button class="primary-button next-button" type="button" data-next="2">PRÓXIMA ETAPA <span aria-hidden="true">→</span></button></div>
       </section>
 
@@ -110,6 +114,6 @@
   <div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage">Registro realizado com sucesso.</p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
 
   <footer><p>P4 – 20º Batalhão da Polícia Militar do Pará</p><p>SIGVTR · © 2026</p><p class="support-text">Dúvidas ou sugestões? Escreva para <a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a>. Respondemos em dias úteis, das 9h às 16h.</p></footer>
-  <script src="js/app.js?v=1.7.0"></script>
+  <script src="js/app.js?v=1.8.0"></script>
 </body>
 </html>

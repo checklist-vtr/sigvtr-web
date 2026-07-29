@@ -1009,3 +1009,10 @@ footer p {
   .summary-grid { grid-template-columns: 1fr; }
   .summary-grid > div:nth-child(odd) { border-right: 0; }
 }
+
+/* Checklist Mobile v1.8.0 - avarias pendentes */
+.pending-damages-panel{margin-top:18px;padding:16px;border:1px solid var(--border,#cbd8e6);border-radius:14px;background:var(--surface-soft,#f4f8fc)}
+.pending-damages-title{display:flex;align-items:center;gap:10px;margin-bottom:12px}.pending-damages-title strong{display:block;color:var(--text,#10243d)}.pending-damages-title small{display:block;margin-top:3px;color:var(--muted,#60758a)}
+.damage-empty,.damage-query-error,.damage-loading{margin:0;padding:12px;border-radius:10px;background:var(--surface,#fff);color:var(--muted,#60758a)}.damage-empty.success{color:#137a43;border:1px solid #b9e4cd}.damage-query-error{color:#a43131;border:1px solid #efc1c1}
+.known-damage-card{padding:13px;margin-top:10px;border:1px solid #efc278;border-left:5px solid #e59b20;border-radius:11px;background:#fffaf0}.known-damage-heading{display:flex;justify-content:space-between;gap:12px;align-items:start}.known-damage-heading span{font-size:.72rem;font-weight:800;color:#9a6200}.known-damage-card p{margin:8px 0 5px}.known-damage-card small{color:#66798c}.damage-decisions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.damage-decisions button{min-height:40px;padding:7px;border:1px solid #b8c9d9;border-radius:8px;background:#fff;color:#17466f;font-size:.68rem;font-weight:800}.damage-decisions button.selected{background:#0d5b9f;color:#fff;border-color:#0d5b9f}.known-damage-item{border-color:#e7b65e}.known-damage-badge{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:999px;background:#fff0cf;color:#8a5800;font-size:.63rem;font-weight:800}
+@media(max-width:620px){.damage-decisions{grid-template-columns:1fr}.damage-decisions button{font-size:.72rem}}

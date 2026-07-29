@@ -135,3 +135,11 @@
 - Cinco fotografias obrigatórias.
 - Tela final de protocolo e os botões de novo checklist e atualização.
 - Painel administrativo sem alterações.
+
+## [1.8.0] - 2026-07-29
+### Adicionado
+- Consulta de avarias pendentes ao selecionar a viatura.
+- Confirmação obrigatória: continua igual, agravou ou solicitar verificação.
+- Destaque nos itens que já possuem avaria registrada.
+- Envio das decisões ao Apps Script sem gerar avarias duplicadas.
+- Backend `Complemento_Mobile_v4.gs` para substituir o complemento mobile v3.

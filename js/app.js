@@ -115,7 +115,10 @@ const state = {
   itemDescriptions: {},
   photos: { frontal: null, traseira: null, lado_esquerdo: null, lado_direito: null, odometro: null },
   device: {},
-  deferredInstallPrompt: null
+  deferredInstallPrompt: null,
+  pendingDamages: [],
+  pendingDamageDecisions: {},
+  pendingDamagesLoading: false
 };
 
 const $ = selector => document.querySelector(selector);
@@ -201,11 +204,13 @@ function bindEvents() {
     const choice = event.target.closest(".status-choice");
     const capture = event.target.closest("[data-capture]");
     const remove = event.target.closest(".remove-photo");
+    const damageDecision = event.target.closest("[data-damage-decision]");
 
     if (next) goToNextStep(Number(next.dataset.next));
     if (prev) showStep(Number(prev.dataset.prev));
     if (choice) setItemStatus(choice.dataset.item, choice.dataset.status, choice.closest(".inspection-card"));
     if (capture) $(`#photo_${capture.dataset.capture}`).click();
+    if (damageDecision) setPendingDamageDecision(damageDecision.dataset.damageId, damageDecision.dataset.damageDecision);
     if (remove) {
       const type = remove.dataset.removePhoto;
       state.photos[type] = null;
@@ -236,10 +241,12 @@ function bindEvents() {
   $("#newChecklistButton").addEventListener("click", resetForm);
   $("#closeAndRefreshButton")?.addEventListener("click", clearAppCacheAndRefresh);
   $("#installButton").addEventListener("click", installApp);
-  $("#prefixo").addEventListener("change", syncPrefixSelector);
+  $("#prefixo").addEventListener("change", async () => { syncPrefixSelector(); await loadPendingDamages(); });
   $("#prefixoOutro").addEventListener("input", event => {
     event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
     event.target.closest(".field")?.classList.remove("invalid");
+    clearTimeout(loadPendingDamages.timer);
+    loadPendingDamages.timer = setTimeout(loadPendingDamages, 450);
   });
 
   window.addEventListener("beforeinstallprompt", event => {
@@ -370,8 +377,16 @@ function validateIdentification() {
     $("#prefixo").closest(".field").classList.add("invalid");
     firstInvalid = $("#prefixoOutro");
   }
+  if (valid && state.pendingDamages.length) {
+    const undecided = state.pendingDamages.find(damage => !state.pendingDamageDecisions[damage.idAvaria]);
+    if (undecided) {
+      valid = false;
+      firstInvalid = $("#pendingDamagesPanel");
+      showToast("Confirme a situação das avarias já registradas.", "error");
+    }
+  }
   if (!valid) {
-    showToast("Preencha corretamente todos os campos obrigatórios.", "error");
+    if (!state.pendingDamages.length || !state.pendingDamages.find(damage => !state.pendingDamageDecisions[damage.idAvaria])) showToast("Preencha corretamente todos os campos obrigatórios.", "error");
     firstInvalid?.focus();
   }
   return valid;
@@ -453,6 +468,93 @@ function renderPhoto(type) {
   $("#photoError").hidden = true;
 }
 
+
+async function loadPendingDamages() {
+  const prefix = getPrefixValue();
+  state.pendingDamages = [];
+  state.pendingDamageDecisions = {};
+  renderPendingDamages();
+  if (!prefix || !validatePrefix(prefix) || state.pendingDamagesLoading) return;
+
+  state.pendingDamagesLoading = true;
+  renderPendingDamages(true);
+  try {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", "avariasPendentes");
+    url.searchParams.set("prefixo", prefix);
+    const response = await fetch(url.toString(), { method: "GET", redirect: "follow" });
+    const result = JSON.parse(await response.text());
+    if (!result.success) throw new Error(result.message || "Falha ao consultar avarias.");
+    state.pendingDamages = Array.isArray(result.avarias) ? result.avarias : [];
+    renderPendingDamages();
+    highlightKnownDamageCards();
+  } catch (error) {
+    console.error(error);
+    renderPendingDamages(false, "Não foi possível consultar as avarias pendentes. Você pode tentar novamente selecionando a viatura.");
+  } finally {
+    state.pendingDamagesLoading = false;
+  }
+}
+
+function renderPendingDamages(loading = false, errorMessage = "") {
+  const panel = $("#pendingDamagesPanel");
+  const list = $("#pendingDamagesList");
+  if (!panel || !list) return;
+  panel.hidden = false;
+  panel.classList.toggle("has-damages", state.pendingDamages.length > 0);
+
+  if (loading) {
+    list.innerHTML = '<div class="damage-loading"><span class="spinner"></span> Consultando avarias pendentes...</div>';
+    return;
+  }
+  if (errorMessage) {
+    list.innerHTML = `<div class="damage-query-error">${escapeHtml(errorMessage)}</div>`;
+    return;
+  }
+  if (!getPrefixValue()) {
+    list.innerHTML = '<p class="damage-empty">Selecione a viatura para consultar avarias já registradas.</p>';
+    return;
+  }
+  if (!state.pendingDamages.length) {
+    list.innerHTML = '<p class="damage-empty success">Nenhuma avaria pendente encontrada para esta viatura.</p>';
+    return;
+  }
+
+  list.innerHTML = state.pendingDamages.map(damage => `
+    <article class="known-damage-card" data-known-damage="${escapeHtml(damage.idAvaria)}">
+      <div class="known-damage-heading"><strong>${escapeHtml(damage.item || "Avaria registrada")}</strong><span>${escapeHtml(damage.situacao || "PENDENTE")}</span></div>
+      <p>${escapeHtml(damage.descricao || "Sem descrição.")}</p>
+      <small>Registrada em ${escapeHtml(damage.dataDeteccao || "data não informada")}</small>
+      <div class="damage-decisions" role="group" aria-label="Situação da avaria ${escapeHtml(damage.item || "")}">
+        <button type="button" data-damage-id="${escapeHtml(damage.idAvaria)}" data-damage-decision="continua">CONTINUA IGUAL</button>
+        <button type="button" data-damage-id="${escapeHtml(damage.idAvaria)}" data-damage-decision="agravou">AGRAVOU</button>
+        <button type="button" data-damage-id="${escapeHtml(damage.idAvaria)}" data-damage-decision="solicitar_verificacao">SOLICITAR VERIFICAÇÃO</button>
+      </div>
+    </article>`).join("");
+}
+
+function setPendingDamageDecision(idAvaria, decision) {
+  state.pendingDamageDecisions[idAvaria] = decision;
+  const card = $(`[data-known-damage="${CSS.escape(idAvaria)}"]`);
+  card?.querySelectorAll("[data-damage-decision]").forEach(button => {
+    button.classList.toggle("selected", button.dataset.damageDecision === decision);
+  });
+}
+
+function highlightKnownDamageCards() {
+  $$(".inspection-card").forEach(card => card.classList.remove("known-damage-item"));
+  state.pendingDamages.forEach(damage => {
+    const key = normalizeKey(damage.item);
+    const card = $(`[data-item-key="${CSS.escape(key)}"]`);
+    if (card) {
+      card.classList.add("known-damage-item");
+      if (!card.querySelector(".known-damage-badge")) {
+        card.querySelector(".inspection-title")?.insertAdjacentHTML("beforeend", '<span class="known-damage-badge">AVARIA JÁ REGISTRADA</span>');
+      }
+    }
+  });
+}
+
 async function submitChecklist(event) {
   event.preventDefault();
   if (!validateFinalStep()) { showStep(11); return; }
@@ -465,6 +567,12 @@ async function submitChecklist(event) {
       postoGraduacao: $("#postoGraduacao").value, rg: $("#rg").value.trim(), turno: $("#turno").value,
       kmInicial: Number($("#km").value), equipe: $("#equipe").value.trim(), itens: state.itemStatus,
       descricoesAlteracoes: state.itemDescriptions,
+      avariasConhecidas: state.pendingDamages.map(damage => ({
+        idAvaria: damage.idAvaria,
+        item: damage.item,
+        itemKey: normalizeKey(damage.item),
+        decisao: state.pendingDamageDecisions[damage.idAvaria] || ""
+      })),
       fotos: Object.values(state.photos).map(({ tipo, name, mimeType, data }) => ({ tipo, name, mimeType, data })),
       dispositivo: state.device
     }
@@ -529,6 +637,9 @@ function resetForm() {
   state.itemStatus = {};
   state.itemDescriptions = {};
   state.photos = { frontal: null, traseira: null, lado_esquerdo: null, lado_direito: null, odometro: null };
+  state.pendingDamages = [];
+  state.pendingDamageDecisions = {};
+  renderPendingDamages();
   setCurrentDate();
   syncPrefixSelector();
   $$(".status-choice").forEach(button => button.classList.remove("selected"));
