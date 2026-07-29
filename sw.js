@@ -1,4 +1,4 @@
-const CACHE_NAME = "sigvtr-mobile-v6";
+const CACHE_NAME = "sigvtr-mobile-v7";
 const APP_FILES = [
   "./",
   "./index.html",
