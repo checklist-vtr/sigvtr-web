@@ -54,12 +54,12 @@
         <div class="field-grid">
           <label class="field full"><span>Prefixo da VTR *</span><input id="prefixo" name="prefixo" type="text" maxlength="7" required placeholder="Ex.: 50-2001 ou 110" autocomplete="off" autocapitalize="characters"><small class="field-hint">Selecione uma VTR da frota fixa ou informe uma viatura reserva.</small></label>
           <label class="field"><span>Data *</span><input id="data" name="data" type="date" required readonly></label>
-          <label class="field full"><span>Condutor *</span><input id="condutor" name="condutor" type="text" maxlength="120" required placeholder="Nome completo do condutor" autocomplete="name" autocapitalize="words"></label>
+          <label class="field full"><span>Condutor *</span><input id="condutor" name="condutor" type="text" maxlength="120" required placeholder="Nome completo do condutor" autocomplete="name" autocapitalize="words" pattern="[A-Za-zÀ-ÖØ-öø-ÿ ]{2,120}" title="Use somente letras e espaços."></label>
           <label class="field"><span>Posto/Graduação *</span><select id="postoGraduacao" name="postoGraduacao" required><option value="">Selecione</option><option>SD</option><option>CB</option><option>3º SGT</option><option>2º SGT</option><option>1º SGT</option><option>SUB TEN</option><option>2º TEN</option><option>1º TEN</option><option>CAP</option><option>MAJ</option><option>TEN CEL</option><option>CEL</option></select></label>
-          <label class="field"><span>RG *</span><input id="rg" name="rg" type="text" maxlength="20" required inputmode="numeric" placeholder="RG PMPA" autocomplete="off"></label>
+          <label class="field"><span>RG *</span><input id="rg" name="rg" type="text" maxlength="20" required inputmode="numeric" pattern="[0-9]+" placeholder="RG PMPA — somente números" autocomplete="off"></label>
           <label class="field"><span>Turno *</span><select id="turno" name="turno" required><option value="">Selecione</option><option>1º</option><option>2º</option><option>24HS</option></select></label>
-          <label class="field"><span>KM *</span><input id="km" name="km" type="number" min="0" step="1" required inputmode="numeric" placeholder="Quilometragem atual"></label>
-          <label class="field full"><span>Equipe *</span><textarea id="equipe" name="equipe" rows="3" maxlength="300" required placeholder="Informe os integrantes da equipe"></textarea></label>
+          <label class="field"><span>KM *</span><input id="km" name="km" type="text" maxlength="9" required inputmode="numeric" pattern="[0-9]+" placeholder="Quilometragem atual — somente números" autocomplete="off"></label>
+          <label class="field full"><span>Equipe *</span><textarea id="equipe" name="equipe" rows="3" maxlength="300" required placeholder="Informe a equipe usando letras, números e espaços"></textarea></label>
         </div>
         <section id="pendingDamagesPanel" class="pending-damages-panel" aria-live="polite">
           <div class="pending-damages-title"><div><strong>Avarias já registradas</strong><small>Confirme a situação antes de iniciar a inspeção.</small></div></div>

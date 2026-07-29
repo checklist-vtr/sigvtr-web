@@ -1,6 +1,15 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
 
+const APP_VERSION = "1.8.2";
+const FIXED_PREFIX_PATTERN = /^50-(200[1-9]|201[0-9]|202[0-1])$/;
+const EXTERNAL_PREFIX_PATTERN = /^\d{1,20}$/;
+const PERSON_NAME_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿ ]{2,120}$/;
+const RG_PATTERN = /^\d{1,20}$/;
+const KM_PATTERN = /^\d{1,9}$/;
+const TEAM_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9 ]{1,300}$/;
+const DESCRIPTION_PATTERN = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9 .,:;()\/-]{3,300}$/;
+
 const STEPS = [
   { id: 1, title: "Identificação" },
   { id: 2, title: "Pneus e Rodas", category: "Pneus e Rodas" },
@@ -186,7 +195,7 @@ function renderInspectionCardHtml(item) {
       </div>
     </div>
     <div class="change-description" id="description_${item.key}" hidden>
-      <textarea maxlength="500" placeholder="Descreva a alteração encontrada em ${escapeHtml(item.nome)}"></textarea>
+      <textarea maxlength="300" inputmode="text" autocomplete="off" placeholder="Descreva a alteração encontrada em ${escapeHtml(item.nome)}"></textarea>
     </div>
   </article>`;
 }
@@ -222,7 +231,9 @@ function bindEvents() {
     const textarea = event.target.closest(".change-description textarea");
     if (!textarea) return;
     const key = textarea.closest(".inspection-card").dataset.itemKey;
-    state.itemDescriptions[key] = textarea.value.trim();
+    const sanitized = sanitizeDescription(textarea.value);
+    if (textarea.value !== sanitized) textarea.value = sanitized;
+    state.itemDescriptions[key] = sanitized.trim();
   });
 
   $("#stepDots").addEventListener("click", event => {
@@ -243,11 +254,13 @@ function bindEvents() {
   $("#installButton").addEventListener("click", installApp);
   $("#prefixo").addEventListener("change", async () => { syncPrefixSelector(); await loadPendingDamages(); });
   $("#prefixoOutro").addEventListener("input", event => {
-    event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
+    event.target.value = keepDigits(event.target.value, 20);
     event.target.closest(".field")?.classList.remove("invalid");
     clearTimeout(loadPendingDamages.timer);
     loadPendingDamages.timer = setTimeout(loadPendingDamages, 450);
   });
+
+  bindSecureFieldFilters();
 
   window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
@@ -269,8 +282,11 @@ function initializePrefixSelector() {
   originalInput.name = "prefixoOutro";
   originalInput.required = false;
   originalInput.hidden = true;
-  originalInput.maxLength = 12;
-  originalInput.placeholder = "Digite o prefixo da viatura";
+  originalInput.maxLength = 20;
+  originalInput.inputMode = "numeric";
+  originalInput.pattern = "[0-9]+";
+  originalInput.autocomplete = "off";
+  originalInput.placeholder = "Digite apenas números. Ex.: 041 ou 110";
 
   const select = document.createElement("select");
   select.id = "prefixo";
@@ -282,7 +298,7 @@ function initializePrefixSelector() {
   }
   select.insertAdjacentHTML("beforeend", '<option value="__OUTRO__">Outro prefixo</option>');
   field.insertBefore(select, originalInput);
-  field.querySelector(".field-hint").textContent = "Selecione uma VTR da frota fixa ou escolha “Outro prefixo” para viatura reserva.";
+  field.querySelector(".field-hint").textContent = "Frota fixa: 50-2001 a 50-2021. Em “Outro prefixo”, informe apenas números da viatura externa.";
 }
 
 function syncPrefixSelector() {
@@ -298,8 +314,51 @@ function syncPrefixSelector() {
 
 function getPrefixValue() {
   return $("#prefixo").value === "__OUTRO__"
-    ? $("#prefixoOutro").value.trim().toUpperCase()
+    ? keepDigits($("#prefixoOutro").value, 20)
     : $("#prefixo").value.trim().toUpperCase();
+}
+
+function bindSecureFieldFilters() {
+  const condutor = $("#condutor");
+  const rg = $("#rg");
+  const km = $("#km");
+  const equipe = $("#equipe");
+
+  condutor.addEventListener("input", event => {
+    event.target.value = normalizeSpaces(event.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g, "")).slice(0, 120);
+    clearFieldError(event.target);
+  });
+
+  rg.addEventListener("input", event => {
+    event.target.value = keepDigits(event.target.value, 20);
+    clearFieldError(event.target);
+  });
+
+  km.addEventListener("input", event => {
+    event.target.value = keepDigits(event.target.value, 9);
+    clearFieldError(event.target);
+  });
+
+  equipe.addEventListener("input", event => {
+    event.target.value = normalizeSpaces(event.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ0-9 ]/g, "")).slice(0, 300);
+    clearFieldError(event.target);
+  });
+}
+
+function clearFieldError(field) {
+  field.closest(".field")?.classList.remove("invalid");
+}
+
+function keepDigits(value, maxLength) {
+  return String(value || "").replace(/\D/g, "").slice(0, maxLength);
+}
+
+function normalizeSpaces(value) {
+  return String(value || "").replace(/\s+/g, " ").replace(/^ +/, "");
+}
+
+function sanitizeDescription(value) {
+  return normalizeSpaces(String(value || "").replace(/[^A-Za-zÀ-ÖØ-öø-ÿ0-9 .,:;()\/-]/g, "")).slice(0, 300);
 }
 
 function setItemStatus(itemKey, status, card) {
@@ -359,39 +418,49 @@ function validateStep(step) {
 
 function validatePrefix(prefix) {
   const value = String(prefix || "").trim().toUpperCase();
-  return /^50-(200[1-9]|201[0-9]|202[0-1])$/.test(value) || /^(?!-)(?!.*--)[A-Z0-9-]{1,12}(?<!-)$/.test(value);
+  return FIXED_PREFIX_PATTERN.test(value) || EXTERNAL_PREFIX_PATTERN.test(value);
 }
 
 function validateIdentification() {
-  const fields = [$("#prefixo"), $("#data"), $("#condutor"), $("#postoGraduacao"), $("#rg"), $("#turno"), $("#km"), $("#equipe")];
-  let valid = true;
+  const validations = [
+    { field: $("#prefixo"), valid: Boolean($("#prefixo").value) && validatePrefix(getPrefixValue()), message: "Selecione uma viatura válida ou informe somente números em Outro prefixo." },
+    { field: $("#data"), valid: $("#data").checkValidity() && Boolean($("#data").value), message: "Informe a data." },
+    { field: $("#condutor"), valid: PERSON_NAME_PATTERN.test($("#condutor").value.trim()), message: "O nome do condutor deve conter somente letras e espaços." },
+    { field: $("#postoGraduacao"), valid: Boolean($("#postoGraduacao").value), message: "Selecione o posto ou graduação." },
+    { field: $("#rg"), valid: RG_PATTERN.test($("#rg").value.trim()), message: "O RG deve conter somente números." },
+    { field: $("#turno"), valid: Boolean($("#turno").value), message: "Selecione o turno." },
+    { field: $("#km"), valid: KM_PATTERN.test(String($("#km").value).trim()), message: "A quilometragem deve conter somente números inteiros." },
+    { field: $("#equipe"), valid: TEAM_PATTERN.test($("#equipe").value.trim()), message: "A equipe deve conter somente letras, números e espaços." }
+  ];
+
   let firstInvalid = null;
-  fields.forEach(field => {
-    let fieldValid = field.checkValidity() && String(field.value).trim() !== "";
-    if (field.id === "prefixo" && fieldValid) fieldValid = validatePrefix(getPrefixValue());
-    field.closest(".field").classList.toggle("invalid", !fieldValid);
-    if (!fieldValid && !firstInvalid) { valid = false; firstInvalid = field; }
+  let firstMessage = "";
+
+  validations.forEach(item => {
+    item.field.closest(".field")?.classList.toggle("invalid", !item.valid);
+    if (!item.valid && !firstInvalid) {
+      firstInvalid = item.field;
+      firstMessage = item.message;
+    }
   });
-  if ($("#prefixo").value === "__OUTRO__" && !validatePrefix(getPrefixValue())) {
-    valid = false;
-    $("#prefixo").closest(".field").classList.add("invalid");
-    firstInvalid = $("#prefixoOutro");
-  }
-  if (valid && state.pendingDamages.length) {
+
+  if (!firstInvalid && state.pendingDamages.length) {
     const undecided = state.pendingDamages.find(damage => !state.pendingDamageDecisions[damage.idAvaria]);
     if (undecided) {
-      valid = false;
       firstInvalid = $("#pendingDamagesPanel");
-      showToast("Confirme a situação das avarias já registradas.", "error");
+      firstMessage = "Confirme a situação de todas as avarias já registradas.";
     }
   }
-  if (!valid) {
-    if (!state.pendingDamages.length || !state.pendingDamages.find(damage => !state.pendingDamageDecisions[damage.idAvaria])) showToast("Preencha corretamente todos os campos obrigatórios.", "error");
-    firstInvalid?.focus();
-  }
-  return valid;
-}
 
+  if (firstInvalid) {
+    showToast(firstMessage, "error");
+    firstInvalid.focus?.();
+    firstInvalid.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    return false;
+  }
+
+  return true;
+}
 function validateInspectionStep(step) {
   const items = state.items.filter(item => item.step === step);
   let valid = true;
@@ -400,7 +469,8 @@ function validateInspectionStep(step) {
     const status = state.itemStatus[item.key];
     const card = $(`[data-item-key="${item.key}"]`);
     card.classList.remove("invalid-card");
-    if (!status || (status === "nao" && !String(state.itemDescriptions[item.key] || "").trim())) {
+    const description = String(state.itemDescriptions[item.key] || "").trim();
+    if (!status || (status === "nao" && !DESCRIPTION_PATTERN.test(description))) {
       valid = false;
       card.classList.add("invalid-card");
       firstProblem ||= card;
@@ -409,7 +479,7 @@ function validateInspectionStep(step) {
   const error = $(`.form-page[data-page="${step}"] .inspection-error`);
   error.hidden = valid;
   if (!valid) {
-    showToast("Avalie todos os itens e descreva cada alteração.", "error");
+    showToast("Avalie todos os itens. Em caso de alteração, use uma descrição de 3 a 300 caracteres sem símbolos especiais.", "error");
     firstProblem?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   return valid;
@@ -563,9 +633,9 @@ async function submitChecklist(event) {
   const payload = {
     action: "salvarRetiradaMobile",
     data: {
-      prefixo: getPrefixValue(), dataCliente: $("#data").value, condutor: $("#condutor").value.trim(),
-      postoGraduacao: $("#postoGraduacao").value, rg: $("#rg").value.trim(), turno: $("#turno").value,
-      kmInicial: Number($("#km").value), equipe: $("#equipe").value.trim(), itens: state.itemStatus,
+      prefixo: getPrefixValue(), dataCliente: $("#data").value, condutor: normalizeSpaces($("#condutor").value).trim(),
+      postoGraduacao: $("#postoGraduacao").value, rg: keepDigits($("#rg").value, 20), turno: $("#turno").value,
+      kmInicial: Number(keepDigits($("#km").value, 9)), equipe: normalizeSpaces($("#equipe").value).trim(), itens: state.itemStatus,
       descricoesAlteracoes: state.itemDescriptions,
       avariasConhecidas: state.pendingDamages.map(damage => ({
         idAvaria: damage.idAvaria,

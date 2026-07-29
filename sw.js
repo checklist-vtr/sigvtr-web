@@ -1,12 +1,12 @@
-const CACHE_NAME = "sigvtr-mobile-v8";
+const CACHE_NAME = "sigvtr-mobile-v182";
 const APP_FILES = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/app.js",
   "./manifest.json",
-  "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png",
+  "./assets/icons/android-chrome-192x192.png",
+  "./assets/icons/android-chrome-512x512.png",
   "./assets/logo/brasao-20bpm.webp",
   "./assets/logo/brasao-20bpm.png"
 ];
