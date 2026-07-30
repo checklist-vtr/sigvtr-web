@@ -1,4 +1,54 @@
-const CACHE_NAME="sigvtr-mobile-v191";const APP_FILES=["./","./index.html","./css/style.css?v=1.9.1","./js/app.js?v=1.9.1","./manifest.json","./assets/icons/android-chrome-192x192.png","./assets/icons/android-chrome-512x512.png","./assets/logo/brasao-20bpm.webp","./assets/logo/brasao-20bpm-oficial.webp"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_FILES)));self.skipWaiting()});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return;const u=new URL(e.request.url);if(u.origin!==self.location.origin)return;e.respondWith(fetch(e.request).then(r=>{if(r&&r.ok)caches.open(CACHE_NAME).then(c=>c.put(e.request,r.clone()));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match("./index.html"))))});
+const CACHE_NAME = "sigvtr-mobile-v192";
+const APP_FILES = [
+  "./",
+  "./index.html?v=1.9.2",
+  "./css/style.css?v=1.9.2",
+  "./js/app.js?v=1.9.2",
+  "./manifest.json?v=1.9.2",
+  "./assets/icons/android-chrome-192x192.png",
+  "./assets/icons/android-chrome-512x512.png",
+  "./assets/logo/brasao-20bpm.webp",
+  "./assets/logo/brasao-20bpm-oficial.webp"
+];
+
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isDocument = event.request.mode === "navigate" || event.request.destination === "document";
+  if (isDocument) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then(response => {
+          if (response && response.ok) {
+            caches.open(CACHE_NAME).then(cache => cache.put("./index.html?v=1.9.2", response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match("./index.html?v=1.9.2"))
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        if (response && response.ok) caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});

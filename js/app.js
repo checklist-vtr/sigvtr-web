@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.9.1";
+const APP_VERSION="1.9.2";
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
 const EXTERNAL_PREFIX=/^\d{1,20}$/;
 const NAME_PATTERN=/^[A-Za-zÀ-ÖØ-öø-ÿ ]{2,80}$/;
@@ -63,4 +63,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.1").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.2").catch(()=>{})}

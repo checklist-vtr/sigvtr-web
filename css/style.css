@@ -11,3 +11,41 @@
 .quality-checklist span{background:#edf7f2;color:var(--green);border:1px solid #cbe2d7;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:700}
 .submit-button:disabled{opacity:.65;cursor:not-allowed}
 @media(max-width:650px){.intro-crest{width:105px}.intro-identity h1{font-size:1.28rem}.photo-quality-panel .success-actions{flex-direction:column}.photo-quality-panel .success-actions button{width:100%}}
+
+/* v1.9.2 — correção visual e responsiva do cabeçalho inicial */
+.intro-identity{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:24px 18px;
+}
+.intro-crest{
+  display:block;
+  width:clamp(92px,18vw,150px);
+  height:auto;
+  max-height:180px;
+  object-fit:contain;
+  margin:0 auto 14px;
+}
+.intro-identity .eyebrow,
+.intro-identity h1,
+.intro-identity p{
+  width:100%;
+  text-align:center;
+}
+.intro-identity h1{max-width:760px;margin:6px auto 8px}
+.intro-identity p{max-width:760px;margin:0 auto}
+.initial-photos.single-photo{
+  grid-template-columns:minmax(0,1fr);
+  max-width:760px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.initial-photos.single-photo .photo-card{width:100%}
+@media(max-width:650px){
+  .intro-identity{padding:20px 14px}
+  .intro-crest{width:clamp(86px,28vw,128px)}
+  .intro-identity h1{font-size:1.25rem;line-height:1.25}
+}
