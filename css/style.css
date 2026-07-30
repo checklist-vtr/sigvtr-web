@@ -57,3 +57,6 @@
 .step-dot:focus-visible{outline:3px solid #0b6b50;outline-offset:3px}
 .summary-damage{margin:.75rem 0;padding:.85rem;border:1px solid #d9a441;border-left:5px solid #b7791f;border-radius:.65rem;background:#fffaf0}
 .summary-damage p{margin:.25rem 0}
+
+/* v1.9.8 — interação segura do modal de fotografias */
+body.modal-open{overflow:hidden}.photo-quality-panel{position:relative;z-index:2}.photo-quality-panel .success-actions{position:relative;z-index:3}.photo-quality-panel button{position:relative;z-index:4;cursor:pointer;touch-action:manipulation;pointer-events:auto;min-height:54px;-webkit-tap-highlight-color:transparent}.photo-quality-panel button:active{transform:translateY(1px)}.quality-preview{pointer-events:none}.quality-checklist{pointer-events:none}

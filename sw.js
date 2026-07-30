@@ -1,9 +1,9 @@
-const CACHE_NAME = "sigvtr-mobile-v197";
+const CACHE_NAME = "sigvtr-mobile-v198";
 const APP_FILES = [
   "./",
   "./index.html?v=1.9.7-build2",
   "./css/style.css?v=1.9.7-build2",
-  "./js/app.js?v=1.9.7-build2",
+  "./js/app.js?v=1.9.8-build2",
   "./manifest.json?v=1.9.7-build2",
   "./assets/icons/android-chrome-192x192.png",
   "./assets/icons/android-chrome-512x512.png",

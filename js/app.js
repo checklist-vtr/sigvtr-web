@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.9.7";
+const APP_VERSION="1.9.8";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -46,7 +46,29 @@ function buildStepper(){$("#stepDots").innerHTML=STEPS.map((_,i)=>`<button type=
 function renderItems(){renderGroup("externalItems",ITEMS.external);renderGroup("internalItems",ITEMS.internal);renderGroup("engineItems",ITEMS.engine)}
 function renderGroup(id,items){$("#"+id).innerHTML=items.map(item=>`<article class="inspection-card" data-key="${item.key}"><h3>${escapeHtml(item.name)}</h3><p class="item-note">${escapeHtml(item.note|| (item.optional?"Opcional — use Não se aplica quando ausente de fábrica.":"Selecione a condição encontrada."))}</p><div class="known-damages"></div><div class="status-buttons"><button type="button" class="status-choice ok" data-status="ok">SEM ALTERAÇÃO</button><button type="button" class="status-choice change" data-status="nao">COM ALTERAÇÃO</button>${item.optional?'<button type="button" class="status-choice na" data-status="na">NÃO SE APLICA</button>':''}</div><div class="change-panel" hidden><textarea maxlength="300" placeholder="Descreva a alteração encontrada"></textarea><div class="inline-photo"><button type="button" data-capture="avaria_${item.key}">INSERIR FOTO DA ALTERAÇÃO</button><input id="photo_avaria_${item.key}" type="file" accept="image/*" capture="environment" hidden><div class="photo-preview"></div></div></div></article>`).join("")}
 function renderFinalPhotos(){$("#finalPhotoGrid").innerHTML=FINAL_PHOTOS.map(p=>`<div class="photo-card" data-photo-card="${p.type}"><h3>${p.label}</h3><p>Obrigatória</p><button type="button" data-capture="${p.type}">INSERIR FOTO</button><input id="photo_${p.type}" type="file" accept="image/*" capture="environment" hidden><div class="photo-preview"></div></div>`).join("")}
-function bind(){document.addEventListener("click",e=>{const n=e.target.closest(".next-button"),p=e.target.closest(".prev-button"),c=e.target.closest(".status-choice"),cap=e.target.closest("[data-capture]"),rm=e.target.closest(".remove-photo"),dd=e.target.closest("[data-damage-decision]");const jump=e.target.closest("[data-jump]");if(n)next(Number(n.dataset.next));if(p)showStep(Number(p.dataset.prev));if(jump)navigateToStep(Number(jump.dataset.jump));if(c)setStatus(c.closest(".inspection-card"),c.dataset.status);if(cap)$("#photo_"+cap.dataset.capture).click();if(rm){delete state.photos[rm.dataset.removePhoto];renderPhoto(rm.dataset.removePhoto)}if(dd){state.decisions[dd.dataset.damageId]=dd.dataset.damageDecision;renderKnownDamages()}});document.addEventListener("change",async e=>{if(e.target.id==="turno"){const other=e.target.value==="OUTROS";$("#otherOperationWrap").hidden=!other;if(!other)$("#otherOperation").value=""}if(e.target.id==="prefixoSelect"){const other=e.target.value==="OUTRO";$("#otherPrefixWrap").hidden=!other;if(!other)$("#otherPrefix").value="";await loadPending()}if(e.target.type==="file"&&e.target.id.startsWith("photo_")){const type=e.target.id.replace("photo_","");if(e.target.files[0])await loadPhoto(type,e.target.files[0]);e.target.value=""}});document.addEventListener("input",e=>{if(e.target.id==="condutor")e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}});$("#checklistForm").addEventListener("submit",submit);$("#newChecklistButton").onclick=()=>location.reload();$("#closeAndRefreshButton").onclick=()=>location.reload();$("#confirmPhotoQuality").onclick=confirmPendingPhoto;$("#retakePhoto").onclick=retakePendingPhoto}
+function bind(){
+  document.addEventListener("click",e=>{
+    const confirmButton=e.target.closest("#confirmPhotoQuality");
+    const retakeButton=e.target.closest("#retakePhoto");
+    if(confirmButton){e.preventDefault();e.stopPropagation();confirmPendingPhoto();return}
+    if(retakeButton){e.preventDefault();e.stopPropagation();retakePendingPhoto();return}
+    const n=e.target.closest(".next-button"),p=e.target.closest(".prev-button"),c=e.target.closest(".status-choice"),cap=e.target.closest("[data-capture]"),rm=e.target.closest(".remove-photo"),dd=e.target.closest("[data-damage-decision]");
+    const jump=e.target.closest("[data-jump]");
+    if(n)next(Number(n.dataset.next));
+    if(p)showStep(Number(p.dataset.prev));
+    if(jump)navigateToStep(Number(jump.dataset.jump));
+    if(c)setStatus(c.closest(".inspection-card"),c.dataset.status);
+    if(cap){const input=$("#photo_"+cap.dataset.capture);if(input)input.click()}
+    if(rm){delete state.photos[rm.dataset.removePhoto];renderPhoto(rm.dataset.removePhoto)}
+    if(dd){state.decisions[dd.dataset.damageId]=dd.dataset.damageDecision;renderKnownDamages()}
+  });
+  document.addEventListener("change",async e=>{if(e.target.id==="turno"){const other=e.target.value==="OUTROS";$("#otherOperationWrap").hidden=!other;if(!other)$("#otherOperation").value=""}if(e.target.id==="prefixoSelect"){const other=e.target.value==="OUTRO";$("#otherPrefixWrap").hidden=!other;if(!other)$("#otherPrefix").value="";await loadPending()}if(e.target.type==="file"&&e.target.id.startsWith("photo_")){const type=e.target.id.replace("photo_","");if(e.target.files[0])await loadPhoto(type,e.target.files[0]);e.target.value=""}});
+  document.addEventListener("input",e=>{if(e.target.id==="condutor")e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}});
+  $("#checklistForm").addEventListener("submit",submit);
+  $("#newChecklistButton").addEventListener("click",()=>location.reload());
+  $("#closeAndRefreshButton").addEventListener("click",()=>location.reload());
+  $("#photoQualityModal").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();confirmPendingPhoto()}else if(e.key==="Escape"){e.preventDefault();retakePendingPhoto()}});
+}
 function navigateToStep(target){
   if(!Number.isInteger(target)||target<1||target>STEPS.length||state.isSubmitting)return;
   if(target<=state.step){showStep(target);return;}
@@ -72,9 +94,11 @@ function openPhotoQuality(type,photo){
   $("#photoQualityText").textContent=isPanel?"Confirme se o KM e o nível de combustível aparecem nítidos, sem reflexo, corte ou imagem embaçada.":"Confirme se toda a face da viatura está enquadrada, nítida, sem corte, reflexo excessivo ou imagem embaçada.";
   $("#photoQualityChecklist").innerHTML=isPanel?"<span>✓ KM visível</span><span>✓ Combustível visível</span><span>✓ Imagem nítida</span>":"<span>✓ Viatura inteira visível</span><span>✓ Lado correto</span><span>✓ Imagem nítida</span>";
   $("#photoQualityModal").hidden=false;
+  document.body.classList.add("modal-open");
+  setTimeout(()=>$("#confirmPhotoQuality").focus(),0);
 }
-function confirmPendingPhoto(){if(!state.pendingPhoto)return;state.photos[state.pendingPhoto.type]=state.pendingPhoto.photo;renderPhoto(state.pendingPhoto.type);state.pendingPhoto=null;$("#photoQualityModal").hidden=true;toast("Foto confirmada como legível.")}
-function retakePendingPhoto(){const pending=state.pendingPhoto;state.pendingPhoto=null;$("#photoQualityModal").hidden=true;$("#photoQualityPreview").removeAttribute("src");if(pending)setTimeout(()=>$("#photo_"+pending.type).click(),120)}
+function confirmPendingPhoto(){const pending=state.pendingPhoto;if(!pending){toast("Selecione novamente a fotografia.");$("#photoQualityModal").hidden=true;return}state.photos[pending.type]=pending.photo;renderPhoto(pending.type);state.pendingPhoto=null;$("#photoQualityPreview").removeAttribute("src");$("#photoQualityModal").hidden=true;document.body.classList.remove("modal-open");toast("Foto confirmada como legível.")}
+function retakePendingPhoto(){const pending=state.pendingPhoto;state.pendingPhoto=null;$("#photoQualityModal").hidden=true;$("#photoQualityPreview").removeAttribute("src");document.body.classList.remove("modal-open");if(pending){const input=$("#photo_"+pending.type);if(input)setTimeout(()=>input.click(),180)}}
 function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement("canvas");canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);const dataUrl=canvas.toDataURL("image/jpeg",.72);resolve({tipo:"",name:(file.name||"foto.jpg").replace(/[^A-Za-z0-9._-]/g,"_"),mimeType:"image/jpeg",data:dataUrl.split(",")[1]})};img.onerror=reject;img.src=url})}
 function renderPhoto(type){const input=$("#photo_"+CSS.escape(type));if(!input)return;const host=input.parentElement.querySelector(".photo-preview"),photo=state.photos[type];host.innerHTML=photo?`<img src="data:${photo.mimeType};base64,${photo.data}" alt="Prévia"><button type="button" class="remove-photo" data-remove-photo="${type}">REMOVER</button>`:""}
 function next(target){if(!validateStep(state.step))return;if(target===6)renderSummary();showStep(target)}
@@ -101,4 +125,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.6-build2").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.8").catch(()=>{})}
