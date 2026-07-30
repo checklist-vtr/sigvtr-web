@@ -1,4 +1,4 @@
-# Roteiro de teste piloto — Checklist do Condutor v1.9.1
+# Roteiro de teste piloto — Checklist do Condutor v1.9.2
 
 ## Foto inicial
 

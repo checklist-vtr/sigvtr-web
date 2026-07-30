@@ -278,6 +278,15 @@ Versão inicial: 1.0
 O checklist operacional é apresentado em 12 etapas. As inspeções são organizadas por categoria para reduzir rolagem e fadiga visual. O envio continua utilizando a ação `salvarRetiradaMobile` do Google Apps Script e a tela final de protocolo foi preservada.
 
 
-## Ajustes da versão 1.9.1
+## Ajustes da versão 1.9.4
 
 A foto inicial foi unificada em uma única imagem do painel, contendo KM e combustível. A imagem só é aceita após confirmação de legibilidade. O envio possui proteção contra cliques repetidos e o brasão oficial do 20º BPM aparece centralizado na abertura.
+
+## Verificação obrigatória da versão 1.9.4
+
+A interface correta exibe `v1.9.4` no topo, o brasão centralizado no cartão inicial e apenas um campo chamado **Foto do painel: odômetro e combustível**.
+
+
+## Ajustes da versão 1.9.4
+
+A identificação do Checklist do Condutor possui o campo obrigatório **Turno**, com as opções **1º Turno**, **2º Turno**, **Extraordinário** e **Outros**. O valor é validado nas duas camadas e registrado na retirada.
