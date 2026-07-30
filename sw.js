@@ -1,54 +1,18 @@
-const CACHE_NAME = "sigvtr-mobile-v195";
+const CACHE_NAME = "sigvtr-mobile-v196-build2";
 const APP_FILES = [
   "./",
-  "./index.html?v=1.9.5",
-  "./css/style.css?v=1.9.5",
-  "./js/app.js?v=1.9.5",
-  "./manifest.json?v=1.9.5",
+  "./index.html?v=1.9.6-build2",
+  "./css/style.css?v=1.9.6-build2",
+  "./js/app.js?v=1.9.6-build2",
+  "./manifest.json?v=1.9.6-build2",
   "./assets/icons/android-chrome-192x192.png",
   "./assets/icons/android-chrome-512x512.png",
-  "./assets/logo/brasao-20bpm.webp",
   "./assets/logo/brasao-20bpm-oficial.webp"
 ];
-
-self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES)));
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-
-  const isDocument = event.request.mode === "navigate" || event.request.destination === "document";
-  if (isDocument) {
-    event.respondWith(
-      fetch(event.request, { cache: "no-store" })
-        .then(response => {
-          if (response && response.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put("./index.html?v=1.9.5", response.clone()));
-          }
-          return response;
-        })
-        .catch(() => caches.match("./index.html?v=1.9.5"))
-    );
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.ok) caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
+self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_FILES)));self.skipWaiting()});
+self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));self.clients.claim()});
+self.addEventListener("fetch",event=>{
+ if(event.request.method!=="GET")return;
+ const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;
+ event.respondWith(fetch(event.request,{cache:"no-store"}).then(response=>{if(response&&response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html?v=1.9.6-build2"))));
 });

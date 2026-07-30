@@ -49,3 +49,5 @@
   .intro-crest{width:clamp(86px,28vw,128px)}
   .intro-identity h1{font-size:1.25rem;line-height:1.25}
 }
+
+[hidden]{display:none!important}.native-photo-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none!important}.file-capture-button{display:inline-block;border:0;background:var(--green);color:#fff;border-radius:9px;padding:10px 12px;font-weight:750;cursor:pointer}.file-capture-button:focus-within{outline:3px solid rgba(23,105,78,.2)}

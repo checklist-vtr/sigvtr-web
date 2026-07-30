@@ -1,7 +1,7 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.9.5";
+const APP_VERSION="1.9.6";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
-const RANK_LABELS={SD:"SD",CB:"CB",3_SGT:"3º SGT",2_SGT:"2º SGT",1_SGT:"1º SGT",SUB_TEN:"SUB TEN",2_TEN:"2º TEN",1_TEN:"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
+const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
 const EXTERNAL_PREFIX=/^\d{1,20}$/;
 const NAME_PATTERN=/^[A-Za-zÀ-ÖØ-öø-ÿ ]{2,80}$/;
@@ -41,7 +41,7 @@ const FINAL_PHOTOS=[{type:"frontal",label:"Frente"},{type:"traseira",label:"Tras
 const state={step:1,status:{},descriptions:{},photos:{},pending:[],decisions:{},device:{},pendingPhoto:null,isSubmitting:false,sendingTimer:null};
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
 window.addEventListener("DOMContentLoaded",()=>{buildPrefixes();buildStepper();renderItems();renderFinalPhotos();bind();detectDevice();registerSW();showStep(1)});
-function buildPrefixes(){let html='<option value="">Selecione</option>';for(let n=2001;n<=2021;n++)html+=`<option value="50-${n}">50-${n}</option>`;html+='<option value="OUTRO">Outro prefixo</option>';$("#prefixoSelect").innerHTML=html}
+function buildPrefixes(){const select=$("#prefixoSelect");if(!select)return;if(select.options.length>2)return;let html='<option value="">Selecione</option>';for(let n=2001;n<=2021;n++)html+=`<option value="50-${n}">50-${n}</option>`;html+='<option value="OUTRO">Outros</option>';select.innerHTML=html}
 function buildStepper(){$("#stepDots").innerHTML=STEPS.map((_,i)=>`<button type="button" class="step-dot" data-jump="${i+1}">${i+1}</button>`).join("")}
 function renderItems(){renderGroup("externalItems",ITEMS.external);renderGroup("internalItems",ITEMS.internal);renderGroup("engineItems",ITEMS.engine)}
 function renderGroup(id,items){$("#"+id).innerHTML=items.map(item=>`<article class="inspection-card" data-key="${item.key}"><h3>${escapeHtml(item.name)}</h3><p class="item-note">${escapeHtml(item.note|| (item.optional?"Opcional — use Não se aplica quando ausente de fábrica.":"Selecione a condição encontrada."))}</p><div class="known-damages"></div><div class="status-buttons"><button type="button" class="status-choice ok" data-status="ok">SEM ALTERAÇÃO</button><button type="button" class="status-choice change" data-status="nao">COM ALTERAÇÃO</button>${item.optional?'<button type="button" class="status-choice na" data-status="na">NÃO SE APLICA</button>':''}</div><div class="change-panel" hidden><textarea maxlength="300" placeholder="Descreva a alteração encontrada"></textarea><div class="inline-photo"><button type="button" data-capture="avaria_${item.key}">INSERIR FOTO DA ALTERAÇÃO</button><input id="photo_avaria_${item.key}" type="file" accept="image/*" capture="environment" hidden><div class="photo-preview"></div></div></div></article>`).join("")}
@@ -84,4 +84,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.5").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.6-build2").catch(()=>{})}
