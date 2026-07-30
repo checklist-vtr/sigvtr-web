@@ -1,10 +1,10 @@
-const CACHE_NAME = "sigvtr-mobile-v198";
+const CACHE_NAME = "sigvtr-mobile-v199";
 const APP_FILES = [
   "./",
-  "./index.html?v=1.9.7-build2",
-  "./css/style.css?v=1.9.7-build2",
-  "./js/app.js?v=1.9.8-build2",
-  "./manifest.json?v=1.9.7-build2",
+  "./index.html?v=1.9.9",
+  "./css/style.css?v=1.9.9",
+  "./js/app.js?v=1.9.9",
+  "./manifest.json?v=1.9.9",
   "./assets/icons/android-chrome-192x192.png",
   "./assets/icons/android-chrome-512x512.png",
   "./assets/logo/brasao-20bpm-oficial.webp"
@@ -14,5 +14,5 @@ self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys
 self.addEventListener("fetch",event=>{
  if(event.request.method!=="GET")return;
  const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;
- event.respondWith(fetch(event.request,{cache:"no-store"}).then(response=>{if(response&&response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html?v=1.9.7-build2"))));
+ event.respondWith(fetch(event.request,{cache:"no-store"}).then(response=>{if(response&&response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html?v=1.9.9"))));
 });

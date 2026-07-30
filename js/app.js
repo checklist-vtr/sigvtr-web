@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.9.8";
+const APP_VERSION="1.9.9";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -38,7 +38,7 @@ const ITEMS={
  ]
 };
 const FINAL_PHOTOS=[{type:"frontal",label:"Frente"},{type:"traseira",label:"Traseira"},{type:"lado_esquerdo",label:"Lado esquerdo"},{type:"lado_direito",label:"Lado direito"}];
-const state={step:1,status:{},descriptions:{},photos:{},pending:[],decisions:{},device:{},pendingPhoto:null,isSubmitting:false,sendingTimer:null};
+const state={step:1,status:{},descriptions:{},photos:{},pending:[],decisions:{},device:{},pendingPhoto:null,isSubmitting:false,sendingTimer:null,requestId:""};
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
 window.addEventListener("DOMContentLoaded",()=>{buildPrefixes();buildStepper();renderItems();renderFinalPhotos();bind();detectDevice();registerSW();showStep(1)});
 function buildPrefixes(){const select=$("#prefixoSelect");if(!select)return;if(select.options.length>2)return;let html='<option value="">Selecione</option>';for(let n=2001;n<=2021;n++)html+=`<option value="50-${n}">50-${n}</option>`;html+='<option value="OUTRO">Outros</option>';select.innerHTML=html}
@@ -110,12 +110,83 @@ function renderSummary(){
  const changed=Object.keys(state.status).filter(k=>state.status[k]==="nao");
  const rank=RANK_LABELS[$("#postoGraduacao").value]||"";
  const driver=(rank+" "+$("#condutor").value.trim()).trim();
+ const newDamageHtml=changed.length?`<div class="new-damage-notice"><strong>${changed.length===1?"Nova avaria registrada":"Novas avarias registradas"}</strong><p>${changed.length===1?"Esta alteração será registrada como avaria pendente após a conclusão do envio e permanecerá aberta até a baixa realizada pela Administração.":"Estas alterações serão registradas como avarias pendentes após a conclusão do envio e permanecerão abertas até a baixa realizada pela Administração."}</p></div>`:"";
  const knownHtml=state.pending.length?state.pending.map(d=>{
    const decision=state.decisions[d.idAvaria];
    const labels={continua:"Continua igual",agravou:"Agravou",solicitar_verificacao:"Solicitar verificação"};
    return `<div class="summary-damage"><p><strong>${escapeHtml(d.item||d.posicaoLocal||"Item não informado")}</strong></p><p>${escapeHtml(d.descricao||"Sem descrição.")}</p><p><strong>Registrada em:</strong> ${escapeHtml(d.dataDeteccao||"não informada")} · <strong>Por:</strong> ${escapeHtml(d.registradoPor||"não informado")} · <strong>Situação:</strong> ${escapeHtml(d.situacao||"PENDENTE")}</p><p><strong>Confirmação no checklist:</strong> ${escapeHtml(labels[decision]||"Não informada")}</p></div>`;
  }).join(""):"<p>Nenhuma avaria pendente conhecida.</p>";
- $("#summaryContent").innerHTML=`<div class="summary-block"><h3>Identificação</h3><p><strong>Viatura:</strong> ${escapeHtml(getPrefix())}</p><p><strong>Nome de guerra:</strong> ${escapeHtml(driver)}</p><p><strong>RG:</strong> ${escapeHtml($("#rg").value)}</p><p><strong>KM:</strong> ${escapeHtml($("#kmInicial").value)}</p><p><strong>Turno:</strong> ${escapeHtml(SHIFT_LABELS[$("#turno").value]||$("#turno").value)}${$("#turno").value==="OUTROS"?" — "+escapeHtml($("#otherOperation").value):""}</p><p><strong>Combustível:</strong> ${escapeHtml($("#combustivel").value)}</p></div><div class="summary-block"><h3>Novas alterações registradas</h3><p><strong>Itens avaliados:</strong> ${Object.keys(state.status).length}</p><p><strong>Com alteração:</strong> ${changed.length}</p>${changed.map(k=>`<p><strong>${escapeHtml(itemName(k))}:</strong> ${escapeHtml(state.descriptions[k])}</p>`).join("")||"<p>Sem novas alterações.</p>"}</div><div class="summary-block"><h3>Avarias pendentes conhecidas</h3>${knownHtml}</div>`
+ $("#summaryContent").innerHTML=`<div class="summary-block"><h3>Identificação</h3><p><strong>Viatura:</strong> ${escapeHtml(getPrefix())}</p><p><strong>Condutor:</strong> ${escapeHtml(driver)}</p><p><strong>RG:</strong> ${escapeHtml($("#rg").value)}</p><p><strong>KM:</strong> ${escapeHtml($("#kmInicial").value)}</p><p><strong>Turno:</strong> ${escapeHtml(SHIFT_LABELS[$("#turno").value]||$("#turno").value)}${$("#turno").value==="OUTROS"?" — "+escapeHtml($("#otherOperation").value):""}</p><p><strong>Combustível:</strong> ${escapeHtml($("#combustivel").value)}</p></div><div class="summary-block"><h3>Novas alterações registradas</h3><p><strong>Itens avaliados:</strong> ${Object.keys(state.status).length}</p><p><strong>Com alteração:</strong> ${changed.length}</p>${changed.map(k=>`<p><strong>${escapeHtml(itemName(k))}:</strong> ${escapeHtml(state.descriptions[k])}</p>`).join("")||"<p>Sem novas alterações.</p>"}${newDamageHtml}</div><div class="summary-block"><h3>Avarias pendentes conhecidas</h3>${knownHtml}</div>`;
+}
+
+function createRequestId(){
+ if(window.crypto&&typeof window.crypto.randomUUID==="function")return window.crypto.randomUUID();
+ return `REQ-${Date.now()}-${Math.random().toString(36).slice(2,12)}`;
+}
+function buildSubmissionPayload(){
+ const fotos=Object.keys(state.photos).map(tipo=>({...state.photos[tipo],tipo}));
+ const avariasConhecidas=state.pending.map(d=>({idAvaria:d.idAvaria,item:d.item||d.posicaoLocal||"",itemKey:matchDamageToKey(d),decisao:state.decisions[d.idAvaria]||""}));
+ return {action:"salvarRetiradaMobile",data:{
+  idRequisicao:state.requestId,
+  prefixo:getPrefix(),
+  dataCliente:new Date().toLocaleDateString("en-CA",{timeZone:"America/Belem"}),
+  condutor:$("#condutor").value.trim(),
+  postoGraduacao:$("#postoGraduacao").value,
+  rg:$("#rg").value.trim(),
+  kmInicial:$("#kmInicial").value.trim(),
+  turno:$("#turno").value,
+  operacaoOutro:$("#otherOperation").value.trim(),
+  combustivel:$("#combustivel").value,
+  itens:{...state.status},
+  descricoesAlteracoes:{...state.descriptions},
+  avariasConhecidas,
+  fotos,
+  dispositivo:{...state.device,versaoApp:APP_VERSION}
+ }};
+}
+async function postChecklist(payload,timeoutMs=120000){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),timeoutMs);
+ try{
+  const response=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload),cache:"no-store",redirect:"follow",signal:controller.signal});
+  const raw=await response.text();
+  if(!response.ok)throw new Error(`Falha de comunicação com a API (HTTP ${response.status}).`);
+  if(!raw.trim())throw new Error("A API não retornou confirmação do registro.");
+  let result;try{result=JSON.parse(raw)}catch(_){throw new Error("A API retornou uma resposta inválida. O formulário foi preservado para nova tentativa.")}
+  if(!result||result.success!==true)throw new Error(result&&result.message?result.message:"O backend não confirmou o registro do checklist.");
+  if(!result.protocolo||!result.id)throw new Error("A resposta da API não contém protocolo válido. Confirme o registro antes de tentar novamente.");
+  return result;
+ }catch(err){
+  if(err&&err.name==="AbortError")throw new Error("O envio excedeu o tempo de confirmação. Os dados permanecem na tela. Verifique a conexão antes de tentar novamente.");
+  throw err;
+ }finally{clearTimeout(timeout)}
+}
+async function submit(event){
+ event.preventDefault();
+ event.stopPropagation();
+ if(state.isSubmitting)return;
+ hideErrors();
+ if(!validateStep(1)||!validateStep(2)||!validateStep(3)||!validateStep(4)||!validateStep(5)){toast("Revise as etapas indicadas antes de enviar.");return}
+ if(!$("#finalConfirmation").checked){error("submitError","Confirme que realizou a inspeção e que as informações são verdadeiras.");return}
+ state.isSubmitting=true;
+ if(!state.requestId)state.requestId=createRequestId();
+ const button=$("#submitButton"),form=$("#checklistForm");
+ button.disabled=true;button.textContent="ENVIANDO...";form.classList.add("loading");
+ $("#sendingModal").hidden=false;document.body.classList.add("modal-open");startSendingMessages();
+ try{
+  const result=await postChecklist(buildSubmissionPayload());
+  stopSendingMessages();$("#sendingModal").hidden=true;
+  const novas=Number(result.novasAvarias||0);
+  const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
+  $("#successMessage").textContent=`Protocolo ${result.protocolo}. Registro concluído com sucesso.${detail}`;
+  $("#successModal").hidden=false;
+  toast("Checklist registrado com sucesso.");
+ }catch(err){
+  stopSendingMessages();$("#sendingModal").hidden=true;document.body.classList.remove("modal-open");
+  error("submitError",err&&err.message?err.message:"Não foi possível concluir o envio. Os dados foram preservados.");
+  button.disabled=false;button.textContent="TENTAR ENVIAR NOVAMENTE";form.classList.remove("loading");
+  state.isSubmitting=false;
+ }
 }
 function startSendingMessages(){const messages=["Preparando fotos e informações. Não feche esta página e não toque novamente em enviar.","Enviando as fotografias com segurança. Este processo pode levar alguns instantes.","Registrando avarias e histórico da viatura. Aguarde a confirmação final.","Finalizando o protocolo. Mantenha esta página aberta."];let index=0;$("#sendingMessage").textContent=messages[index];clearInterval(state.sendingTimer);state.sendingTimer=setInterval(()=>{$("#sendingMessage").textContent=messages[Math.min(++index,messages.length-1)]},4500)}
 function stopSendingMessages(){clearInterval(state.sendingTimer);state.sendingTimer=null}
@@ -125,4 +196,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.8").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.9").catch(()=>{})}
