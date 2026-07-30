@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b3d2e">
   <meta name="description" content="SIGVTR - Checklist operacional do condutor">
-  <link rel="manifest" href="manifest.json?v=1.9.2">
+  <link rel="manifest" href="manifest.json?v=1.9.3">
   <link rel="icon" href="favicon.ico">
-  <link rel="stylesheet" href="css/style.css?v=1.9.2">
+  <link rel="stylesheet" href="css/style.css?v=1.9.3">
   <title>SIGVTR — Checklist do Condutor</title>
 </head>
 <body>
@@ -16,7 +16,7 @@
     <img src="assets/logo/brasao-20bpm.webp" alt="Brasão do 20º BPM">
     <div><strong>SIGVTR</strong><span>Checklist do Condutor · Piloto</span></div>
   </div>
-  <span class="version">v1.9.2</span>
+  <span class="version">v1.9.3</span>
 </header>
 
 <main class="app-shell">
@@ -48,6 +48,15 @@
         </label>
         <label>RG
           <input id="rg" type="text" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="Somente números" required>
+        </label>
+        <label>Turno
+          <select id="turno" required>
+            <option value="">Selecione</option>
+            <option value="1º TURNO">1º Turno</option>
+            <option value="2º TURNO">2º Turno</option>
+            <option value="EXTRAORDINÁRIO">Extraordinário</option>
+            <option value="OUTROS">Outros</option>
+          </select>
         </label>
         <label>Quilometragem
           <input id="kmInicial" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="KM atual" required>
@@ -129,6 +138,6 @@
 </div>
 <div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage"></p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
 <footer><p>P4 – 20º Batalhão da Polícia Militar do Pará</p><p>SIGVTR · Projeto piloto</p></footer>
-<script src="js/app.js?v=1.9.2"></script>
+<script src="js/app.js?v=1.9.3"></script>
 </body>
 </html>
