@@ -1,23 +1,11 @@
-# Roteiro de teste piloto do Checklist Mobile
+# Roteiro de teste piloto — Checklist do Condutor v1.9.0
 
-Durante a fase piloto, registre:
-
-- prefixo utilizado;
-- aparelho e navegador;
-- tempo para concluir;
-- item que deveria ser removido;
-- item que deveria ser acrescentado;
-- item com nome confuso;
-- dificuldade de uso;
-- erro apresentado;
-- sugestão administrativa.
-
-## Casos obrigatórios
-
-1. Frota fixa sem avaria.
-2. Frota fixa com avaria já registrada.
-3. Viatura externa numérica com zero inicial, como `041`.
-4. Item marcado com alteração e descrição válida.
-5. Tentativa de inserir símbolos bloqueados.
-6. Envio com cinco fotos.
-7. Verificação do protocolo e das planilhas.
+1. Selecione uma VTR sem avarias e conclua o checklist sem alterações.
+2. Marque um item como Com alteração, inclua descrição e foto, e confirme a criação na aba AVARIAS.
+3. Selecione uma VTR com avaria pendente e confirme que o aviso aparece na Identificação e no item correspondente.
+4. Escolha Continua igual e confirme o evento na aba EVENTOS, sem nova linha duplicada em AVARIAS.
+5. Teste Agravou e Solicitar verificação.
+6. Confirme as seis fotos obrigatórias básicas: odômetro, combustível e quatro posições finais.
+7. Confirme que cada nova alteração exige foto própria.
+8. Teste prefixo externo numérico com zero inicial.
+9. Registre tempo total e sugestões de itens a manter, remover ou acrescentar.
