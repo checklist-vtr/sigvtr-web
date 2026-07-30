@@ -276,3 +276,8 @@ Versão inicial: 1.0
 ## Checklist Mobile v1.7.0
 
 O checklist operacional é apresentado em 12 etapas. As inspeções são organizadas por categoria para reduzir rolagem e fadiga visual. O envio continua utilizando a ação `salvarRetiradaMobile` do Google Apps Script e a tela final de protocolo foi preservada.
+
+
+## Ajustes da versão 1.9.1
+
+A foto inicial foi unificada em uma única imagem do painel, contendo KM e combustível. A imagem só é aceita após confirmação de legibilidade. O envio possui proteção contra cliques repetidos e o brasão oficial do 20º BPM aparece centralizado na abertura.

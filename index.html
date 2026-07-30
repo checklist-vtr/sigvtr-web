@@ -7,7 +7,7 @@
   <meta name="description" content="SIGVTR - Checklist operacional do condutor">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico">
-  <link rel="stylesheet" href="css/style.css?v=1.9.0">
+  <link rel="stylesheet" href="css/style.css?v=1.9.1">
   <title>SIGVTR — Checklist do Condutor</title>
 </head>
 <body>
@@ -16,16 +16,15 @@
     <img src="assets/logo/brasao-20bpm.webp" alt="Brasão do 20º BPM">
     <div><strong>SIGVTR</strong><span>Checklist do Condutor · Piloto</span></div>
   </div>
-  <span class="version">v1.9.0</span>
+  <span class="version">v1.9.1</span>
 </header>
 
 <main class="app-shell">
-  <section class="intro-card">
-    <div>
-      <span class="eyebrow">20º BPM</span>
-      <h1>Checklist operacional da viatura</h1>
-      <p>Inspeção simplificada para retirada da viatura. As avarias pendentes permanecerão visíveis até a baixa realizada pela administração.</p>
-    </div>
+  <section class="intro-card intro-identity">
+    <img class="intro-crest" src="assets/logo/brasao-20bpm-oficial.webp" alt="Brasão oficial do 20º Batalhão da Polícia Militar do Pará">
+    <span class="eyebrow">SIGVTR · 20º BPM</span>
+    <h1>20º Batalhão da Polícia Militar do Pará</h1>
+    <p>Checklist operacional do condutor. As avarias pendentes permanecerão visíveis até a baixa realizada pela administração.</p>
   </section>
 
   <nav class="stepper" aria-label="Etapas do checklist">
@@ -59,9 +58,14 @@
           </select>
         </label>
       </div>
-      <div class="photo-grid initial-photos">
-        <div class="photo-card" data-photo-card="odometro"><h3>Foto do odômetro</h3><p>Obrigatória</p><button type="button" data-capture="odometro">INSERIR FOTO</button><input id="photo_odometro" type="file" accept="image/*" capture="environment" hidden><div class="photo-preview"></div></div>
-        <div class="photo-card" data-photo-card="combustivel"><h3>Foto do combustível</h3><p>Obrigatória</p><button type="button" data-capture="combustivel">INSERIR FOTO</button><input id="photo_combustivel" type="file" accept="image/*" capture="environment" hidden><div class="photo-preview"></div></div>
+      <div class="photo-grid initial-photos single-photo">
+        <div class="photo-card" data-photo-card="painel_inicial">
+          <h3>Foto do painel: odômetro e combustível</h3>
+          <p>Obrigatória. Enquadre na mesma imagem o KM e o marcador de combustível, com números e indicador claramente legíveis.</p>
+          <button type="button" data-capture="painel_inicial">INSERIR FOTO DO PAINEL</button>
+          <input id="photo_painel_inicial" type="file" accept="image/*" capture="environment" hidden>
+          <div class="photo-preview"></div>
+        </div>
       </div>
       <div id="pendingSummary" class="pending-summary" hidden></div>
       <p id="identificationError" class="form-error" hidden></p>
@@ -107,9 +111,24 @@
 </main>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<div id="sendingModal" class="modal" hidden><div class="modal-panel"><div class="spinner-large"></div><h2>Registrando checklist</h2><p>Enviando fotos, avarias e histórico. Não feche esta página.</p></div></div>
+<div id="sendingModal" class="modal" hidden><div class="modal-panel"><div class="spinner-large"></div><h2>Registrando checklist</h2><p id="sendingMessage">Preparando fotos e informações. Não feche esta página e não toque novamente em enviar.</p></div></div>
+
+<div id="photoQualityModal" class="modal" hidden>
+  <div class="modal-panel photo-quality-panel">
+    <h2>A foto está legível?</h2>
+    <p>Confirme se o KM e o nível de combustível aparecem nítidos, sem reflexo, corte ou imagem embaçada.</p>
+    <img id="photoQualityPreview" class="quality-preview" alt="Prévia da foto do painel">
+    <div class="quality-checklist">
+      <span>✓ KM visível</span><span>✓ Combustível visível</span><span>✓ Imagem nítida</span>
+    </div>
+    <div class="success-actions">
+      <button id="confirmPhotoQuality" class="primary-button" type="button">SIM, ESTÁ LEGÍVEL</button>
+      <button id="retakePhoto" class="secondary-button" type="button">NÃO, TIRAR OUTRA</button>
+    </div>
+  </div>
+</div>
 <div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage"></p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
 <footer><p>P4 – 20º Batalhão da Polícia Militar do Pará</p><p>SIGVTR · Projeto piloto</p></footer>
-<script src="js/app.js?v=1.9.0"></script>
+<script src="js/app.js?v=1.9.1"></script>
 </body>
 </html>
