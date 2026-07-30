@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b3d2e">
   <meta name="description" content="SIGVTR - Checklist operacional do condutor">
-  <link rel="manifest" href="manifest.json?v=1.9.4">
+  <link rel="manifest" href="manifest.json?v=1.9.5">
   <link rel="icon" href="favicon.ico">
-  <link rel="stylesheet" href="css/style.css?v=1.9.4">
+  <link rel="stylesheet" href="css/style.css?v=1.9.5">
   <title>SIGVTR — Checklist do Condutor</title>
 </head>
 <body>
@@ -16,7 +16,7 @@
     <img src="assets/logo/brasao-20bpm.webp" alt="Brasão do 20º BPM">
     <div><strong>SIGVTR</strong><span>Checklist do Condutor · Piloto</span></div>
   </div>
-  <span class="version">v1.9.4</span>
+  <span class="version">v1.9.5</span>
 </header>
 
 <main class="app-shell">
@@ -46,6 +46,15 @@
         <label>Nome de guerra
           <input id="condutor" type="text" maxlength="80" autocomplete="name" placeholder="Somente letras" required>
         </label>
+        <label>Posto/Graduação
+          <select id="postoGraduacao" required>
+            <option value="">Selecione</option>
+            <option value="SD">SD</option><option value="CB">CB</option><option value="3_SGT">3º SGT</option>
+            <option value="2_SGT">2º SGT</option><option value="1_SGT">1º SGT</option><option value="SUB_TEN">SUB TEN</option>
+            <option value="2_TEN">2º TEN</option><option value="1_TEN">1º TEN</option><option value="CAP">CAP</option>
+            <option value="MAJ">MAJ</option><option value="TEN_CEL">TEN CEL</option><option value="CEL">CEL</option>
+          </select>
+        </label>
         <label>RG
           <input id="rg" type="text" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="Somente números" required>
         </label>
@@ -57,6 +66,9 @@
             <option value="EXTRAORDINARIO">Extraordinário</option>
             <option value="OUTROS">Outros</option>
           </select>
+        </label>
+        <label id="otherOperationWrap" hidden>Operação / turno informado
+          <input id="otherOperation" type="text" maxlength="100" autocomplete="off" placeholder="Ex.: Operação Saturação">
         </label>
         <label>Quilometragem
           <input id="kmInicial" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="KM atual" required>
@@ -96,7 +108,7 @@
     </section>
 
     <section class="form-page" data-page="4" hidden>
-      <div class="page-heading"><span class="page-number">4</span><div><h2>Motor</h2><p>Faça uma verificação geral do funcionamento e do compartimento do motor.</p></div></div>
+      <div class="page-heading"><span class="page-number">4</span><div><h2>Mecânica</h2><p>Confira os níveis e demais condições mecânicas acessíveis ao condutor.</p></div></div>
       <div id="engineItems" class="inspection-list"></div>
       <p class="form-error section-error" hidden></p>
       <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="3">← VOLTAR</button><button class="primary-button next-button" type="button" data-next="5">PRÓXIMA ETAPA →</button></div>
@@ -124,11 +136,11 @@
 
 <div id="photoQualityModal" class="modal" hidden>
   <div class="modal-panel photo-quality-panel">
-    <h2>A foto está legível?</h2>
-    <p>Confirme se o KM e o nível de combustível aparecem nítidos, sem reflexo, corte ou imagem embaçada.</p>
-    <img id="photoQualityPreview" class="quality-preview" alt="Prévia da foto do painel">
-    <div class="quality-checklist">
-      <span>✓ KM visível</span><span>✓ Combustível visível</span><span>✓ Imagem nítida</span>
+    <h2 id="photoQualityTitle">A foto está legível?</h2>
+    <p id="photoQualityText">Confirme se as informações aparecem nítidas, sem reflexo, corte ou imagem embaçada.</p>
+    <img id="photoQualityPreview" class="quality-preview" alt="Prévia da fotografia">
+    <div id="photoQualityChecklist" class="quality-checklist">
+      <span>✓ Conteúdo visível</span><span>✓ Enquadramento correto</span><span>✓ Imagem nítida</span>
     </div>
     <div class="success-actions">
       <button id="confirmPhotoQuality" class="primary-button" type="button">SIM, ESTÁ LEGÍVEL</button>
@@ -138,6 +150,6 @@
 </div>
 <div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage"></p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
 <footer><p>P4 – 20º Batalhão da Polícia Militar do Pará</p><p>SIGVTR · Projeto piloto</p></footer>
-<script src="js/app.js?v=1.9.4"></script>
+<script src="js/app.js?v=1.9.5"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
-const CACHE_NAME = "sigvtr-mobile-v194";
+const CACHE_NAME = "sigvtr-mobile-v195";
 const APP_FILES = [
   "./",
-  "./index.html?v=1.9.4",
-  "./css/style.css?v=1.9.4",
-  "./js/app.js?v=1.9.4",
-  "./manifest.json?v=1.9.4",
+  "./index.html?v=1.9.5",
+  "./css/style.css?v=1.9.5",
+  "./js/app.js?v=1.9.5",
+  "./manifest.json?v=1.9.5",
   "./assets/icons/android-chrome-192x192.png",
   "./assets/icons/android-chrome-512x512.png",
   "./assets/logo/brasao-20bpm.webp",
@@ -34,11 +34,11 @@ self.addEventListener("fetch", event => {
       fetch(event.request, { cache: "no-store" })
         .then(response => {
           if (response && response.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put("./index.html?v=1.9.4", response.clone()));
+            caches.open(CACHE_NAME).then(cache => cache.put("./index.html?v=1.9.5", response.clone()));
           }
           return response;
         })
-        .catch(() => caches.match("./index.html?v=1.9.4"))
+        .catch(() => caches.match("./index.html?v=1.9.5"))
     );
     return;
   }
