@@ -51,3 +51,9 @@
 }
 
 [hidden]{display:none!important}.native-photo-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none!important}.file-capture-button{display:inline-block;border:0;background:var(--green);color:#fff;border-radius:9px;padding:10px 12px;font-weight:750;cursor:pointer}.file-capture-button:focus-within{outline:3px solid rgba(23,105,78,.2)}
+
+/* v1.9.7 - navegação por etapas e resumo de avarias */
+.step-dot{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.step-dot:focus-visible{outline:3px solid #0b6b50;outline-offset:3px}
+.summary-damage{margin:.75rem 0;padding:.85rem;border:1px solid #d9a441;border-left:5px solid #b7791f;border-radius:.65rem;background:#fffaf0}
+.summary-damage p{margin:.25rem 0}

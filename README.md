@@ -1,15 +1,22 @@
-# SIGVTR v1.9.5 — Checklist do Condutor
+# SIGVTR v1.9.7
 
-Versão piloto do checklist operacional do 20º BPM.
+Checklist do Condutor do 20º BPM.
 
-## Principais recursos
-- Identificação com viatura, nome de guerra, posto/graduação, RG, turno, KM e combustível.
-- Turno Outros com operação informada manualmente.
-- Foto única do painel com validação de legibilidade.
-- Parte externa incluindo Pneus e Rodas.
-- Parte interna operacional.
-- Mecânica com verificação individual de níveis.
-- Quatro fotos finais com confirmação de legibilidade.
-- Avarias persistentes e baixa exclusiva pelo painel administrativo.
+## Conteúdo
 
-Consulte `README_INSTALACAO_v1.9.5.md` e `CHANGELOG_v1.9.5.md`.
+- frontend PWA na raiz;
+- painel administrativo em `admin/`;
+- Apps Script completo em `backend_apps_script/`;
+- cópia técnica do complemento em `backend/`.
+
+## Instalação
+
+1. Publique todos os arquivos do frontend no GitHub Pages.
+2. Substitua integralmente os três arquivos de `backend_apps_script/` no projeto Apps Script.
+3. Teste a implantação `/dev` e confirme `packageVersion: 1.9.7`.
+4. Gere nova versão da implantação `/exec`.
+5. Abra o frontend com `?v=1.9.7` e atualize o PWA.
+
+## Regra das avarias
+
+Avarias com situação `PENDENTE` ou `EM MANUTENÇÃO` permanecem visíveis na identificação, no item correspondente e no resumo. A baixa continua exclusiva do painel administrativo.
