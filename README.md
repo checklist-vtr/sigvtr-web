@@ -1,4 +1,4 @@
-# SIGVTR v1.9.10 — Checklist do Condutor
+# SIGVTR v1.9.11 — Checklist do Condutor
 
 Branch exclusiva de estabilização do Checklist do Condutor do 20º BPM.
 
@@ -15,7 +15,8 @@ Branch exclusiva de estabilização do Checklist do Condutor do 20º BPM.
 - Resumo informa que novas alterações ficarão pendentes após o envio.
 - Backend retorna a quantidade de novas avarias registradas.
 - Identificador de requisição para reduzir duplicidade em novas tentativas.
-- Cache PWA atualizado para `sigvtr-mobile-v1910`.
+- Exibição do responsável pelas avarias padronizada como Posto/Graduação + Nome de Guerra.
+- Cache PWA atualizado para `sigvtr-mobile-v1911`.
 
 ## Backend
 
@@ -29,4 +30,4 @@ O projeto mantém somente um `doGet` e um `doPost`. Após salvar, crie uma nova 
 
 ## Publicação do frontend
 
-Substitua os arquivos do repositório, publique no GitHub Pages e abra a aplicação com `?v=1.9.10`.
+Substitua os arquivos do repositório, publique no GitHub Pages e abra a aplicação com `?v=1.9.11`.

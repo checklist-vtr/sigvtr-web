@@ -1,4 +1,4 @@
-# Atualização para v1.9.10
+# Atualização para v1.9.11
 
 ## 1. Apps Script
 
@@ -13,7 +13,7 @@
 
 1. Substitua os arquivos do frontend.
 2. Publique a branch do Checklist do Condutor.
-3. Abra a URL com `?v=1.9.10`.
+3. Abra a URL com `?v=1.9.11`.
 4. No Android, feche completamente a PWA e abra novamente. Caso persista versão antiga, remova o atalho e instale novamente.
 
 ## 3. Teste obrigatório

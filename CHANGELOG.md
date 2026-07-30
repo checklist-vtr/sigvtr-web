@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.9.11
+
+- Incluído Posto/Graduação antes do Nome de Guerra na identificação do responsável por avarias pendentes.
+- Padronizado o rótulo visual para “Registrado por”.
+- Mantido fallback para registros históricos sem Posto/Graduação.
+- Atualizado o cache PWA para a versão 1.9.11.
+
 ## 1.9.10
 
 - Separado o tratamento de avarias conhecidas do registro de novas alterações no mesmo item.
