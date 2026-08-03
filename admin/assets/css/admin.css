@@ -319,3 +319,5 @@ body.dark-mode {
 .record-stat{border:1px solid #e1e8f0;border-radius:14px;padding:1rem;background:#fff}.record-stat small{color:#6c757d}.record-stat div{font-size:1.5rem;font-weight:800}.vehicle-record-hero{background:linear-gradient(135deg,#fff,#edf5ff)}
 .damage-card{background:#fff;border:1px solid #dfe7ef;border-radius:16px;padding:1rem;box-shadow:0 8px 22px rgba(16,50,92,.06)}.damage-prefix{font-weight:800;color:#0d47a1}
 @media(max-width:576px){.timeline-content .d-flex{display:block!important}.timeline-content small{display:block;margin-top:.2rem}.global-search-bar .input-group{display:flex;flex-wrap:wrap}.global-search-bar .form-control{min-width:calc(100% - 48px)}.global-search-bar .btn{width:100%;margin-top:.5rem;border-radius:.5rem!important}}
+
+.sidebar-brand-icon{overflow:hidden;background:#fff;padding:3px}.sidebar-brand-icon img{width:100%;height:100%;object-fit:contain;border-radius:9px}.app-footer{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap}.app-footer a{color:inherit;font-weight:600;text-decoration:none}.app-footer a:hover{text-decoration:underline}

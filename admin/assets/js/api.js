@@ -1,6 +1,7 @@
 const ApiService=(()=>{
-  const CONFIG={baseUrl:"https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec",timeout:30000,retries:2,cachePrefix:"sigvtr_admin_api_v1130rc2:"};
+  const CONFIG={baseUrl:"https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec",timeout:30000,retries:2,cachePrefix:"sigvtr_admin_api_v1131rc1:"};
   const memory=new Map(),pending=new Map();
+  try{Object.keys(localStorage).filter(k=>k.startsWith("sigvtr_admin_api_")&&!k.startsWith(CONFIG.cachePrefix)).forEach(k=>localStorage.removeItem(k));}catch(_){}
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const stableParams=params=>Object.keys(params||{}).sort().reduce((o,k)=>(o[k]=params[k],o),{});
   const key=(action,params={})=>action+":"+JSON.stringify(stableParams(params));
