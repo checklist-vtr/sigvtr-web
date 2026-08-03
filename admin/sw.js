@@ -1,4 +1,4 @@
-const CACHE='sigvtr-admin-v1102';
+const CACHE='sigvtr-admin-v1110';
 const APP=['./','./index.html','./alertas.html','./checklists.html','./avarias.html','./historico-viatura.html','./assets/css/admin.css','./assets/css/dashboard.css','./assets/css/avarias.css','./assets/js/api.js','./assets/js/admin.js','./assets/js/alertas.js','./assets/js/checklists-admin.js','./assets/js/avarias.js','./assets/js/auth.js','./assets/js/menu.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('sigvtr-admin-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

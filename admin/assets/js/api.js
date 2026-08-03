@@ -3,7 +3,7 @@ const ApiService=(()=>{
     baseUrl:"https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec",
     timeout:20000,
     retries:2,
-    cachePrefix:"sigvtr_admin_api_v1101:"
+    cachePrefix:"sigvtr_admin_api_v1110:"
   };
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const cacheKey=(action,params)=>CONFIG.cachePrefix+action+":"+JSON.stringify(Object.keys(params||{}).sort().reduce((o,k)=>(o[k]=params[k],o),{}));
