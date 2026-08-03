@@ -1,4 +1,4 @@
-# ATUALIZAÇÃO — 1.13.2-rc1
+# ATUALIZAÇÃO — 1.13.3-rc1
 
 ## Frontend
 
@@ -16,3 +16,7 @@ Nenhuma substituição adicional é necessária nesta atualização visual. O ba
 - Favicon visível em todas as páginas administrativas.
 - Menus consistentes em todos os módulos.
 - Alertas e Checklists mostram dados, estado vazio ou mensagem de erro; nunca permanecem indefinidamente em “Carregando”.
+
+## Atualização 1.13.3-rc1
+
+Substituir a pasta `admin/` completa e o arquivo `favicon.ico` da raiz. Após o push, aguardar o GitHub Pages e usar “Esvaziar cache e recarregamento forçado”. A primeira abertura ativa o novo Service Worker e elimina os caches administrativos antigos.

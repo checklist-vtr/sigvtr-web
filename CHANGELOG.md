@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.13.2-rc1 — Refinamento visual administrativo
+## 1.13.3-rc1 — Refinamento visual administrativo
 
 - Recorta e otimiza o brasão oficial do 20º BPM para evitar miniaturização e distorção.
 - Padroniza o brasão na tela de login e em todas as barras laterais.
@@ -12,7 +12,7 @@
 - Reduz o tempo máximo de espera da API e apresenta erro legível em caso de indisponibilidade.
 - Mantém o canal de sugestões checklist.viaturas.oficial@gmail.com no rodapé.
 
-## 1.13.2-rc1 — 03/08/2026
+## 1.13.3-rc1 — 03/08/2026
 - Removidos dados fictícios das páginas Viaturas e Prontuário.
 - Corrigidos indicadores `undefined` do Dashboard.
 - Corrigida inicialização da página de Avarias e seu menu lateral.
@@ -70,3 +70,12 @@
 - Gestão de Avarias passou a consumir os registros reais da aba AVARIAS.
 - Corrigida formatação de data e hora na Central de Alertas.
 - Adicionado Service Worker específico do Painel Administrativo.
+
+## 1.13.3-rc1 — Correção de cache e dados fantasma
+
+- Remove definitivamente a base demonstrativa antiga de viaturas.
+- Elimina a chave legada `sigvtr_admin_vehicles_v1` do sessionStorage e localStorage.
+- Obriga a página Viaturas a consultar a API real, sem fallback para registros locais.
+- Altera o Service Worker para estratégia network-first em HTML, JavaScript e CSS.
+- Atualiza o cache administrativo para `sigvtr-admin-v1133rc1`.
+- Restaura o favicon como ícone de viatura; o brasão permanece apenas na identidade institucional.
