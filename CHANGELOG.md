@@ -1,41 +1,49 @@
 # CHANGELOG
 
-## 1.9.11
+## v1.10.2 — 03/08/2026
 
-- Incluído Posto/Graduação antes do Nome de Guerra na identificação do responsável por avarias pendentes.
-- Padronizado o rótulo visual para “Registrado por”.
-- Mantido fallback para registros históricos sem Posto/Graduação.
-- Atualizado o cache PWA para a versão 1.9.11.
+### Checklist do Condutor
+- Adicionado **Outras alterações externas** ao final da Parte Externa.
+- Adicionado **Outras alterações internas** ao final da Parte Interna.
+- Mantido **Outras alterações mecânicas** na etapa Mecânica.
+- Novos campos seguem as mesmas regras de descrição, fotografia, validação e geração de avaria.
 
-## 1.9.10
+### Painel Administrativo
+- Substituído o alerta discreto no canto por modal centralizado e responsivo.
+- Modal com cores por tipo: vermelho para avaria, azul-petróleo para checklist e verde para revisão.
+- Adicionada fila para exibir vários alertas novos sem sobreposição.
+- Botão direto para a Central de Alertas.
 
-- Separado o tratamento de avarias conhecidas do registro de novas alterações no mesmo item.
-- Quando existe avaria pendente, os botões passam a mostrar “Nenhuma outra alteração” e “Sim, outra alteração...”.
-- Incluída pergunta contextual para Lataria, Vidros, Iluminação, Pneus e demais itens.
-- Mantida a obrigatoriedade de confirmar individualmente cada avaria conhecida.
-- Uma nova avaria somente é criada quando o condutor informa expressamente outra alteração, com descrição e fotografia.
-- Atualizado o cache PWA para a versão 1.9.10.
+## v1.10.2 — 03/08/2026
 
-## 1.9.9
+### Adicionado
 
-- Corrigida ausência da função `submit` no frontend.
-- Adicionado `preventDefault` imediato no envio do formulário.
-- Adicionados bloqueio de duplo envio, timeout e tratamento de resposta inválida.
-- O formulário permanece preenchido quando o backend não confirma o registro.
-- Sucesso exibido somente com ID e protocolo válidos.
-- Resumo passa a informar que novas avarias serão pendentes após a conclusão.
-- Resposta do backend inclui quantidade e itens das novas avarias.
-- Adicionada proteção de idempotência por identificador de requisição.
-- Reforçada a prevenção de avarias duplicadas já pendentes na planilha.
-- Cache PWA alterado para `sigvtr-mobile-v199`.
+- Central de Alertas integrada ao Checklist do Condutor.
+- Alertas automáticos para novo checklist e nova avaria.
+- Verificação de revisão preventiva com intervalo inicial de 10.000 km.
+- Abas `ALERTAS` e `REVISOES` criadas automaticamente.
+- Dashboard administrativo com dados reais.
+- Listagem real de checklists.
+- Histórico consolidado por prefixo da viatura.
+- Linha do tempo com checklists, avarias, eventos e alertas.
+- Compartilhamento manual pelo WhatsApp Web, sem telefone cadastrado e sem API externa.
+- Alteração e histórico de status dos alertas.
 
-## 1.9.8
+### Segurança
 
-- Corrigidos os botões de confirmação de legibilidade das fotografias.
-- Adicionado suporte a clique, toque, Enter e Escape no modal.
+- Validação de ações e status no backend.
+- Whitelist de status.
+- Sanitização da pesquisa por prefixo.
+- LockService preservado no único `doPost`.
+- Logs das mudanças de status.
+- Proteções existentes do Checklist do Condutor preservadas.
 
-## 1.9.7
-
-- Navegação por etapas.
-- Exibição persistente de avarias.
-- Resumo com Posto/Graduação e avarias registradas.
+## v1.10.2 - 03/08/2026
+- Adicionada persistência local dos últimos dados válidos do painel.
+- Adicionadas tentativas automáticas e fallback para cache em falhas temporárias/404.
+- Dashboard atualizado automaticamente a cada 20 segundos.
+- Incluídos alertas visuais em tempo real para novos registros.
+- Corrigida abertura do WhatsApp Web antes da atualização remota do status.
+- Gestão de Avarias passou a consumir os registros reais da aba AVARIAS.
+- Corrigida formatação de data e hora na Central de Alertas.
+- Adicionado Service Worker específico do Painel Administrativo.

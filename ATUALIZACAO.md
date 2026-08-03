@@ -1,31 +1,71 @@
-# Atualização para v1.9.11
+# ATUALIZAÇÃO — v1.10.2
+
+## Arquivos alterados
+
+### Frontend do Checklist
+- `js/app.js`
+- `sw.js`
+
+### Painel Administrativo
+- `admin/assets/js/admin.js`
+- `admin/assets/css/admin.css`
+- arquivos HTML com referências de versão atualizadas
+- `admin/sw.js`
+
+### Backend
+- `backend/Complemento_Mobile_v4.gs`
+- `backend/Código.gs` e demais arquivos com identificação da versão atualizada
+
+## Implantação
+1. Substitua os arquivos do backend no Apps Script.
+2. Salve e publique uma nova versão da implantação existente.
+3. Substitua o frontend completo ou, no mínimo, os arquivos indicados acima.
+4. Abra o Checklist e o Painel com `?v=1.10.2`.
+5. Faça atualização forçada e confirme o novo cache.
+
+## Testes mínimos
+- Registrar alteração em “Outras alterações externas”.
+- Registrar alteração em “Outras alterações internas”.
+- Confirmar foto obrigatória e criação da avaria.
+- Manter o Dashboard aberto e enviar checklist para validar o modal central.
+- Validar as cores para checklist, avaria e revisão.
+
+# ATUALIZAÇÃO — v1.10.2
 
 ## 1. Apps Script
 
-1. Faça uma cópia de segurança do projeto atual.
-2. Substitua integralmente `Código.gs`, `Complemento_Mobile_v4.gs` e `Avarias_Pendentes.gs` pelos arquivos da pasta `backend/`.
-3. Confirme que existe somente um `doGet` e um `doPost` em todo o projeto.
-4. Salve e crie uma nova implantação do tipo Aplicativo da Web.
-5. Execute como proprietário e permita acesso conforme a política do 20º BPM.
-6. Atualize `API_URL` em `js/app.js` somente se a URL da implantação mudar.
+Substitua os três arquivos existentes e adicione `Painel_Administrativo.gs`.
 
-## 2. GitHub Pages
+Execute manualmente:
 
-1. Substitua os arquivos do frontend.
-2. Publique a branch do Checklist do Condutor.
-3. Abra a URL com `?v=1.9.11`.
-4. No Android, feche completamente a PWA e abra novamente. Caso persista versão antiga, remova o atalho e instale novamente.
+```javascript
+configurarSistema()
+```
 
-## 3. Teste obrigatório
+Autorize as permissões solicitadas e confirme a criação das abas `ALERTAS` e `REVISOES`.
 
-1. Envie um checklist sem alteração e confirme ID/protocolo na aba RETIRADAS.
-2. Envie um checklist com uma alteração e confirme a nova linha PENDENTE em AVARIAS.
-3. Confirme que o resumo avisa que a nova avaria ficará pendente.
-4. Simule perda de conexão durante o envio: o formulário deve permanecer preenchido.
-5. Toque duas vezes em Enviar: deve ocorrer apenas uma tentativa ativa.
-6. Repita a tentativa após timeout e confirme que o identificador de requisição evita duplicidade quando o primeiro registro já tiver sido concluído.
+Depois acesse **Implantar > Gerenciar implantações > Editar**, selecione **Nova versão** e publique.
 
-7. Selecione uma viatura com avaria pendente e confirme que o item exibe a pergunta sobre outra alteração.
-8. Marque `NENHUMA OUTRA ALTERAÇÃO` e confirme que nenhuma nova descrição ou foto é exigida.
-9. Marque `SIM, OUTRA ALTERAÇÃO...` e confirme que descrição e fotografia passam a ser obrigatórias.
-10. Envie o checklist e confirme que a avaria conhecida não foi duplicada; somente a outra alteração deve gerar nova linha em AVARIAS.
+## 2. Frontend
+
+Substitua integralmente os arquivos do repositório web. Confirme em `admin/assets/js/api.js` se a URL corresponde à implantação ativa.
+
+## 3. Homologação
+
+- Enviar checklist sem alteração.
+- Enviar checklist com nova avaria.
+- Confirmar alertas na planilha e no painel.
+- Alterar o status de um alerta.
+- Abrir o WhatsApp Web com a mensagem preenchida.
+- Pesquisar o prefixo da viatura e conferir a linha do tempo.
+
+## Observação
+
+O clique em **Compartilhar no WhatsApp** registra o status `ENCAMINHADO`, indicando que o encaminhamento foi iniciado. O SIGVTR não confirma envio, entrega ou leitura da mensagem.
+
+## Atualização v1.10.2
+1. Substitua `Código.gs` e `Painel_Administrativo.gs` no Apps Script e publique nova versão.
+2. Substitua a pasta `admin` completa no frontend.
+3. Abra o painel com `?v=1.10.2` e atualize com Ctrl+F5.
+4. O painel conservará o último conteúdo carregado quando a conexão falhar temporariamente.
+5. O Dashboard consulta novos alertas a cada 20 segundos enquanto estiver aberto.

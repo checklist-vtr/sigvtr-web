@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.9.11";
+const APP_VERSION="1.10.2";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -12,7 +12,8 @@ const ITEMS={
   {key:"lataria_geral",name:"Lataria Geral",aliases:["lataria","capo","porta","para_choque","para_lama","lateral","teto","grade"]},
   {key:"vidros_para_brisas",name:"Vidros e Para-brisas",aliases:["vidro","para_brisa","retrovisor","limpador"]},
   {key:"iluminacao_externa",name:"Iluminação Externa",note:"Faróis, lanternas e giroflex",aliases:["farol","lanterna","luz","giroflex","iluminacao"]},
-  {key:"pneus_rodas",name:"Pneus e Rodas",aliases:["pneu","roda","calota","aro"]}
+  {key:"pneus_rodas",name:"Pneus e Rodas",aliases:["pneu","roda","calota","aro"]},
+  {key:"outras_alteracoes_externas",name:"Outras alterações externas",note:"Use Com alteração para registrar outro ponto externo não listado acima.",aliases:["outras_alteracoes_externas","outra_alteracao_externa","externa","parte_externa"]}
  ],
  internal:[
   {key:"multimidia",name:"Multimídia",aliases:["multimidia","radio","tablet","modulo"]},
@@ -26,7 +27,8 @@ const ITEMS={
   {key:"estepe",name:"Estepe",note:"Obrigatório",aliases:["estepe"]},
   {key:"macaco",name:"Macaco",optional:true,aliases:["macaco"]},
   {key:"triangulo",name:"Triângulo",optional:true,aliases:["triangulo"]},
-  {key:"chave_roda",name:"Chave de roda",optional:true,aliases:["chave_de_roda","chave_roda"]}
+  {key:"chave_roda",name:"Chave de roda",optional:true,aliases:["chave_de_roda","chave_roda"]},
+  {key:"outras_alteracoes_internas",name:"Outras alterações internas",note:"Use Com alteração para registrar outro ponto interno não listado acima.",aliases:["outras_alteracoes_internas","outra_alteracao_interna","interna","parte_interna"]}
  ],
  engine:[
   {key:"nivel_oleo_motor",name:"Nível de óleo do motor",aliases:["oleo_motor","nivel_oleo_motor","motor"]},

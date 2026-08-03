@@ -296,3 +296,18 @@ body.dark-mode {
     display: none !important;
   }
 }
+
+
+/* Alertas em tempo real — modal central responsivo */
+.realtime-alert-modal{border:0;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.32)}
+.realtime-alert-header{color:#fff;border:0;padding:1.15rem 1.25rem;background:#0f4c5c}
+.realtime-alert-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.16);font-size:1.35rem}
+.realtime-alert-type{font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;opacity:.9}
+.realtime-alert-modal .modal-body{padding:1.35rem;font-size:1.02rem}
+.realtime-alert-prefix{display:inline-flex;padding:.45rem .75rem;border-radius:999px;font-weight:800;background:rgba(15,76,92,.1);color:#0f4c5c}
+.realtime-alert-modal.theme-danger .realtime-alert-header{background:#b42318}
+.realtime-alert-modal.theme-danger .realtime-alert-prefix{background:#fee4e2;color:#b42318}
+.realtime-alert-modal.theme-success .realtime-alert-header{background:#157347}
+.realtime-alert-modal.theme-success .realtime-alert-prefix{background:#d1e7dd;color:#0f5132}
+.realtime-alert-modal.theme-petroleum .realtime-alert-header{background:#0f4c5c}
+@media (max-width:575.98px){.realtime-alert-modal{border-radius:16px}.modal-dialog-centered{min-height:calc(100% - 1rem)}#adminRealtimeAlertModal .modal-dialog{margin:.5rem}.realtime-alert-header{padding:1rem}.realtime-alert-modal .modal-body{padding:1rem}.realtime-alert-modal .modal-footer{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.realtime-alert-modal .modal-footer>*{margin:0;width:100%}}

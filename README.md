@@ -1,33 +1,51 @@
-# SIGVTR v1.9.11 — Checklist do Condutor
+# SIGVTR 20º BPM — Painel Administrativo v1.10.2
 
-Branch exclusiva de estabilização do Checklist do Condutor do 20º BPM.
+Primeira integração funcional entre o Checklist do Condutor e o Painel Administrativo.
 
-## Correções desta versão
+## Recursos entregues
 
-- Avarias já registradas e novas alterações passam a ter decisões separadas.
-- Quando houver avaria pendente, o grupo pergunta explicitamente se existe outra alteração no mesmo item.
-- Os botões mudam para `NENHUMA OUTRA ALTERAÇÃO` e `SIM, OUTRA ALTERAÇÃO...`.
-- A nova alteração continua exigindo descrição e fotografia, sem duplicar a avaria conhecida.
-- Restauração do fluxo completo de envio, que estava sem a função `submit`.
-- Bloqueio de envio duplicado e manutenção dos dados quando ocorrer falha.
-- Timeout controlado e validação da resposta real do Apps Script.
-- Confirmação de sucesso apenas quando a API retorna ID e protocolo.
-- Resumo informa que novas alterações ficarão pendentes após o envio.
-- Backend retorna a quantidade de novas avarias registradas.
-- Identificador de requisição para reduzir duplicidade em novas tentativas.
-- Exibição do responsável pelas avarias padronizada como Posto/Graduação + Nome de Guerra.
-- Cache PWA atualizado para `sigvtr-mobile-v1911`.
+- Dashboard com dados reais do Google Sheets.
+- Listagem real dos checklists recebidos.
+- Alertas automáticos de checklist e nova avaria.
+- Alertas de revisão preventiva por quilometragem.
+- Status: NOVO, VISUALIZADO, ENCAMINHADO, RESOLVIDO e ARQUIVADO.
+- Botão único de compartilhamento manual pelo WhatsApp Web.
+- Busca e linha do tempo completa por prefixo da viatura.
+- Histórico permanente, sem exclusão automática.
+- Backend compartilhado mantendo somente um `doGet` e um `doPost`.
 
 ## Backend
 
-Copie integralmente os arquivos de `backend/` para o mesmo projeto Apps Script:
+Copie para o mesmo projeto Apps Script:
 
-- `Código.gs`
-- `Complemento_Mobile_v4.gs`
-- `Avarias_Pendentes.gs`
+- `backend/Código.gs`
+- `backend/Complemento_Mobile_v4.gs`
+- `backend/Avarias_Pendentes.gs`
+- `backend/Painel_Administrativo.gs`
 
-O projeto mantém somente um `doGet` e um `doPost`. Após salvar, crie uma nova implantação do Web App e confirme que a URL em `js/app.js` corresponde à implantação publicada.
+Execute `configurarSistema()` uma vez. A função cria e valida as abas `ALERTAS` e `REVISOES`.
 
-## Publicação do frontend
+Depois crie uma nova versão da implantação do Aplicativo da Web.
 
-Substitua os arquivos do repositório, publique no GitHub Pages e abra a aplicação com `?v=1.9.11`.
+## Frontend
+
+Publique todos os arquivos no GitHub Pages. O painel está na pasta `admin/`.
+
+A URL da API fica em `admin/assets/js/api.js`. A entrega preserva a URL encontrada no projeto recebido. Caso a nova implantação gere outra URL, substitua somente esse valor.
+
+## Teste mínimo
+
+1. Envie um novo checklist.
+2. Abra `admin/index.html` e confirme os indicadores.
+3. Abra `admin/alertas.html` e confirme os alertas.
+4. Clique em **Compartilhar no WhatsApp**.
+5. Pesquise a viatura em `admin/historico-viatura.html`.
+6. Altere o status de um alerta e confirme a persistência na aba `ALERTAS`.
+
+### Resiliência do Painel (v1.10.2)
+O Painel Administrativo mantém localmente a última resposta válida de cada consulta. Em falhas temporárias de internet ou do Apps Script, os dados salvos continuam visíveis com aviso de modo offline. O Dashboard realiza atualização automática a cada 20 segundos e exibe notificações visuais quando novos alertas são encontrados.
+
+
+## Complementos da v1.10.2
+
+O Checklist do Condutor inclui agora campos genéricos para alterações não previstas nas etapas externa, interna e mecânica. No Dashboard, novos alertas são apresentados em modal central responsivo, com diferenciação visual por tipo de ocorrência.

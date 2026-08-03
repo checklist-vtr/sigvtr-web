@@ -1,7 +1,7 @@
-const CACHE_NAME = "sigvtr-mobile-v1911";
+const CACHE_NAME = "sigvtr-mobile-v1102";
 const APP_FILES = [
   "./",
-  "./index.html?v=1.9.11",
+  "./index.html?v=1.10.2",
   "./css/style.css?v=1.9.11",
   "./js/app.js?v=1.9.11",
   "./manifest.json?v=1.9.11",
@@ -14,5 +14,5 @@ self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys
 self.addEventListener("fetch",event=>{
  if(event.request.method!=="GET")return;
  const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;
- event.respondWith(fetch(event.request,{cache:"no-store"}).then(response=>{if(response&&response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html?v=1.9.11"))));
+ event.respondWith(fetch(event.request,{cache:"no-store"}).then(response=>{if(response&&response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));return response}).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html?v=1.10.2"))));
 });
