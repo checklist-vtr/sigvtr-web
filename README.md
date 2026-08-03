@@ -49,3 +49,14 @@ O Painel Administrativo mantém localmente a última resposta válida de cada co
 ## Complementos da v1.10.2
 
 O Checklist do Condutor inclui agora campos genéricos para alterações não previstas nas etapas externa, interna e mecânica. No Dashboard, novos alertas são apresentados em modal central responsivo, com diferenciação visual por tipo de ocorrência.
+
+
+## Painel Administrativo 1.13.2-rc1
+- Dados de viaturas, prontuários, checklists e avarias são carregados exclusivamente da API/Google Sheets.
+- Dados fictícios e sementes locais foram removidos.
+- Brasão oficial do 20º BPM aplicado ao login e à navegação administrativa.
+- E-mail de sugestões: checklist.viaturas.oficial@gmail.com.
+- O controle de KM alimentará alertas de troca de óleo e revisão; combustível e avarias são pilares operacionais.
+
+### Backend
+Substitua os arquivos do Apps Script pelos arquivos da pasta `backend/` e publique uma nova versão da implantação Web App.

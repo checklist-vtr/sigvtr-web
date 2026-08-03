@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 1.13.2-rc1 — Refinamento visual administrativo
+
+- Recorta e otimiza o brasão oficial do 20º BPM para evitar miniaturização e distorção.
+- Padroniza o brasão na tela de login e em todas as barras laterais.
+- Gera favicon ICO verdadeiro e ícones PNG para todas as páginas administrativas.
+- Padroniza títulos das abas do navegador.
+- Unifica o menu lateral entre Dashboard, Viaturas, Prontuário, Avarias e demais módulos.
+- Corrige estados de carregamento de Alertas e Checklists.
+- Exibe estados vazios claros quando o banco não possui registros.
+- Reduz o tempo máximo de espera da API e apresenta erro legível em caso de indisponibilidade.
+- Mantém o canal de sugestões checklist.viaturas.oficial@gmail.com no rodapé.
+
+## 1.13.2-rc1 — 03/08/2026
+- Removidos dados fictícios das páginas Viaturas e Prontuário.
+- Corrigidos indicadores `undefined` do Dashboard.
+- Corrigida inicialização da página de Avarias e seu menu lateral.
+- Adicionadas rotas administrativas ao único `doGet`.
+- Adicionadas ações administrativas ao único `doPost`.
+- Integrados alertas de checklist, avaria e revisão preventiva.
+- Aplicado o brasão do 20º BPM ao login e ao menu.
+- Invalidado cache administrativo antigo.
+- Atualizado rodapé com canal de sugestões.
+
 ## v1.10.2 — 03/08/2026
 
 ### Checklist do Condutor
