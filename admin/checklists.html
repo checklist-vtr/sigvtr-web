@@ -1,1 +1,128 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Checklists</title><link rel="icon" href="assets/icons/favicon.ico?v=1.13.8-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.13.8-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.13.8-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.13.8-rc1"><link rel="manifest" href="manifest.json?v=1.13.8-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><p class="eyebrow mb-1">Registros recebidos</p><h1 class="h3">Checklists do Condutor</h1><div class="input-group my-4"><input id="checkPrefix" class="form-control" placeholder="Filtrar por prefixo"><button id="checkSearch" class="btn btn-primary">Pesquisar</button></div><div id="checkState"></div><article class="panel-card"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Protocolo</th><th>Data/Hora</th><th>Viatura</th><th>Condutor</th><th>KM</th><th>Combustível</th><th>Status</th></tr></thead><tbody id="checkRows"></tbody></table></div></article></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.13.8-rc1"></script><script src="assets/js/auth.js?v=1.13.8-rc1"></script><script src="assets/js/menu.js?v=1.13.8-rc1"></script><script src="assets/js/admin.js?v=1.13.8-rc1"></script><script src="assets/js/checklists-admin.js?v=1.13.8-rc1"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0d47a1">
+  <title>SIGVTR • Checklists</title>
+  <link rel="icon" href="assets/icons/favicon.ico?v=1.15.0" sizes="any">
+  <link rel="manifest" href="manifest.json?v=1.15.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="assets/css/admin.css?v=1.15.0">
+  <link rel="stylesheet" href="assets/css/checklists.css?v=1.15.0">
+</head>
+<body>
+<div class="admin-shell">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="admin-main">
+    <header id="navbar"></header>
+    <main class="content-wrapper">
+      <div class="container-fluid px-3 px-lg-4 py-4">
+        <div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+          <div>
+            <p class="eyebrow mb-1">REGISTROS OPERACIONAIS</p>
+            <h1 class="h3 mb-1">Checklists do Condutor</h1>
+            <p class="text-secondary mb-0">Pesquisa, filtros, detalhamento, fotografias e exportação dos registros.</p>
+          </div>
+          <button id="exportChecklists" class="btn btn-outline-primary" type="button" disabled>
+            <i class="bi bi-file-earmark-pdf me-2"></i>Exportar resultado
+          </button>
+        </div>
+
+        <section class="panel-card p-3 p-lg-4 mb-4 no-print">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-4">
+              <label for="checkSearchText" class="form-label fw-semibold">Pesquisa</label>
+              <input id="checkSearchText" class="form-control" placeholder="Protocolo, prefixo, condutor ou RG">
+            </div>
+            <div class="col-6 col-lg-2">
+              <label for="checkStartDate" class="form-label fw-semibold">Data inicial</label>
+              <input id="checkStartDate" type="date" class="form-control">
+            </div>
+            <div class="col-6 col-lg-2">
+              <label for="checkEndDate" class="form-label fw-semibold">Data final</label>
+              <input id="checkEndDate" type="date" class="form-control">
+            </div>
+            <div class="col-6 col-lg-2">
+              <label for="checkStatus" class="form-label fw-semibold">Status</label>
+              <select id="checkStatus" class="form-select">
+                <option value="">Todos</option>
+                <option value="SEM ALTERAÇÃO">Sem alteração</option>
+                <option value="COM ALTERAÇÃO">Com alteração</option>
+              </select>
+            </div>
+            <div class="col-6 col-lg-2">
+              <label for="checkPageSize" class="form-label fw-semibold">Por página</label>
+              <select id="checkPageSize" class="form-select">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-2">
+              <button id="checkSearch" class="btn btn-primary" type="button"><i class="bi bi-search me-2"></i>Pesquisar</button>
+              <button id="checkClear" class="btn btn-outline-secondary" type="button"><i class="bi bi-eraser me-2"></i>Limpar filtros</button>
+            </div>
+          </div>
+        </section>
+
+        <div id="checkState" aria-live="polite"></div>
+
+        <section id="checkResult" class="panel-card overflow-hidden d-none">
+          <div class="check-summary px-3 px-lg-4 py-3 border-bottom d-flex flex-wrap justify-content-between gap-2">
+            <div><strong id="checkTotal">0</strong> registro(s) encontrado(s)</div>
+            <div class="text-secondary small" id="checkRange"></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0 check-table">
+              <thead><tr><th>Data/Hora</th><th>Protocolo</th><th>Viatura</th><th>Condutor</th><th>KM</th><th>Combustível</th><th>Status</th><th class="text-end no-print">Ações</th></tr></thead>
+              <tbody id="checkRows"></tbody>
+            </table>
+          </div>
+          <div class="d-flex align-items-center justify-content-between gap-3 px-3 px-lg-4 py-3 border-top no-print">
+            <button id="checkPrev" class="btn btn-outline-primary btn-sm" type="button"><i class="bi bi-chevron-left"></i> Anterior</button>
+            <span id="checkPageInfo" class="small text-secondary"></span>
+            <button id="checkNext" class="btn btn-outline-primary btn-sm" type="button">Próxima <i class="bi bi-chevron-right"></i></button>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer id="footer"></footer>
+  </div>
+</div>
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+<div class="modal fade" id="checkDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><p class="eyebrow mb-1">DETALHAMENTO OPERACIONAL</p><h2 class="modal-title h5 mb-0" id="checkDetailTitle">Checklist</h2></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="checkDetailBody"></div>
+      <div class="modal-footer">
+        <button id="printChecklistDetail" type="button" class="btn btn-outline-primary"><i class="bi bi-printer me-2"></i>Exportar este checklist</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="checkPhotoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark border-0">
+      <div class="modal-header border-secondary text-white"><h2 class="modal-title h6" id="checkPhotoTitle">Fotografia</h2><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body text-center"><img id="checkPhotoImage" class="img-fluid rounded check-photo-large" alt="Fotografia do checklist"></div>
+      <div class="modal-footer border-secondary"><a id="checkPhotoOriginal" class="btn btn-light" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-2"></i>Abrir original</a></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/api.js?v=1.15.0"></script>
+<script src="assets/js/auth.js?v=1.15.0"></script>
+<script src="assets/js/menu.js?v=1.15.0"></script>
+<script src="assets/js/admin.js?v=1.15.0"></script>
+<script src="assets/js/checklists-admin.js?v=1.15.0"></script>
+</body></html>
