@@ -1,3 +1,10 @@
+## [1.14.1] - 2026-08-04
+
+### Corrigido
+- Corrige o erro `prefixo is not defined` na pesquisa do Histórico por Viatura.
+- Remove o título redundante `Pilares do SIGVTR` do Dashboard, mantendo apenas `CONTROLE OPERACIONAL` e a descrição operacional.
+- Atualiza o cache PWA do painel para forçar o carregamento dos arquivos corrigidos.
+
 # CHANGELOG
 
 ## [1.14.0] - 2026-08-04
