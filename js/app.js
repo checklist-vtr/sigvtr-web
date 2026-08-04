@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.10.2";
+const APP_VERSION="1.10.3";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -165,6 +165,20 @@ async function postChecklist(payload,timeoutMs=120000){
   throw err;
  }finally{clearTimeout(timeout)}
 }
+async function confirmSavedChecklist(idRequisicao,attempts=4){
+ for(let attempt=0;attempt<attempts;attempt++){
+  if(attempt>0)await new Promise(resolve=>setTimeout(resolve,1200*attempt));
+  try{
+   const url=new URL(API_URL);url.searchParams.set("action","confirmarRetiradaMobile");url.searchParams.set("idRequisicao",idRequisicao);url.searchParams.set("_ts",Date.now());
+   const response=await fetch(url.toString(),{method:"GET",cache:"no-store",redirect:"follow"});
+   if(!response.ok)continue;
+   const raw=await response.text();if(!raw.trim())continue;
+   const json=JSON.parse(raw),result=json.data||json;
+   if(json.success===true&&result&&result.found===true&&result.id&&result.protocolo)return result;
+  }catch(_){}
+ }
+ return null;
+}
 async function submit(event){
  event.preventDefault();
  event.stopPropagation();
@@ -186,8 +200,20 @@ async function submit(event){
   $("#successModal").hidden=false;
   toast("Checklist registrado com sucesso.");
  }catch(err){
+  // A API pode concluir a gravação e a confirmação HTTP se perder durante o
+  // retorno. Antes de permitir novo envio, confirmamos pelo idRequisicao.
+  const recovered=await confirmSavedChecklist(state.requestId);
+  if(recovered){
+   stopSendingMessages();$("#sendingModal").hidden=true;
+   const novas=Number(recovered.novasAvarias||0);
+   const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
+   $("#successMessage").textContent=`Protocolo ${recovered.protocolo}. O registro foi localizado e confirmado com sucesso após uma oscilação na comunicação.${detail}`;
+   $("#successModal").hidden=false;
+   toast("Checklist confirmado no banco de dados.");
+   return;
+  }
   stopSendingMessages();$("#sendingModal").hidden=true;document.body.classList.remove("modal-open");
-  error("submitError",err&&err.message?err.message:"Não foi possível concluir o envio. Os dados foram preservados.");
+  error("submitError",(err&&err.message?err.message:"Não foi possível concluir o envio.")+" O registro não foi localizado pelo identificador da requisição; os dados foram preservados.");
   button.disabled=false;button.textContent="TENTAR ENVIAR NOVAMENTE";form.classList.remove("loading");
   state.isSubmitting=false;
  }

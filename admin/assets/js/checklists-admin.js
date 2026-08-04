@@ -16,5 +16,5 @@
     }catch(err){rows.innerHTML='';state.innerHTML=`<div class="alert alert-danger"><strong>Não foi possível carregar os checklists.</strong><div class="small mt-1">${esc(err.message)}</div></div>`;}
     finally{loading=false;if(button)button.disabled=false;}
   }
-  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;const query=new URLSearchParams(location.search);byId('checkPrefix').value=query.get('prefixo')||query.get('busca')||'';byId('checkSearch').onclick=()=>load(true);byId('checkPrefix').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();load(true);}});load();});
+  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;byId('checkSearch').onclick=()=>load(true);byId('checkPrefix').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();load(true);}});load();});
 })();

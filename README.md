@@ -1,15 +1,10 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
-**Painel Administrativo:** `1.13.5-rc1`  
-**Backend Apps Script:** `1.9.16`
-
-> Sistema exclusivo do 20º Batalhão da Polícia Militar do Pará.
-
 Sistema exclusivo do 20º Batalhão da Polícia Militar do Pará.
 
 ## Versões
-- Painel Administrativo: 1.13.5-rc1
-- Backend: 1.9.16
+- Painel Administrativo: 1.13.6-rc1
+- Backend: 1.9.17
 
 ## Arquitetura
 - Frontend: HTML, CSS, Bootstrap, JavaScript e PWA.

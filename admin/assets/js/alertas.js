@@ -19,5 +19,5 @@
     }catch(e){list.innerHTML='';state.innerHTML=`<div class="alert alert-danger"><strong>Não foi possível carregar os alertas.</strong><div class="small mt-1">${esc(e.message)}</div></div>`;}
     finally{loading=false;if(refresh)refresh.disabled=false;}
   }
-  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;const query=new URLSearchParams(location.search);byId('filterPrefix').value=query.get('prefixo')||'';byId('refreshAlerts').onclick=()=>load(true);byId('applyFilters').onclick=()=>load(true);load();setInterval(()=>{if(!document.hidden)load(true)},30000);});
+  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;byId('refreshAlerts').onclick=()=>load(true);byId('applyFilters').onclick=()=>load(true);load();setInterval(()=>{if(!document.hidden)load(true)},30000);});
 })();

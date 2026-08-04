@@ -107,7 +107,7 @@ body.dark-mode .status-danger {
   color: #fca5a5;
 }
 
-/* v1.13.5-rc1 — pilares operacionais */
+/* v1.13.4-rc1 — pilares operacionais */
 .operational-pillar{display:flex;gap:1rem;padding:1.15rem;border:1px solid var(--admin-border,#dbe3ef);border-radius:1rem;background:var(--admin-card,#fff);box-shadow:0 10px 28px rgba(15,52,96,.06)}
 .operational-pillar .pillar-icon{width:3rem;height:3rem;display:grid;place-items:center;border-radius:.85rem;font-size:1.3rem;flex:0 0 auto;background:#eaf2ff;color:#0d5cc9}
 .operational-pillar h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;margin:0 0 .35rem;color:#52657a}
