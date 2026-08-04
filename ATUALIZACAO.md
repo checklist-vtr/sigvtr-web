@@ -1,42 +1,20 @@
-# ATUALIZAÇÃO
+# ATUALIZAÇÃO — SIGVTR
 
-## Versões
+## Painel Administrativo 1.13.8-rc1
 
-- Painel Administrativo: **1.13.7-rc1**
-- Backend Apps Script: **1.9.18**
-- Checklist do Condutor: **1.10.3**
+Correção emergencial do monitoramento em tempo real.
 
-## Objetivo
+### Correções
 
-Melhorar o tempo de recebimento dos alertas, liberar corretamente o som no navegador e acelerar consultas repetidas da Pesquisa Global.
+- Declara corretamente o estado interno `initializedAlerts`.
+- Remove o erro silencioso que interrompia o processamento de novos alertas.
+- Restaura a abertura do modal centralizado no Dashboard.
+- Restaura a chamada do aviso sonoro quando o som estiver ativado.
+- Atualiza o Dashboard imediatamente após a identificação de um novo alerta.
+- Mantém verificação periódica de 10 segundos com bloqueio de chamadas simultâneas.
+- Adiciona aviso técnico no console quando a consulta de alertas falhar.
+- Atualiza o cache administrativo para `sigvtr-admin-v1138rc1`.
 
-## Frontend alterado
+### Backend
 
-- `admin/assets/js/admin.js`
-- `admin/assets/js/api.js`
-- `admin/sw.js`
-- páginas administrativas com atualização de versão do cache
-
-## Backend alterado
-
-- `Código.gs`
-- `Complemento_Mobile_v4.gs`
-- `Painel_Administrativo.gs`
-
-## Publicação
-
-1. Substituir a pasta `admin/` completa.
-2. Substituir os três arquivos do backend indicados acima.
-3. Criar nova versão da implantação do Apps Script.
-4. Fazer commit e Push no GitHub Desktop.
-5. Aguardar o GitHub Pages e usar **Esvaziar cache e recarregamento forçado**.
-
-## Testes
-
-- Clicar em **Ativar som** e confirmar o sinal de teste.
-- Manter o Dashboard aberto e enviar um checklist.
-- Confirmar o modal e o som em até aproximadamente 10 segundos.
-- Alternar para outra aba e retornar; a consulta deve ocorrer imediatamente.
-- Executar duas pesquisas seguidas e comparar o tempo da primeira com a segunda.
-
-Não limpar o banco durante esta rodada de testes.
+Nenhuma substituição de backend é necessária nesta atualização.

@@ -42,3 +42,13 @@
 - Amplia a rota `adminDashboard` sem criar novo `doGet()`.
 - Preserva um único `doGet()` e um único `doPost()`.
 - Mantém compatibilidade com o Checklist do Condutor.
+
+## [Painel Administrativo 1.13.8-rc1] - 2026-08-04
+
+### Corrigido
+- Variável de inicialização dos alertas em tempo real não declarada.
+- Modal central e som não executados após a chegada de novo alerta.
+- Atualização tardia dos indicadores após identificação do alerta.
+
+### Alterado
+- Cache administrativo atualizado para impedir reutilização do JavaScript anterior.
