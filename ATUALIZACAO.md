@@ -1,22 +1,17 @@
-# ATUALIZAÇÃO — 1.13.3-rc1
+# ATUALIZAÇÃO — SIGVTR 1.13.4-rc1
+
+## Objetivo
+Transformar o Dashboard em uma visão operacional baseada nos pilares combustível, quilometragem preventiva e avarias.
 
 ## Frontend
-
-Substitua a pasta `admin/` completa. Também substitua o `favicon.ico` da raiz.
-
-Após publicar no GitHub Pages, execute `Ctrl + F5`. Caso o navegador mantenha a versão anterior, cancele o Service Worker e limpe os dados do site.
+Substituir a pasta `admin/` completa.
 
 ## Backend
+Substituir todos os arquivos `.gs` pelos arquivos da pasta `backend/`, preservando os nomes no Apps Script. Depois, salvar e publicar uma nova versão da implantação.
 
-Nenhuma substituição adicional é necessária nesta atualização visual. O backend 1.9.14 permanece válido.
-
-## Resultado esperado
-
-- Brasão proporcional e legível no login e no menu lateral.
-- Favicon visível em todas as páginas administrativas.
-- Menus consistentes em todos os módulos.
-- Alertas e Checklists mostram dados, estado vazio ou mensagem de erro; nunca permanecem indefinidamente em “Carregando”.
-
-## Atualização 1.13.3-rc1
-
-Substituir a pasta `admin/` completa e o arquivo `favicon.ico` da raiz. Após o push, aguardar o GitHub Pages e usar “Esvaziar cache e recarregamento forçado”. A primeira abertura ativa o novo Service Worker e elimina os caches administrativos antigos.
+## Testes
+1. Abrir o Dashboard com o banco vazio e confirmar todos os valores em zero.
+2. Enviar um checklist e confirmar a atualização dos indicadores.
+3. Registrar combustível RESERVA ou 1/4 e confirmar o alerta no pilar Combustível.
+4. Registrar avaria e confirmar o pilar Avarias.
+5. Verificar o controle de revisão após atualização de KM.

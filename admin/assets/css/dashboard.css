@@ -106,3 +106,15 @@ body.dark-mode .status-danger {
   background: rgba(153, 27, 27, .25);
   color: #fca5a5;
 }
+
+/* v1.13.4-rc1 — pilares operacionais */
+.operational-pillar{display:flex;gap:1rem;padding:1.15rem;border:1px solid var(--admin-border,#dbe3ef);border-radius:1rem;background:var(--admin-card,#fff);box-shadow:0 10px 28px rgba(15,52,96,.06)}
+.operational-pillar .pillar-icon{width:3rem;height:3rem;display:grid;place-items:center;border-radius:.85rem;font-size:1.3rem;flex:0 0 auto;background:#eaf2ff;color:#0d5cc9}
+.operational-pillar h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;margin:0 0 .35rem;color:#52657a}
+.operational-pillar .pillar-value{font-size:1.55rem;font-weight:800;line-height:1.15;color:#10213a}
+.operational-pillar .pillar-value span{font-size:.78rem;font-weight:600;color:#68798d}
+.operational-pillar p{font-size:.82rem;color:#68798d;margin:.65rem 0 0}
+.operational-pillar.pillar-success{border-left:4px solid #198754}.operational-pillar.pillar-success .pillar-icon{background:#e7f7ee;color:#198754}
+.operational-pillar.pillar-warning{border-left:4px solid #f0ad23}.operational-pillar.pillar-warning .pillar-icon{background:#fff4d9;color:#9a6500}
+.operational-pillar.pillar-danger{border-left:4px solid #dc3545}.operational-pillar.pillar-danger .pillar-icon{background:#fde9ec;color:#dc3545}
+body.dark-mode .operational-pillar{background:#142235;border-color:#2c3f55}body.dark-mode .operational-pillar .pillar-value{color:#f3f7fb}body.dark-mode .operational-pillar h3,body.dark-mode .operational-pillar p,body.dark-mode .operational-pillar .pillar-value span{color:#b8c5d3}
