@@ -3,8 +3,8 @@
 Sistema exclusivo do 20º Batalhão da Polícia Militar do Pará.
 
 ## Versões
-- Painel Administrativo: 1.13.7-rc1
-- Backend: 1.9.18
+- Painel Administrativo: 1.16.1
+- Backend: 1.9.20
 
 ## Arquitetura
 - Frontend: HTML, CSS, Bootstrap, JavaScript e PWA.
@@ -23,3 +23,12 @@ Sugestões e melhorias: checklist.viaturas.oficial@gmail.com
 ## Painel Administrativo — Etapa 3 (v1.14.0)
 
 O módulo **Histórico por Viatura** fornece prontuário consolidado, exclusivamente com dados reais do backend: dados cadastrais, evolução de quilometragem, checklists, avarias, fotografias, eventos, alertas, linha do tempo e exportação por impressão/PDF. A consulta aceita prefixos completos ou numéricos e mantém a arquitetura de um único `doGet()` e um único `doPost()`.
+
+
+## Gestão de Avarias — v1.16.1
+
+Os cards de indicadores são controles de navegação rápida. Ao selecionar Abertas, Pendentes, Em manutenção, Resolvidas ou Arquivadas, o filtro de situação é sincronizado, a paginação retorna à primeira página e a lista exibe somente as ocorrências correspondentes. O card ativo permanece destacado e pode ser acionado por mouse ou teclado.
+
+## Documentação na raiz
+
+A raiz do projeto mantém somente `README.md`, `CHANGELOG.md` e `ATUALIZACAO.md`. O histórico de versões deve ser consolidado nesses arquivos, sem criar documentos separados por etapa ou correção.

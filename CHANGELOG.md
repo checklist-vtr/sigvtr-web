@@ -1,3 +1,15 @@
+# CHANGELOG
+
+## [1.16.1] - 2026-08-04
+
+### Corrigido
+- Transforma os cards da Gestão de Avarias em filtros rápidos clicáveis.
+- Sincroniza o card selecionado com o campo Situação.
+- Adiciona o agrupamento `Abertas`, composto por `PENDENTE` e `EM MANUTENÇÃO`.
+- Retorna a paginação à primeira página após selecionar um indicador.
+- Destaca visualmente o card ativo e adiciona navegação por teclado.
+- Consolida a documentação da raiz em `README.md`, `CHANGELOG.md` e `ATUALIZACAO.md`.
+
 ## [1.14.1] - 2026-08-04
 
 ### Corrigido

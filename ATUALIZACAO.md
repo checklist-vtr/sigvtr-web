@@ -1,48 +1,75 @@
-# ATUALIZAÇÃO — ETAPA 3 — HISTÓRICO POR VIATURA
+# ATUALIZAÇÃO — SIGVTR PAINEL ADMINISTRATIVO
 
-## Versão
-1.14.0 — 04/08/2026
+## Versão atual
+
+- Painel Administrativo: **1.16.1**
+- Backend: **1.9.20**
+- Etapa: **5 — Gestão de Avarias**
+- Data: **04/08/2026**
+
+## Objetivo desta atualização
+
+Ativar a navegação pelos cards de situação da Gestão de Avarias e consolidar a documentação existente na raiz do repositório.
 
 ## Arquivos alterados
-- `admin/historico-viatura.html`
-- `admin/assets/js/historico-viatura.js`
-- `admin/assets/css/prontuario.css`
-- `admin/assets/js/api.js`
-- `admin/sw.js` e referências de versão do painel
-- `Painel_Administrativo.gs`
+
+- `admin/avarias.html`
+- `admin/assets/js/avarias.js`
+- `admin/assets/css/avarias.css`
+- `admin/sw.js`
 - `README.md`
 - `CHANGELOG.md`
 - `ATUALIZACAO.md`
 
-## Publicação
-1. No GitHub Desktop, criar ou selecionar `feature/painel-administrativo-v1`.
-2. Substituir os arquivos do frontend pelos arquivos deste pacote.
-3. No Apps Script, substituir apenas o conteúdo de `Painel_Administrativo.gs`. Os demais `.gs` foram incluídos como referência íntegra.
-4. Salvar e criar uma **nova implantação** do aplicativo da Web.
-5. Confirmar que a URL da implantação permanece configurada em `admin/assets/js/api.js`.
-6. Fazer commit e push pelo GitHub Desktop.
-7. Aguardar a publicação do GitHub Pages.
-8. Abrir o painel, esvaziar o cache do site e usar recarregamento forçado (`Ctrl+F5`).
+## Arquivos antigos removidos da raiz
 
-## Testes obrigatórios
-1. Pesquisar um prefixo com checklists existentes.
-2. Validar dados cadastrais e KM atual.
-3. Conferir ordem e diferença do histórico de KM.
-4. Abrir as abas Checklists, Avarias, Fotos, Eventos e Linha do tempo.
-5. Aplicar filtros de data e tipo.
-6. Abrir detalhes de checklist e avaria.
-7. Abrir uma foto no Google Drive.
-8. Usar “Exportar PDF” e salvar a impressão como PDF.
-9. Testar prefixo inexistente e indisponibilidade temporária da API.
-10. Confirmar Dashboard, Alertas, Pesquisa Global e Checklist do Condutor sem regressões.
+- `README_CORRECAO.md`
+- `README_ETAPA5.md`
+- `README-FAVICON.md`
+- `CHANGELOG_v1.14.2.md`
+- `CHANGELOG_v1.14.3.md`
+- `ATUALIZACAO_CORRECAO_1.14.1.md`
+- `ATUALIZACAO_ETAPA5.md`
+- `ATUALIZACAO_v1.14.2.md`
+
+## Comportamento dos cards
+
+- **Abertas:** Pendente + Em manutenção.
+- **Pendentes:** apenas Pendente.
+- **Em manutenção:** apenas Em manutenção.
+- **Resolvidas:** apenas Resolvida.
+- **Arquivadas:** apenas Arquivada.
+
+O campo Situação acompanha o card selecionado. O botão Limpar filtros remove a seleção e retorna à exibição de todas as ocorrências.
+
+## Publicação
+
+1. Substituir os quatro arquivos do frontend listados acima.
+2. Atualizar os três documentos consolidados da raiz.
+3. Excluir os arquivos antigos listados.
+4. Conferir as alterações no GitHub Desktop.
+5. Fazer commit e `Push origin`.
+6. Aguardar o GitHub Pages.
+7. Limpar o Service Worker e os dados do site.
+8. Reabrir a página com `Ctrl + Shift + R`.
+
+Não há alteração no backend e não é necessária nova implantação do Google Apps Script.
 
 ## Commit
 
 ### Summary
-`feat(admin): concluir prontuário completo por viatura`
+
+`fix(admin): ativar filtros pelos cards de avarias`
 
 ### Description
-`Implementa a Etapa 3 do Painel Administrativo com prontuário completo por viatura, histórico detalhado de quilometragem, checklists, avarias, fotos, eventos, alertas, linha do tempo, filtros por período e tipo, detalhamento em modal e exportação em PDF. Amplia a rota adminHistoricoViatura sem criar novos doGet ou doPost, preserva a planilha, o Drive, o banco atual e todas as funcionalidades existentes. Atualiza cache, documentação e versão do painel para 1.14.0.`
 
-## Próxima etapa
-ETAPA 4 — Checklists: lista completa, filtros avançados, pesquisa, visualização, fotos, detalhamento e exportação.
+`Transforma os indicadores da Gestão de Avarias em filtros rápidos, sincroniza os cards com o campo Situação, adiciona o agrupamento Abertas, destaca a seleção ativa e retorna a paginação à primeira página. Consolida a documentação da raiz em README.md, CHANGELOG.md e ATUALIZACAO.md e atualiza o cache PWA para a versão 1.16.1.`
+
+## Testes
+
+1. Clicar em Abertas e confirmar Pendente + Em manutenção.
+2. Clicar em Pendentes, Em manutenção, Resolvidas e Arquivadas.
+3. Confirmar que o seletor Situação acompanha o card.
+4. Usar Limpar filtros e confirmar retorno para Todas.
+5. Testar acionamento dos cards com Tab e Enter.
+6. Confirmar que prontuário, fotos, exportação e atualização administrativa continuam funcionando.
