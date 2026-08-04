@@ -1,16 +1,16 @@
 # CHANGELOG
 
-## 1.13.4-rc1 — 04/08/2026
+## 1.13.5-rc1 — Pesquisa Global integrada
 
-### Painel Administrativo
-- Consolida o Dashboard como centro operacional do SIGVTR.
-- Adiciona os três pilares: combustível, quilometragem/revisões e avarias.
-- Exibe níveis críticos de combustível com base no último checklist de cada viatura.
-- Exibe revisões vencidas e próximas por quilometragem.
-- Mantém avarias abertas até ação administrativa.
-- Atualiza cache e Service Worker para 1.13.4-rc1.
-
-### Backend 1.9.15
-- Amplia a rota `adminDashboard` sem criar novo `doGet()`.
-- Preserva um único `doGet()` e um único `doPost()`.
-- Mantém compatibilidade com o Checklist do Condutor.
+- Remove o título redundante “Pilares do SIGVTR” do Dashboard.
+- Mantém apenas “Controle operacional” e a descrição dos pilares.
+- Integra a Pesquisa Global aos dados reais do backend.
+- Permite pesquisar viaturas, placas, modelos, condutores, RGs, protocolos, checklists, avarias e alertas.
+- Torna a busca indiferente a maiúsculas, minúsculas e acentos.
+- Prioriza correspondências exatas.
+- Adiciona resumo por categoria e filtros de resultados.
+- Adiciona estados de carregamento, vazio e erro.
+- Limita a resposta a 300 resultados para preservar desempenho.
+- Corrige links diretos para Checklists, Avarias, Alertas e Histórico por Viatura.
+- Atualiza o Service Worker e o cache administrativo.
+- Atualiza o frontend para `1.13.5-rc1` e o backend para `1.9.16`.

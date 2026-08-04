@@ -322,7 +322,7 @@ body.dark-mode {
 
 .sidebar-brand-icon{overflow:hidden;background:#fff;padding:3px}.sidebar-brand-icon img{width:100%;height:100%;object-fit:contain;border-radius:9px}.app-footer{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap}.app-footer a{color:inherit;font-weight:600;text-decoration:none}.app-footer a:hover{text-decoration:underline}
 
-/* Identidade visual e estados vazios — v1.13.4-rc1 */
+/* Identidade visual e estados vazios — v1.13.5-rc1 */
 .sidebar-brand{min-height:82px;padding:.9rem 1rem;gap:.75rem}
 .sidebar-brand-icon{width:54px;height:54px;min-width:54px;border-radius:14px;padding:4px;background:#fff;box-shadow:0 5px 16px rgba(0,0,0,.18)}
 .sidebar-brand-icon img{width:100%;height:100%;object-fit:contain;border-radius:10px}
@@ -332,3 +332,10 @@ body.dark-mode {
 .empty-state i{font-size:1.35rem;color:var(--sigvtr-primary)}
 .loading-state{display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;border:1px solid #b9dff0;border-radius:12px;background:#e9f8ff;color:#14566e}
 @media(max-width:575.98px){.sidebar-brand-icon{width:50px;height:50px;min-width:50px}.sidebar-brand{min-height:76px}}
+
+/* Pesquisa Global — v1.13.5-rc1 */
+.search-summary-card{height:100%;display:flex;align-items:center;gap:.85rem;padding:1rem;border:1px solid var(--sigvtr-border);border-radius:16px;background:var(--sigvtr-surface);box-shadow:0 8px 24px rgba(17,24,39,.04)}
+.search-summary-card>i{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--sigvtr-primary-soft);color:var(--sigvtr-primary);font-size:1.15rem}
+.search-summary-card span{display:block;color:var(--sigvtr-muted);font-size:.78rem}.search-summary-card strong{display:block;font-size:1.45rem;line-height:1.1}
+.search-result-icon.type-avaria{background:#fde8e8;color:#b42318}.search-result-icon.type-alerta{background:#fff3cd;color:#8a5b00}.search-result-icon.type-checklist{background:#e9f7ef;color:#146c43}.min-width-0{min-width:0}
+@media(max-width:575.98px){#searchForm .input-group{flex-wrap:wrap}#searchForm .form-control{min-width:calc(100% - 48px)}#searchForm .btn{width:100%;margin-top:.5rem;border-radius:.5rem!important}.search-summary-card{padding:.8rem}.search-summary-card>i{width:36px;height:36px}}
