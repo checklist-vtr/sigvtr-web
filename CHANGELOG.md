@@ -80,3 +80,19 @@
 
 ### Alterado
 - Cache administrativo atualizado para impedir reutilização do JavaScript anterior.
+
+## [1.16.0] - 2026-08-04
+
+### Adicionado
+- Gestão completa do ciclo de vida das avarias.
+- Prontuário individual com fotos e linha do tempo.
+- Atualização administrativa de situação, responsável e observações.
+- Resolução, arquivamento e exclusão lógica com auditoria.
+- Filtros por pesquisa, situação, viatura e período.
+- Paginação e exportação com identidade visual.
+- Rotas internas `adminAvariaDetalhe` e `adminAtualizarAvaria`.
+
+### Preservado
+- Único `doGet()` e único `doPost()`.
+- Mesma planilha, Google Drive e arquitetura do SIGVTR.
+- Registros históricos sem exclusão física.

@@ -1,42 +1,27 @@
 # Gestão de Avarias — SIGVTR
 
-## Versão 1.6
+## Versão 1.16.0 — Etapa 5
 
-O painel administrativo passa a reconhecer as seguintes categorias:
+A Gestão de Avarias acompanha permanentemente o ciclo de vida das ocorrências:
 
-- Lataria
-- Sinalização
-- Equipamentos
-- Estrutura
-- Freios
-- Pneus
-- Vidros
-- Elétrica
-- Mecânica
-- Interior
-- Outros
+`PENDENTE → EM MANUTENÇÃO → RESOLVIDA → ARQUIVADA`
 
-Cada ocorrência possui:
+A situação `EXCLUÍDA` representa exclusão lógica administrativa. O registro não é apagado da planilha e a ação permanece registrada em LOGS.
 
-- categoria;
-- componente;
-- descrição;
-- status;
-- observação administrativa;
-- histórico;
-- fotos;
-- protocolo de origem.
+## Funcionalidades
 
-A Administração pode editar a ocorrência e alterar seu status.
+- indicadores de abertas, pendentes, em manutenção, resolvidas e arquivadas;
+- pesquisa e filtros por situação, viatura e período;
+- paginação de 20, 50 ou 100 registros;
+- prontuário individual da avaria;
+- fotos do checklist que originou a ocorrência;
+- linha do tempo administrativa;
+- responsável e observação administrativa;
+- mudança de situação;
+- resolução, arquivamento e exclusão lógica;
+- exportação da lista e da ocorrência individual;
+- auditoria no arquivo LOGS.
 
-## Duplicidade
+## Persistência
 
-A prevenção de duplicidade deve acontecer no Checklist Mobile, antes do envio da ocorrência.
-
-A comparação deverá usar, no mínimo:
-
-- viatura;
-- componente;
-- status ainda aberto.
-
-O condutor deverá poder confirmar a avaria existente, informar agravamento ou registrar uma avaria diferente.
+Nenhuma operação administrativa exclui fisicamente a avaria. As colunas administrativas são criadas apenas quando ainda não existirem na aba AVARIAS.
