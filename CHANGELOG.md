@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 1.13.7-rc1 — 04/08/2026
+
+- Reduz o intervalo de detecção de alertas para até 10 segundos com rota leve dedicada.
+- Evita consultas concorrentes durante o monitoramento.
+- Consulta alertas imediatamente ao retornar para a aba do painel.
+- Implementa ativação real do som com Web Audio API e teste sonoro.
+- Diferencia som desativado, ativado e bloqueado pelo navegador.
+- Adiciona cache de 60 segundos ao índice da Pesquisa Global.
+- Invalida o índice após novos checklists e alterações de status de alertas.
+- Atualiza o Painel Administrativo para 1.13.7-rc1 e o backend para 1.9.18.
+
 ## 1.13.6-rc1 — 04/08/2026
 
 ### Frontend

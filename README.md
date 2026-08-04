@@ -3,8 +3,8 @@
 Sistema exclusivo do 20º Batalhão da Polícia Militar do Pará.
 
 ## Versões
-- Painel Administrativo: 1.13.6-rc1
-- Backend: 1.9.17
+- Painel Administrativo: 1.13.7-rc1
+- Backend: 1.9.18
 
 ## Arquitetura
 - Frontend: HTML, CSS, Bootstrap, JavaScript e PWA.
