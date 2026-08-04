@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## [1.14.0] - 2026-08-04
+
+### Adicionado
+- Prontuário completo por viatura com sete áreas de consulta.
+- Histórico de quilometragem com diferença entre registros.
+- Filtros por período e tipo de evento.
+- Galeria de fotografias vinculadas aos checklists.
+- Detalhamento de checklists e avarias em modal.
+- Exportação do prontuário em PDF pelo recurso de impressão do navegador.
+
+### Alterado
+- Rota `adminHistoricoViatura` ampliada sem criação de novo endpoint.
+- Cache administrativo versionado para `v1.14.0`.
+- Dados de avarias, eventos, alertas e fotos normalizados no backend.
+
+### Preservado
+- Único `doGet()` e único `doPost()`.
+- Estrutura atual da planilha, Google Drive e demais módulos.
+- Banco de testes existente, sem qualquer rotina de limpeza.
+# CHANGELOG
+
 ## 1.13.7-rc1 — 04/08/2026
 
 - Reduz o intervalo de detecção de alertas para até 10 segundos com rota leve dedicada.

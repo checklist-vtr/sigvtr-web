@@ -18,3 +18,8 @@ O painel utiliza combustível, quilometragem preventiva e avarias como base da g
 
 ## Contato
 Sugestões e melhorias: checklist.viaturas.oficial@gmail.com
+
+
+## Painel Administrativo — Etapa 3 (v1.14.0)
+
+O módulo **Histórico por Viatura** fornece prontuário consolidado, exclusivamente com dados reais do backend: dados cadastrais, evolução de quilometragem, checklists, avarias, fotografias, eventos, alertas, linha do tempo e exportação por impressão/PDF. A consulta aceita prefixos completos ou numéricos e mantém a arquitetura de um único `doGet()` e um único `doPost()`.

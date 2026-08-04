@@ -1,1 +1,47 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Histórico por Viatura</title><link rel="icon" href="assets/icons/favicon.ico?v=1.13.8-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.13.8-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.13.8-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.13.8-rc1"><link rel="manifest" href="manifest.json?v=1.13.8-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><p class="eyebrow mb-1">Prontuário operacional</p><h1 class="h3">Histórico por Viatura</h1><p class="text-secondary">Digite 50-2017, 502017, 2017 ou um prefixo externo.</p><form id="historyForm" class="input-group mb-4"><input id="historyPrefix" class="form-control form-control-lg" required placeholder="Prefixo da viatura"><button class="btn btn-primary px-4">Pesquisar</button></form><div id="historyState"></div><div id="historyResult"></div></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.13.8-rc1"></script><script src="assets/js/auth.js?v=1.13.8-rc1"></script><script src="assets/js/menu.js?v=1.13.8-rc1"></script><script src="assets/js/admin.js?v=1.13.8-rc1"></script><script src="assets/js/historico-viatura.js?v=1.13.8-rc1"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0d47a1">
+  <meta name="description" content="Prontuário operacional completo das viaturas do SIGVTR 20º BPM">
+  <title>SIGVTR • Histórico por Viatura</title>
+  <link rel="icon" href="assets/icons/favicon.ico?v=1.14.0" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.14.0">
+  <link rel="manifest" href="manifest.json?v=1.14.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="assets/css/admin.css?v=1.14.0">
+  <link rel="stylesheet" href="assets/css/prontuario.css?v=1.14.0">
+</head>
+<body>
+<div class="admin-shell">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="admin-main">
+    <header id="navbar"></header>
+    <main class="content-wrapper">
+      <div class="container-fluid px-3 px-lg-4 py-4">
+        <div class="page-header mb-4">
+          <div><p class="eyebrow mb-1">Prontuário operacional</p><h1 class="h3 mb-1">Histórico por Viatura</h1><p class="text-secondary mb-0">Consulta consolidada de KM, checklists, avarias, fotos e eventos.</p></div>
+          <button id="exportPdfButton" class="btn btn-outline-primary" type="button" disabled><i class="bi bi-file-earmark-pdf me-2"></i>Exportar PDF</button>
+        </div>
+        <section class="panel-card p-3 p-lg-4 mb-4 no-print">
+          <form id="historyForm" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-5"><label for="historyPrefix" class="form-label fw-semibold">Prefixo da viatura</label><div class="input-group"><span class="input-group-text"><i class="bi bi-car-front-fill"></i></span><input id="historyPrefix" class="form-control" required maxlength="30" autocomplete="off" placeholder="Ex.: 50-2017, 502017 ou 2017"><button class="btn btn-primary px-4">Pesquisar</button></div></div>
+            <div class="col-6 col-lg-2"><label for="historyStart" class="form-label fw-semibold">Data inicial</label><input id="historyStart" type="date" class="form-control"></div>
+            <div class="col-6 col-lg-2"><label for="historyEnd" class="form-label fw-semibold">Data final</label><input id="historyEnd" type="date" class="form-control"></div>
+            <div class="col-12 col-lg-3"><label for="historyType" class="form-label fw-semibold">Tipo de registro</label><select id="historyType" class="form-select"><option value="TODOS">Todos</option><option value="CHECKLIST">Checklists</option><option value="AVARIA">Avarias</option><option value="EVENTO">Eventos</option><option value="ALERTA">Alertas</option></select></div>
+          </form>
+        </section>
+        <div id="historyState" aria-live="polite"></div>
+        <div id="historyResult"></div>
+      </div>
+    </main>
+    <footer id="footer"></footer>
+  </div>
+</div>
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+<div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title h5">Detalhamento</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div><div id="recordModalBody" class="modal-body"></div></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/api.js?v=1.14.0"></script><script src="assets/js/auth.js?v=1.14.0"></script><script src="assets/js/menu.js?v=1.14.0"></script><script src="assets/js/admin.js?v=1.14.0"></script><script src="assets/js/historico-viatura.js?v=1.14.0"></script>
+</body></html>
