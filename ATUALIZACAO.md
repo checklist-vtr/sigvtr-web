@@ -43,3 +43,7 @@ A ação utiliza o `doPost()` existente. Nenhum novo `doPost()` ou endpoint foi 
 ## Teste principal
 
 Selecione `50-2001` a `50-2020`, escolha o campo **Modelo**, informe `S10` e confirme. Depois edite `50-2021` individualmente como Duster. Confira que placa, chassi, motor, RENAVAM e KM permaneceram inalterados.
+
+## ATUALIZAÇÃO — BRANCH 02 — ENTREGA 01
+
+Entrega inicial do Checklist do Fiscal. Publicar os arquivos do frontend, atualizar os arquivos Apps Script indicados e criar uma nova implantação do aplicativo da Web. Após a publicação, limpar o cache e testar primeiro o Checklist do Condutor e depois o Checklist do Fiscal.

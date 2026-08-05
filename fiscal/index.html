@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b3d2e">
+  <meta name="description" content="SIGVTR - Checklist operacional do fiscal">
+  <link rel="manifest" href="manifest.json?v=1.19.0-rc1">
+  <link rel="icon" href="../favicon.ico">
+  <link rel="stylesheet" href="css/style.css?v=1.19.0-rc1">
+  <title>SIGVTR — Checklist do Fiscal</title>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">
+    <img src="../assets/logo/brasao-20bpm.webp" alt="Brasão do 20º BPM">
+    <div><strong>SIGVTR</strong><span>Checklist do Fiscal</span></div>
+  </div>
+  <span class="version">v1.19.0-RC1</span>
+</header>
+
+<main class="app-shell">
+  <section class="intro-card intro-identity">
+    <img class="intro-crest" src="../assets/logo/brasao-20bpm-oficial.webp" alt="Brasão oficial do 20º Batalhão da Polícia Militar do Pará">
+    <span class="eyebrow">SIGVTR · 20º BPM</span>
+    <h1>20º Batalhão da Polícia Militar do Pará</h1>
+    <p>Checklist operacional do fiscal. As avarias pendentes permanecerão visíveis até a baixa realizada pela administração.</p>
+  </section>
+
+  <nav class="stepper" aria-label="Etapas do checklist">
+    <div id="stepDots" class="step-dots"></div>
+    <div class="progress-track"><div id="progressBar"></div></div>
+    <p id="stepLabel"></p>
+  </nav>
+
+  <form id="checklistForm" novalidate>
+    <section class="form-page" data-page="1">
+      <div class="page-heading"><span class="page-number">1</span><div><h2>Identificação</h2><p>Informe os dados da retirada e registre o painel da viatura.</p></div></div>
+      <div class="form-grid">
+        <label>Viatura
+          <select id="prefixoSelect" required><option value="">Selecione</option><option value="50-2001">50-2001</option><option value="50-2002">50-2002</option><option value="50-2003">50-2003</option><option value="50-2004">50-2004</option><option value="50-2005">50-2005</option><option value="50-2006">50-2006</option><option value="50-2007">50-2007</option><option value="50-2008">50-2008</option><option value="50-2009">50-2009</option><option value="50-2010">50-2010</option><option value="50-2011">50-2011</option><option value="50-2012">50-2012</option><option value="50-2013">50-2013</option><option value="50-2014">50-2014</option><option value="50-2015">50-2015</option><option value="50-2016">50-2016</option><option value="50-2017">50-2017</option><option value="50-2018">50-2018</option><option value="50-2019">50-2019</option><option value="50-2020">50-2020</option><option value="50-2021">50-2021</option><option value="OUTRO">Outros</option></select>
+        </label>
+        <label id="otherPrefixWrap" hidden>Outro prefixo numérico
+          <input id="otherPrefix" type="text" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="Ex.: 041">
+        </label>
+        <label>Nome do fiscal
+          <input id="condutor" type="text" maxlength="80" autocomplete="name" placeholder="Somente letras" required>
+        </label>
+        <label>Posto/Graduação
+          <select id="postoGraduacao" required>
+            <option value="">Selecione</option>
+            <option value="SD">SD</option><option value="CB">CB</option><option value="3_SGT">3º SGT</option>
+            <option value="2_SGT">2º SGT</option><option value="1_SGT">1º SGT</option><option value="SUB_TEN">SUB TEN</option>
+            <option value="2_TEN">2º TEN</option><option value="1_TEN">1º TEN</option><option value="CAP">CAP</option>
+            <option value="MAJ">MAJ</option><option value="TEN_CEL">TEN CEL</option><option value="CEL">CEL</option>
+          </select>
+        </label>
+        <label>RG
+          <input id="rg" type="text" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="Somente números" required>
+        </label>
+        <label>Turno
+          <select id="turno" required>
+            <option value="">Selecione</option>
+            <option value="TURNO_1">1º Turno</option>
+            <option value="TURNO_2">2º Turno</option>
+            <option value="EXTRAORDINARIO">Extraordinário</option>
+            <option value="OUTROS">Outros</option>
+          </select>
+        </label>
+        <label id="otherOperationWrap" hidden>Operação / turno informado
+          <input id="otherOperation" type="text" maxlength="100" autocomplete="off" placeholder="Ex.: Operação Saturação">
+        </label>
+        <label>Quilometragem
+          <input id="kmInicial" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="KM atual" required>
+        </label>
+        <label>Nível de combustível
+          <select id="combustivel" required>
+            <option value="">Selecione</option><option>RESERVA</option><option>1/4</option><option>1/2</option><option>3/4</option><option>CHEIO</option>
+          </select>
+        </label>
+      </div>
+      <div class="photo-grid initial-photos single-photo">
+        <div class="photo-card" data-photo-card="painel_inicial">
+          <h3>Foto do painel: odômetro e combustível</h3>
+          <p>Obrigatória. Enquadre na mesma imagem o KM e o marcador de combustível, com números e indicador claramente legíveis.</p>
+          <label class="file-capture-button" for="photo_painel_inicial">INSERIR FOTO DO PAINEL</label>
+          <input id="photo_painel_inicial" class="native-photo-input" type="file" accept="image/*" capture="environment">
+          <div class="photo-preview"></div>
+        </div>
+      </div>
+      <div id="pendingSummary" class="pending-summary" hidden></div>
+      <p id="identificationError" class="form-error" hidden></p>
+      <div class="page-actions end"><button class="primary-button next-button" type="button" data-next="2">INICIAR INSPEÇÃO →</button></div>
+    </section>
+
+    <section class="form-page" data-page="2" hidden>
+      <div class="page-heading"><span class="page-number">2</span><div><h2>Parte externa</h2><p>Verifique os grupos externos da viatura.</p></div></div>
+      <div id="externalItems" class="inspection-list"></div>
+      <p class="form-error section-error" hidden></p>
+      <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="1">← VOLTAR</button><button class="primary-button next-button" type="button" data-next="3">PRÓXIMA ETAPA →</button></div>
+    </section>
+
+    <section class="form-page" data-page="3" hidden>
+      <div class="page-heading"><span class="page-number">3</span><div><h2>Parte interna</h2><p>Verifique os equipamentos e componentes internos.</p></div></div>
+      <div id="internalItems" class="inspection-list"></div>
+      <p class="form-error section-error" hidden></p>
+      <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="2">← VOLTAR</button><button class="primary-button next-button" type="button" data-next="4">PRÓXIMA ETAPA →</button></div>
+    </section>
+
+    <section class="form-page" data-page="4" hidden>
+      <div class="page-heading"><span class="page-number">4</span><div><h2>Mecânica</h2><p>Confira os níveis e demais condições mecânicas acessíveis ao fiscal.</p></div></div>
+      <div id="engineItems" class="inspection-list"></div>
+      <p class="form-error section-error" hidden></p>
+      <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="3">← VOLTAR</button><button class="primary-button next-button" type="button" data-next="5">PRÓXIMA ETAPA →</button></div>
+    </section>
+
+    <section class="form-page" data-page="5" hidden>
+      <div class="page-heading"><span class="page-number">5</span><div><h2>Fotos finais</h2><p>Registre os quatro lados da viatura.</p></div></div>
+      <div id="finalPhotoGrid" class="photo-grid"></div>
+      <p id="finalPhotosError" class="form-error" hidden></p>
+      <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="4">← VOLTAR</button><button class="primary-button next-button" type="button" data-next="6">REVISAR CHECKLIST →</button></div>
+    </section>
+
+    <section class="form-page" data-page="6" hidden>
+      <div class="page-heading"><span class="page-number">6</span><div><h2>Resumo e envio</h2><p>Confira as informações antes de registrar.</p></div></div>
+      <div id="summaryContent" class="summary-content"></div>
+      <label class="confirmation"><input id="finalConfirmation" type="checkbox"> Confirmo que realizei a inspeção e que as informações são verdadeiras.</label>
+      <p id="submitError" class="form-error" hidden></p>
+      <div class="page-actions"><button class="secondary-button prev-button" type="button" data-prev="5">← VOLTAR</button><button id="submitButton" class="submit-button" type="submit">ENVIAR CHECKLIST</button></div>
+    </section>
+  </form>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="sendingModal" class="modal" hidden><div class="modal-panel"><div class="spinner-large"></div><h2>Registrando checklist</h2><p id="sendingMessage">Preparando fotos e informações. Não feche esta página e não toque novamente em enviar.</p></div></div>
+
+<div id="photoQualityModal" class="modal" hidden>
+  <div class="modal-panel photo-quality-panel">
+    <h2 id="photoQualityTitle">A foto está legível?</h2>
+    <p id="photoQualityText">Confirme se as informações aparecem nítidas, sem reflexo, corte ou imagem embaçada.</p>
+    <img id="photoQualityPreview" class="quality-preview" alt="Prévia da fotografia">
+    <div id="photoQualityChecklist" class="quality-checklist">
+      <span>✓ Conteúdo visível</span><span>✓ Enquadramento correto</span><span>✓ Imagem nítida</span>
+    </div>
+    <div class="success-actions">
+      <button id="confirmPhotoQuality" class="primary-button" type="button">SIM, ESTÁ LEGÍVEL</button>
+      <button id="retakePhoto" class="secondary-button" type="button">NÃO, TIRAR OUTRA</button>
+    </div>
+  </div>
+</div>
+<div id="successModal" class="modal" hidden><div class="modal-panel"><div class="success-icon">✓</div><h2>Checklist enviado</h2><p id="successMessage"></p><div class="success-actions"><button id="newChecklistButton" class="primary-button" type="button">NOVO CHECKLIST</button><button id="closeAndRefreshButton" class="secondary-button" type="button">FECHAR E ATUALIZAR</button></div></div></div>
+<footer class="app-footer-standard">
+  <p><strong>SIGVTR · Sistema Integrado de Gestão de Viaturas</strong></p>
+  <p>20º BPM · Polícia Militar do Pará</p>
+  <p>Sugestões, dúvidas e melhorias:<br><a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a></p>
+  <p class="footer-version">Versão 1.19.0-RC1</p>
+</footer>
+<script src="js/app.js?v=1.19.0-rc1"></script>
+</body>
+</html>

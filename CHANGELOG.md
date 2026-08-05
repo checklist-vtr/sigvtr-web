@@ -22,3 +22,11 @@
 - Bloqueia alterações coletivas de prefixo, placa, chassi, motor, RENAVAM e quilometragem.
 - Registra cada viatura atualizada na auditoria da aba LOGS.
 - Mantém o fluxo operacional do Checklist do Condutor sem alterações.
+
+## [1.19.0-RC1] — Branch 02 — Checklist do Fiscal
+
+- Criado frontend independente do Checklist do Fiscal em `/fiscal/`.
+- Mantido o Checklist do Condutor sem alterações.
+- Adicionada identificação `FISCAL`/`CONDUTOR` no backend, com compatibilidade retroativa.
+- Integrada a origem do checklist à listagem e ao detalhamento administrativo.
+- Alertas e histórico passam a identificar o Checklist do Fiscal.
