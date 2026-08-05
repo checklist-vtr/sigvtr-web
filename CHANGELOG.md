@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.19.2-RC1 — Branch 02 — Entrega 03
+
+- Corrige a Pesquisa Global para reconhecer checklists do Fiscal a partir de `Tipo Checklist`, `Tipo_Retirada` ou `ITENS_JSON`.
+- Renova a chave de cache da Pesquisa Global para impedir reaproveitamento do índice anterior.
+- Consolida a origem `CONDUTOR/FISCAL` na consulta e no prontuário de avarias.
+- Permite pesquisar avarias pelos termos `Fiscal`, `Condutor`, `FISCAL` e `CONDUTOR`.
+- Atualiza o cache do PWA administrativo.
+- Mantém o Checklist do Condutor e o Checklist do Fiscal sem alterações.
+
+# CHANGELOG
+
 
 ## [1.19.1-RC1] — Branch 02 — Checklist do Fiscal — Entrega 02
 

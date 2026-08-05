@@ -1,3 +1,22 @@
+# ATUALIZAÇÃO — v1.19.2-RC1
+
+## Branch 02 — Checklist do Fiscal — Entrega 03
+
+Esta entrega corrige a ausência dos registros do Fiscal na Pesquisa Global e consolida a identificação da origem das avarias. O backend agora identifica o tipo de checklist de forma retrocompatível usando a coluna `Tipo Checklist`, o campo `Tipo_Retirada` ou o conteúdo de `ITENS_JSON`.
+
+### Arquivos alterados
+
+- `backend/Painel_Administrativo.gs`
+- `admin/assets/js/avarias.js`
+- `admin/sw.js`
+- `README.md`
+- `CHANGELOG.md`
+- `ATUALIZACAO.md`
+
+### Apps Script
+
+Substituir somente `Painel_Administrativo.gs` e publicar uma nova versão com o título: `SIGVTR v1.19.2-RC1 — Branch 02 — Checklist do Fiscal — Entrega 03`.
+
 # ATUALIZAÇÃO — SIGVTR 1.19.1-RC1
 
 ## Branch 02 — Checklist do Fiscal — Entrega 02

@@ -1,5 +1,11 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
+## Estado atual: Branch 02 — Checklist do Fiscal — v1.19.2-RC1
+
+O sistema possui Checklists independentes para Condutor e Fiscal, utilizando o mesmo backend, planilha, Google Drive e Painel Administrativo. A Pesquisa Global reconhece a origem dos registros de forma retrocompatível, e a Gestão de Avarias informa se a ocorrência foi registrada por Condutor ou Fiscal.
+
+# SIGVTR — Sistema Integrado de Gestão de Viaturas
+
 Versão administrativa: **1.19.1-RC1**. Backend: **1.9.23**.
 
 Sistema operacional exclusivo do 20º BPM/PMPA. O Checklist do Condutor permanece congelado e sem alterações nesta versão.
