@@ -1,75 +1,49 @@
-# ATUALIZAÇÃO — SIGVTR PAINEL ADMINISTRATIVO
+# Atualização — SIGVTR v1.17.0-RC1
 
-## Versão atual
+## Finalidade
+Versão candidata para início do piloto operacional com condutores do 20º BPM.
 
-- Painel Administrativo: **1.16.1**
-- Backend: **1.9.20**
-- Etapa: **5 — Gestão de Avarias**
-- Data: **04/08/2026**
+## Frontend
+Substituir todo o conteúdo do frontend pela pasta consolidada desta entrega, pois a atualização uniformiza referências de versão e caches em múltiplas páginas.
 
-## Objetivo desta atualização
+## Backend
+Substituir o conteúdo dos cinco arquivos existentes no Apps Script:
 
-Ativar a navegação pelos cards de situação da Gestão de Avarias e consolidar a documentação existente na raiz do repositório.
+- `Código.gs`
+- `Complemento_Mobile_v4.gs`
+- `Avarias_Pendentes.gs`
+- `Painel_Administrativo.gs`
+- `Arquivamento_Dados.gs`
 
-## Arquivos alterados
+Não criar arquivos duplicados. Não executar rotinas de limpeza.
 
-- `admin/avarias.html`
-- `admin/assets/js/avarias.js`
-- `admin/assets/css/avarias.css`
-- `admin/sw.js`
-- `README.md`
-- `CHANGELOG.md`
-- `ATUALIZACAO.md`
+## Implantação
+Editar a implantação Web App existente, selecionar **Nova versão** e usar a descrição:
 
-## Arquivos antigos removidos da raiz
+`SIGVTR v1.17.0-RC1 — Piloto Operacional`
 
-- `README_CORRECAO.md`
-- `README_ETAPA5.md`
-- `README-FAVICON.md`
-- `CHANGELOG_v1.14.2.md`
-- `CHANGELOG_v1.14.3.md`
-- `ATUALIZACAO_CORRECAO_1.14.1.md`
-- `ATUALIZACAO_ETAPA5.md`
-- `ATUALIZACAO_v1.14.2.md`
+Manter a mesma URL `/exec` e as mesmas permissões.
 
-## Comportamento dos cards
-
-- **Abertas:** Pendente + Em manutenção.
-- **Pendentes:** apenas Pendente.
-- **Em manutenção:** apenas Em manutenção.
-- **Resolvidas:** apenas Resolvida.
-- **Arquivadas:** apenas Arquivada.
-
-O campo Situação acompanha o card selecionado. O botão Limpar filtros remove a seleção e retorna à exibição de todas as ocorrências.
-
-## Publicação
-
-1. Substituir os quatro arquivos do frontend listados acima.
-2. Atualizar os três documentos consolidados da raiz.
-3. Excluir os arquivos antigos listados.
-4. Conferir as alterações no GitHub Desktop.
-5. Fazer commit e `Push origin`.
-6. Aguardar o GitHub Pages.
-7. Limpar o Service Worker e os dados do site.
-8. Reabrir a página com `Ctrl + Shift + R`.
-
-Não há alteração no backend e não é necessária nova implantação do Google Apps Script.
-
-## Commit
+## Git
 
 ### Summary
-
-`fix(admin): ativar filtros pelos cards de avarias`
+`chore(release): consolidar piloto operacional v1.17.0-rc1`
 
 ### Description
+`Consolida o SIGVTR para o piloto operacional com condutores, uniformiza versões e caches do Checklist do Condutor e do Painel Administrativo, preserva os fluxos de checklists, fotos, alertas, histórico e avarias, consolida o backend como pacote 1.9.21 e adiciona roteiro e ficha de testes. Mantém um único doGet, um único doPost, a mesma planilha, o mesmo Google Drive e nenhuma limpeza automática da base.`
 
-`Transforma os indicadores da Gestão de Avarias em filtros rápidos, sincroniza os cards com o campo Situação, adiciona o agrupamento Abertas, destaca a seleção ativa e retorna a paginação à primeira página. Consolida a documentação da raiz em README.md, CHANGELOG.md e ATUALIZACAO.md e atualiza o cache PWA para a versão 1.16.1.`
+## Teste mínimo antes da liberação
+1. Enviar um checklist sem alteração.
+2. Enviar um checklist com avaria e cinco fotos.
+3. Confirmar protocolo no celular.
+4. Confirmar modal e som no painel.
+5. Conferir checklist, fotos, avaria e Histórico por Viatura.
+6. Verificar ausência de duplicidade.
 
-## Testes
-
-1. Clicar em Abertas e confirmar Pendente + Em manutenção.
-2. Clicar em Pendentes, Em manutenção, Resolvidas e Arquivadas.
-3. Confirmar que o seletor Situação acompanha o card.
-4. Usar Limpar filtros e confirmar retorno para Todas.
-5. Testar acionamento dos cards com Tab e Enter.
-6. Confirmar que prontuário, fotos, exportação e atualização administrativa continuam funcionando.
+## Cache
+Depois do GitHub Pages e da implantação:
+1. Abrir DevTools.
+2. Em Aplicativo, remover os Service Workers.
+3. Limpar os dados do site.
+4. Fechar e reabrir as páginas.
+5. Usar `Ctrl + Shift + R`.

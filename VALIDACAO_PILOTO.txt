@@ -1,0 +1,10 @@
+SIGVTR v1.17.0-RC1 — VALIDAÇÃO AUTOMÁTICA
+
+- JavaScript: sintaxe validada em todos os arquivos .js.
+- Backend: 1 doGet() e 1 doPost().
+- PWA: todos os arquivos listados nos Service Workers existem.
+- Documentação na raiz: README.md, CHANGELOG.md e ATUALIZACAO.md.
+- Banco: nenhuma rotina de limpeza incluída ou executada.
+- Arquitetura: preservada com Google Apps Script, Sheets e Drive.
+
+A validação operacional com dados reais deve seguir docs/PILOTO_OPERACIONAL.md.

@@ -1,34 +1,43 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
-Sistema exclusivo do 20º Batalhão da Polícia Militar do Pará.
+Sistema operacional exclusivo do 20º BPM da Polícia Militar do Pará.
 
-## Versões
-- Painel Administrativo: 1.16.1
-- Backend: 1.9.20
+## Versão atual
+
+- Piloto operacional: **v1.17.0-RC1**
+- Backend: **pacote 1.9.21 / API 2.0**
+- Branch de desenvolvimento: `feature/painel-administrativo-v1`
 
 ## Arquitetura
-- Frontend: HTML, CSS, Bootstrap, JavaScript e PWA.
-- Backend: Google Apps Script.
-- Banco: Google Sheets.
-- Fotografias: Google Drive.
-- API: um único `doGet()` e um único `doPost()`.
 
-## Pilares operacionais
-O painel utiliza combustível, quilometragem preventiva e avarias como base da gestão da frota. O KM alimenta alertas de troca de óleo e revisão, enquanto as avarias permanecem registradas até ação administrativa.
+- Frontend: HTML, CSS, Bootstrap, JavaScript puro e PWA.
+- Backend: Google Apps Script, Google Sheets e Google Drive.
+- Arquitetura obrigatória: um único `doGet()` e um único `doPost()` com roteamento interno.
+
+## Módulos operacionais do piloto
+
+- Checklist do Condutor.
+- Dashboard e alertas em tempo real.
+- Pesquisa Global.
+- Histórico por Viatura.
+- Checklists administrativos.
+- Gestão de Avarias.
+- Viaturas e Prontuário.
+- Arquivamento.
+
+Relatórios, Usuários e Configurações permanecem em desenvolvimento e não impedem o piloto com os condutores.
+
+## Retenção
+
+Registros operacionais não são excluídos automaticamente. A retenção mínima prevista é de cinco anos, com arquivamento controlado e validação administrativa.
+
+## Documentação
+
+- `ATUALIZACAO.md`: publicação e testes da versão atual.
+- `CHANGELOG.md`: histórico consolidado.
+- `docs/PILOTO_OPERACIONAL.md`: roteiro do piloto.
+- `docs/FICHA_TESTES_PILOTO.md`: ficha para registro de resultados.
 
 ## Contato
-Sugestões e melhorias: checklist.viaturas.oficial@gmail.com
 
-
-## Painel Administrativo — Etapa 3 (v1.14.0)
-
-O módulo **Histórico por Viatura** fornece prontuário consolidado, exclusivamente com dados reais do backend: dados cadastrais, evolução de quilometragem, checklists, avarias, fotografias, eventos, alertas, linha do tempo e exportação por impressão/PDF. A consulta aceita prefixos completos ou numéricos e mantém a arquitetura de um único `doGet()` e um único `doPost()`.
-
-
-## Gestão de Avarias — v1.16.1
-
-Os cards de indicadores são controles de navegação rápida. Ao selecionar Abertas, Pendentes, Em manutenção, Resolvidas ou Arquivadas, o filtro de situação é sincronizado, a paginação retorna à primeira página e a lista exibe somente as ocorrências correspondentes. O card ativo permanece destacado e pode ser acionado por mouse ou teclado.
-
-## Documentação na raiz
-
-A raiz do projeto mantém somente `README.md`, `CHANGELOG.md` e `ATUALIZACAO.md`. O histórico de versões deve ser consolidado nesses arquivos, sem criar documentos separados por etapa ou correção.
+checklist.viaturas.oficial@gmail.com

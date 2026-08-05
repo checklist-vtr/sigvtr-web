@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.10.3";
+const APP_VERSION="1.17.0-RC1";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -226,4 +226,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.9.11").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.17.0-rc1").catch(()=>{})}
