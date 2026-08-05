@@ -1,43 +1,19 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
-Sistema operacional exclusivo do 20º BPM da Polícia Militar do Pará.
+Versão administrativa: **1.18.0-RC1**. Backend: **1.9.22**.
 
-## Versão atual
+Sistema operacional exclusivo do 20º BPM/PMPA. O Checklist do Condutor permanece congelado e sem alterações nesta versão.
 
-- Piloto operacional: **v1.17.0-RC1**
-- Backend: **pacote 1.9.21 / API 2.0**
-- Branch de desenvolvimento: `feature/painel-administrativo-v1`
+## Escopo atual
+
+- Checklist do Condutor e fotos;
+- Dashboard e alertas;
+- Histórico por Viatura;
+- Checklists administrativos;
+- Gestão de Avarias;
+- Cadastro mestre da frota e viaturas reserva;
+- Controle administrativo de quilometragem.
 
 ## Arquitetura
 
-- Frontend: HTML, CSS, Bootstrap, JavaScript puro e PWA.
-- Backend: Google Apps Script, Google Sheets e Google Drive.
-- Arquitetura obrigatória: um único `doGet()` e um único `doPost()` com roteamento interno.
-
-## Módulos operacionais do piloto
-
-- Checklist do Condutor.
-- Dashboard e alertas em tempo real.
-- Pesquisa Global.
-- Histórico por Viatura.
-- Checklists administrativos.
-- Gestão de Avarias.
-- Viaturas e Prontuário.
-- Arquivamento.
-
-Relatórios, Usuários e Configurações permanecem em desenvolvimento e não impedem o piloto com os condutores.
-
-## Retenção
-
-Registros operacionais não são excluídos automaticamente. A retenção mínima prevista é de cinco anos, com arquivamento controlado e validação administrativa.
-
-## Documentação
-
-- `ATUALIZACAO.md`: publicação e testes da versão atual.
-- `CHANGELOG.md`: histórico consolidado.
-- `docs/PILOTO_OPERACIONAL.md`: roteiro do piloto.
-- `docs/FICHA_TESTES_PILOTO.md`: ficha para registro de resultados.
-
-## Contato
-
-checklist.viaturas.oficial@gmail.com
+Frontend HTML, CSS, Bootstrap e JavaScript puro/PWA. Backend Google Apps Script, Google Sheets e Google Drive, com somente um `doGet()` e um `doPost()`.

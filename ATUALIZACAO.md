@@ -1,49 +1,13 @@
-# Atualização — SIGVTR v1.17.0-RC1
-
-## Finalidade
-Versão candidata para início do piloto operacional com condutores do 20º BPM.
+# ATUALIZAÇÃO — 1.18.0-RC1
 
 ## Frontend
-Substituir todo o conteúdo do frontend pela pasta consolidada desta entrega, pois a atualização uniformiza referências de versão e caches em múltiplas páginas.
+Substituir o frontend completo ou, incrementalmente, os arquivos informados na entrega.
 
 ## Backend
-Substituir o conteúdo dos cinco arquivos existentes no Apps Script:
-
-- `Código.gs`
-- `Complemento_Mobile_v4.gs`
-- `Avarias_Pendentes.gs`
-- `Painel_Administrativo.gs`
-- `Arquivamento_Dados.gs`
-
-Não criar arquivos duplicados. Não executar rotinas de limpeza.
+Substituir `Código.gs`, `Complemento_Mobile_v4.gs` e `Painel_Administrativo.gs`. Manter os demais arquivos.
 
 ## Implantação
-Editar a implantação Web App existente, selecionar **Nova versão** e usar a descrição:
+Editar a implantação Web App existente, selecionar **Nova versão** e manter a mesma URL `/exec`.
 
-`SIGVTR v1.17.0-RC1 — Piloto Operacional`
-
-Manter a mesma URL `/exec` e as mesmas permissões.
-
-## Git
-
-### Summary
-`chore(release): consolidar piloto operacional v1.17.0-rc1`
-
-### Description
-`Consolida o SIGVTR para o piloto operacional com condutores, uniformiza versões e caches do Checklist do Condutor e do Painel Administrativo, preserva os fluxos de checklists, fotos, alertas, histórico e avarias, consolida o backend como pacote 1.9.21 e adiciona roteiro e ficha de testes. Mantém um único doGet, um único doPost, a mesma planilha, o mesmo Google Drive e nenhuma limpeza automática da base.`
-
-## Teste mínimo antes da liberação
-1. Enviar um checklist sem alteração.
-2. Enviar um checklist com avaria e cinco fotos.
-3. Confirmar protocolo no celular.
-4. Confirmar modal e som no painel.
-5. Conferir checklist, fotos, avaria e Histórico por Viatura.
-6. Verificar ausência de duplicidade.
-
-## Cache
-Depois do GitHub Pages e da implantação:
-1. Abrir DevTools.
-2. Em Aplicativo, remover os Service Workers.
-3. Limpar os dados do site.
-4. Fechar e reabrir as páginas.
-5. Usar `Ctrl + Shift + R`.
+## Importação inicial
+Na aba Viaturas, clicar em **Importar frota oficial** uma única vez. A função atualiza registros existentes pelo prefixo e cria os ausentes sem apagar checklists ou histórico.
