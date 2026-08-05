@@ -68,3 +68,11 @@ body.modal-open{overflow:hidden}.photo-quality-panel{position:relative;z-index:2
 
 /* v1.9.10 — separação entre avaria conhecida e outra alteração */
 .additional-damage-question{margin:14px 0 10px;padding:12px 13px;border:1px solid #b8d3c7;border-left:5px solid var(--green2);border-radius:10px;background:#f2faf6}.additional-damage-question strong,.additional-damage-question span{display:block}.additional-damage-question strong{color:var(--green);margin-bottom:4px}.additional-damage-question span{font-size:.84rem;line-height:1.45;color:var(--muted)}.has-known-damages .status-buttons{padding-top:2px}.has-known-damages .status-choice{min-height:44px}.has-known-damages .status-choice.change{border-color:#b45b5b}.has-known-damages .change-panel textarea::placeholder{color:#66736d}@media(max-width:650px){.has-known-damages .status-buttons{display:grid;grid-template-columns:1fr}.has-known-damages .status-choice{width:100%;white-space:normal;line-height:1.25}}
+
+/* v1.18.1-RC1 — rodapé institucional */
+.app-footer-standard{margin-top:24px;padding:22px 14px;text-align:center;color:var(--muted);font-size:.8rem;line-height:1.45}
+.app-footer-standard p{margin:.25rem 0}
+.app-footer-standard strong{color:var(--green)}
+.app-footer-standard a{color:var(--green2);font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.app-footer-standard a:hover{text-decoration:underline}
+.app-footer-standard .footer-version{font-size:.72rem;opacity:.82;margin-top:.55rem}
