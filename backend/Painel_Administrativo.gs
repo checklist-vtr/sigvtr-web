@@ -3,7 +3,7 @@
  * Versão: 1.13.1-rc1
  ******************************************************************/
 const ADMIN_ALERT_HEADERS = [
-  "ID_ALERTA","Tipo","ID_REFERENCIA","ID_VTR","Prefixo","Condutor",
+  "ID_ALERTA","Tipo","Tipo Checklist","ID_REFERENCIA","ID_VTR","Prefixo","Condutor",
   "Posto/Graduação","RG PMPA","KM","Título","Descrição","Data","Hora",
   "Data/Hora Registro","Status","Mensagem WhatsApp","Data Visualização",
   "Data Encaminhamento","Data Resolução","Data Arquivamento",
@@ -38,7 +38,7 @@ function createAdminAlert_(payload){
   if(reference){const existingId=findAdminAlertId_(sh,type,reference);if(existingId)return existingId;}
   const date=Utilities.formatDate(now,SIGVTR.TIMEZONE,"dd/MM/yyyy"), time=Utilities.formatDate(now,SIGVTR.TIMEZONE,"HH:mm:ss");
   const values={
-    "ID_ALERTA":"ALT-"+Utilities.getUuid(),"Tipo":type,"ID_REFERENCIA":reference,
+    "ID_ALERTA":"ALT-"+Utilities.getUuid(),"Tipo":type,"Tipo Checklist":String(payload.tipoChecklist||"CONDUTOR").toUpperCase(),"ID_REFERENCIA":reference,
     "ID_VTR":payload.idVtr||"","Prefixo":payload.prefixo||"","Condutor":payload.condutor||"",
     "Posto/Graduação":payload.postoGraduacao||"","RG PMPA":payload.rg||"","KM":Number(payload.km)||0,
     "Título":payload.titulo||type,"Descrição":payload.descricao||"","Data":date,"Hora":time,
@@ -166,9 +166,9 @@ function getAdminSearchDocuments_(){
   try{const cached=cache.get(key);if(cached)return JSON.parse(cached);}catch(_){}
   const ss=getSpreadsheet_(),vehicles=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.VEHICLES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),alerts=readSheetObjects_(ss.getSheetByName("ALERTAS")),vehicleById={},withdrawalById={},docs=[];
   vehicles.forEach(function(v){vehicleById[String(v["ID-VTR"]||"")]={prefixo:v.Prefixo||"",placa:v.Placa||"",modelo:v.Modelo||"",km:v["KM Atual"]||0};});
-  withdrawals.forEach(function(r){const v=vehicleById[String(r.ID_VTR||"")]||{},prefix=r.Prefixo||v.prefixo||"",condutor=joinRankName_(r["Posto/Graduação"],r.Motorista),protocolo=r.Protocolo||"";withdrawalById[String(r.ID_RETIRADA||"")]={condutor:condutor,protocolo:protocolo,prefixo:prefix};docs.push({tipo:"CHECKLIST",prefixo:prefix,texto:[protocolo,prefix,condutor,r["RG PMPA"],r.Status,r.Observações].join(" "),titulo:protocolo||"Checklist",subtitulo:prefix+" · "+condutor,descricao:(r.Status||"")+" · "+formatDateForApi_(r["Data/Hora Registro"]),url:"checklists.html?prefixo="+encodeURIComponent(prefix)});});
+  withdrawals.forEach(function(r){const v=vehicleById[String(r.ID_VTR||"")]||{},prefix=r.Prefixo||v.prefixo||"",condutor=joinRankName_(r["Posto/Graduação"],r.Motorista),protocolo=r.Protocolo||"",tipoChecklist=String(r["Tipo Checklist"]||"CONDUTOR").toUpperCase(),personLabel=tipoChecklist==="FISCAL"?"Fiscal":"Condutor";withdrawalById[String(r.ID_RETIRADA||"")]={condutor:condutor,protocolo:protocolo,prefixo:prefix,tipoChecklist:tipoChecklist};docs.push({tipo:"CHECKLIST",prefixo:prefix,texto:[protocolo,prefix,condutor,r["RG PMPA"],r.Status,r.Observações,tipoChecklist,personLabel].join(" "),titulo:(protocolo||"Checklist")+" · "+personLabel,subtitulo:prefix+" · "+condutor,descricao:(r.Status||"")+" · "+formatDateForApi_(r["Data/Hora Registro"]),url:"checklists.html?prefixo="+encodeURIComponent(prefix)+"&tipoChecklist="+encodeURIComponent(tipoChecklist)});});
   damages.forEach(function(r){const v=vehicleById[String(r.ID_VTR||"")]||{},w=withdrawalById[String(r.ID_RETIRADA_DETECCAO||"")]||{},prefix=v.prefixo||w.prefixo||"";docs.push({tipo:"AVARIA",prefixo:prefix,texto:[r.ID_AVARIA,prefix,r.Item,r["Posição/Local"],r.Descrição,w.condutor,w.protocolo,r.Situação].join(" "),titulo:r.Item||r.ID_AVARIA||"Avaria",subtitulo:prefix+" · "+(r.Situação||""),descricao:(r.Descrição||"")+" · "+formatDateForApi_(r["Data Detecção"]),url:"avarias.html?busca="+encodeURIComponent(r.ID_AVARIA||prefix)});});
-  alerts.forEach(function(r){const prefix=r.Prefixo||"";docs.push({tipo:"ALERTA",prefixo:prefix,texto:[r.ID_ALERTA,r.Tipo,prefix,r.Condutor,r.Título,r.Descrição,r.Status].join(" "),titulo:r.Título||r.Tipo||"Alerta",subtitulo:prefix+" · "+(r.Status||""),descricao:(r.Descrição||"")+" · "+formatDateOnlyAdmin_(r.Data||r["Data/Hora Registro"])+" "+formatTimeOnlyAdmin_(r.Hora||r["Data/Hora Registro"]),url:"alertas.html?prefixo="+encodeURIComponent(prefix)});});
+  alerts.forEach(function(r){const prefix=r.Prefixo||"";docs.push({tipo:"ALERTA",prefixo:prefix,texto:[r.ID_ALERTA,r.Tipo,r["Tipo Checklist"],prefix,r.Condutor,r.Título,r.Descrição,r.Status].join(" "),titulo:r.Título||r.Tipo||"Alerta",subtitulo:prefix+" · "+(r.Status||""),descricao:(r.Descrição||"")+" · "+formatDateOnlyAdmin_(r.Data||r["Data/Hora Registro"])+" "+formatTimeOnlyAdmin_(r.Hora||r["Data/Hora Registro"]),url:"alertas.html?prefixo="+encodeURIComponent(prefix)});});
   vehicles.forEach(function(v){const prefix=v.Prefixo||"";docs.push({tipo:"VIATURA",prefixo:prefix,texto:[prefix,v.Placa,v.Modelo].join(" "),titulo:prefix,subtitulo:(v.Modelo||"")+" · "+(v.Placa||""),descricao:"KM atual: "+(v["KM Atual"]||0),url:"historico-viatura.html?prefixo="+encodeURIComponent(prefix)});});
   try{const json=JSON.stringify(docs);if(json.length<95000)cache.put(key,json,60);}catch(_){}
   return docs;
@@ -195,10 +195,11 @@ function getAdminChecklists_(params){
     return {id:r.ID_RETIRADA||"",protocolo:r.Protocolo||"",prefixo:v.prefixo||"",tipoChecklist:String(r["Tipo Checklist"]||"CONDUTOR").toUpperCase(),condutor:joinRankName_(r["Posto/Graduação"],r.Motorista),rg:r["RG PMPA"]||"",km:Number(r["KM Inicial"]||0),combustivel:normalizeFuelAdmin_(r["Combustível Inicial"]),turno:r.Turno||"",status:r.Status||"",dataHora:formatDateForApi_(r["Data/Hora Registro"]),observacoes:r.Observações||"",operacao:r["Operação/Outros"]||"",dispositivo:r.Dispositivo||"",navegador:r.Navegador||"",itensJson:r.ITENS_JSON||""};
   });
   const search=String(params.busca||params.prefixo||"").trim().toLowerCase();
-  const normalized=normalizeAdminPrefixSearch_(search),status=String(params.status||"").trim().toUpperCase();
+  const normalized=normalizeAdminPrefixSearch_(search),status=String(params.status||"").trim().toUpperCase(),tipoChecklist=String(params.tipoChecklist||"").trim().toUpperCase();
   const startDate=parseIsoDateAdmin_(params.dataInicial,false),endDate=parseIsoDateAdmin_(params.dataFinal,true);
   if(search)items=items.filter(function(i){const hay=[i.protocolo,i.prefixo,i.condutor,i.rg].join(" ").toLowerCase();return hay.indexOf(search)>=0||(normalized&&normalizeAdminPrefixSearch_(i.prefixo).indexOf(normalized)>=0);});
   if(status)items=items.filter(function(i){return String(i.status||"").toUpperCase()===status;});
+  if(tipoChecklist)items=items.filter(function(i){return String(i.tipoChecklist||"CONDUTOR").toUpperCase()===tipoChecklist;});
   if(startDate)items=items.filter(function(i){return parseBrazilDate_(i.dataHora)>=startDate;});
   if(endDate)items=items.filter(function(i){return parseBrazilDate_(i.dataHora)<=endDate;});
   items.sort(function(a,b){return parseBrazilDate_(b.dataHora)-parseBrazilDate_(a.dataHora);});
@@ -261,7 +262,7 @@ function parseBrazilDate_(v){const s=String(v||"").trim(),m=s.match(/(\d{2})\/(\
 
 function buildAdminGlobalTimeline_(ss,params){
   const limit=Math.min(Math.max(Number((params||{}).limit)||30,1),200), vehicles=vehicleIndexAdmin_(ss), items=[];
-  readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)).forEach(function(r){const v=vehicles[String(r.ID_VTR)]||{};items.push({tipo:"CHECKLIST",dataHora:formatDateForApi_(r["Data/Hora Registro"]),prefixo:v.prefixo||"",titulo:"Checklist recebido",descricao:joinRankName_(r["Posto/Graduação"],r.Motorista)+" · "+(r.Status||""),referencia:r.Protocolo||r.ID_RETIRADA||""});});
+  readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)).forEach(function(r){const v=vehicles[String(r.ID_VTR)]||{},tipoChecklist=String(r["Tipo Checklist"]||"CONDUTOR").toUpperCase(),personLabel=tipoChecklist==="FISCAL"?"Fiscal":"Condutor";items.push({tipo:"CHECKLIST",subtipo:tipoChecklist,dataHora:formatDateForApi_(r["Data/Hora Registro"]),prefixo:v.prefixo||"",titulo:"Checklist do "+personLabel,descricao:joinRankName_(r["Posto/Graduação"],r.Motorista)+" · "+(r.Status||""),referencia:r.Protocolo||r.ID_RETIRADA||""});});
   readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).forEach(function(r){const v=vehicles[String(r.ID_VTR)]||{};items.push({tipo:"AVARIA",dataHora:formatDateForApi_(r["Data Detecção"]),prefixo:v.prefixo||"",titulo:r.Item||"Nova avaria",descricao:(r.Descrição||"")+" · "+(r.Situação||""),referencia:r.ID_AVARIA||""});});
   readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.EVENTS)).forEach(function(r){const v=vehicles[String(r.ID_VTR)]||{};items.push({tipo:"EVENTO",dataHora:String(r.Data||"")+" "+String(r.Hora||""),prefixo:v.prefixo||"",titulo:r["Tipo do Evento"]||"Evento operacional",descricao:r.Observação||r.Motivo||"",referencia:r.ID_EVENTO||""});});
   readSheetObjects_(ss.getSheetByName("ALERTAS")).forEach(function(r){items.push({tipo:"ALERTA",subtipo:r.Tipo||"",dataHora:formatDateForApi_(r["Data/Hora Registro"]),prefixo:r.Prefixo||"",titulo:r.Título||r.Tipo||"Alerta",descricao:r.Descrição||"",referencia:r.ID_ALERTA||"",status:r.Status||""});});

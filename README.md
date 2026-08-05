@@ -1,6 +1,6 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
-Versão administrativa: **1.18.0-RC1**. Backend: **1.9.22**.
+Versão administrativa: **1.19.1-RC1**. Backend: **1.9.23**.
 
 Sistema operacional exclusivo do 20º BPM/PMPA. O Checklist do Condutor permanece congelado e sem alterações nesta versão.
 
@@ -27,3 +27,13 @@ Toda atualização coletiva é registrada na aba `LOGS`. O Checklist do Condutor
 ## Checklist do Fiscal — Branch 02
 
 A Branch `feature/checklist-fiscal-v1` adiciona um frontend independente em `/fiscal/`, preservando integralmente o Checklist do Condutor na raiz. O novo checklist utiliza o mesmo backend, planilha e Google Drive e envia `tipoChecklist: FISCAL`. Registros antigos ou sem identificação continuam sendo tratados como `CONDUTOR`.
+
+
+## Branch 02 — Entrega 02 — Filtros e integração administrativa
+
+- O módulo Checklists permite filtrar por `CONDUTOR` ou `FISCAL`.
+- A Pesquisa Global indexa o tipo do checklist e o perfil responsável.
+- Novos alertas registram a coluna `Tipo Checklist`.
+- O histórico cronológico identifica Checklist do Condutor e Checklist do Fiscal.
+- Registros antigos sem tipo continuam tratados como `CONDUTOR`.
+- O Checklist do Condutor permanece congelado.

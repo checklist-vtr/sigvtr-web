@@ -1,49 +1,26 @@
-# ATUALIZAÇÃO — SIGVTR v1.18.1-RC1
+# ATUALIZAÇÃO — SIGVTR 1.19.1-RC1
 
-## Escopo
+## Branch 02 — Checklist do Fiscal — Entrega 02
 
-Esta versão conclui a Gestão de Viaturas com atualização administrativa em massa e padroniza o rodapé institucional. O fluxo do Checklist do Condutor não foi alterado.
+### Situação
 
-## Frontend alterado
+A Entrega 01 foi validada operacionalmente. O Checklist do Fiscal envia registros, fotografias e avarias utilizando a mesma arquitetura do Checklist do Condutor.
 
-- `index.html`
-- `css/style.css`
-- `sw.js`
-- páginas HTML do diretório `admin/` para atualização de versão
-- `admin/viaturas.html`
-- `admin/assets/js/viaturas.js`
-- `admin/assets/js/admin-layout.js`
-- `admin/assets/css/viaturas.css`
-- `admin/sw.js`
+### Implementado nesta entrega
 
-## Backend alterado
+- filtro Todos/Condutor/Fiscal no módulo Checklists;
+- filtro processado pelo backend, sem uso de dados locais como fonte principal;
+- Pesquisa Global preparada para localizar `FISCAL`, `CONDUTOR`, `Fiscal` e `Condutor`;
+- links da Pesquisa Global abrem o módulo Checklists com o tipo correspondente;
+- novos alertas armazenam `Tipo Checklist`;
+- linha do tempo administrativa identifica a origem do checklist;
+- compatibilidade retroativa preservada para registros antigos;
+- cache do Painel Administrativo atualizado para a nova versão.
 
-- `backend/Código.gs`
-- `backend/Complemento_Mobile_v4.gs`
-- `backend/Painel_Administrativo.gs`
+### Arquivos do Condutor
 
-O backend passa a usar o pacote `1.9.23`. Esta é uma entrega completa: os arquivos do backend devem ser adicionados ao Git e também substituídos no projeto do Google Apps Script.
+Os arquivos `index.html`, `css/style.css`, `js/app.js`, `manifest.json` e `sw.js` da raiz não foram alterados.
 
-## Nova ação interna
+### Próxima etapa
 
-- `adminAtualizarViaturasEmMassa`
-
-A ação utiliza o `doPost()` existente. Nenhum novo `doPost()` ou endpoint foi criado.
-
-## Publicação
-
-1. Substitua os arquivos do frontend.
-2. Adicione a pasta `backend` ao repositório Git.
-3. Faça commit e push.
-4. Substitua no Apps Script somente `Código.gs`, `Complemento_Mobile_v4.gs` e `Painel_Administrativo.gs`.
-5. Edite a implantação Web App existente e selecione **Nova versão**.
-6. Use a descrição `SIGVTR v1.18.1-RC1 — Gestão de Viaturas finalizada`.
-7. Limpe o cache e os Service Workers do checklist e do painel administrativo.
-
-## Teste principal
-
-Selecione `50-2001` a `50-2020`, escolha o campo **Modelo**, informe `S10` e confirme. Depois edite `50-2021` individualmente como Duster. Confira que placa, chassi, motor, RENAVAM e KM permaneceram inalterados.
-
-## ATUALIZAÇÃO — BRANCH 02 — ENTREGA 01
-
-Entrega inicial do Checklist do Fiscal. Publicar os arquivos do frontend, atualizar os arquivos Apps Script indicados e criar uma nova implantação do aplicativo da Web. Após a publicação, limpar o cache e testar primeiro o Checklist do Condutor e depois o Checklist do Fiscal.
+Validar os filtros e a Pesquisa Global em ambiente publicado. Após aprovação, revisar a apresentação da origem nas avarias e consolidar os testes finais multiplataforma da Branch 02.

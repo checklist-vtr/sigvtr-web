@@ -1,5 +1,18 @@
 # CHANGELOG
 
+
+## [1.19.1-RC1] — Branch 02 — Checklist do Fiscal — Entrega 02
+
+- Adiciona filtro por tipo no módulo Checklists.
+- Renomeia apenas os rótulos administrativos necessários para atender Condutor e Fiscal.
+- Integra `tipoChecklist` aos parâmetros da API administrativa.
+- Inclui a origem do checklist na Pesquisa Global.
+- Registra `Tipo Checklist` nos novos alertas administrativos.
+- Identifica a origem na linha do tempo global e no histórico da viatura.
+- Mantém registros antigos como `CONDUTOR`.
+- Não altera os arquivos homologados do Checklist do Condutor.
+
+
 ## 1.18.0-RC1 — Gestão de Viaturas
 
 - Corrige ordenação de prefixos numéricos e alfanuméricos.
