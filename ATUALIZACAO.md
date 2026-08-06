@@ -1,3 +1,30 @@
+# ATUALIZAÇÃO — v1.19.3-RC1
+
+## Branch 02 — Checklist do Fiscal — Entrega 04
+
+Esta entrega consolida as pendências da Pesquisa Global e da Gestão de Avarias e adiciona o controle administrativo de próxima revisão por quilometragem.
+
+### Arquivos alterados
+
+- `backend/Painel_Administrativo.gs`
+- `admin/viaturas.html`
+- `admin/assets/js/viaturas.js`
+- `admin/assets/js/avarias.js`
+- `admin/avarias.html`
+- `admin/busca-global.html`
+- `admin/sw.js`
+- `README.md`
+- `CHANGELOG.md`
+- `ATUALIZACAO.md`
+
+### Apps Script
+
+Substituir somente `Painel_Administrativo.gs` e publicar a versão `SIGVTR v1.19.3-RC1 — Branch 02 — Revisões e consolidação da pesquisa — Entrega 04`.
+
+### Banco de dados
+
+O sistema acrescenta automaticamente as colunas `Próxima Revisão KM` e `Antecedência Alerta KM` à aba `VIATURAS`, além de `Antecedência Alerta KM` à aba `REVISOES`. Não criar nova planilha.
+
 # ATUALIZAÇÃO — v1.19.2-RC1
 
 ## Branch 02 — Checklist do Fiscal — Entrega 03

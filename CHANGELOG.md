@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.19.3-RC1 — Branch 02 — Entrega 04
+
+- Corrige definitivamente a Pesquisa Global de `FISCAL` usando identificação retrocompatível.
+- Permite localizar avarias por `Fiscal`, `Condutor`, `Avaria` e `Avarias`.
+- Inclui origem do checklist na listagem e no prontuário da avaria.
+- Adiciona `Próxima Revisão KM` e `Antecedência Alerta KM` ao cadastro da viatura.
+- Sincroniza a programação com a aba `REVISOES`.
+- Gera alerta quando a viatura entra na faixa antecipada ou ultrapassa a revisão.
+- Mantém os checklists do Condutor e do Fiscal sem alterações.
+
 ## v1.19.2-RC1 — Branch 02 — Entrega 03
 
 - Corrige a Pesquisa Global para reconhecer checklists do Fiscal a partir de `Tipo Checklist`, `Tipo_Retirada` ou `ITENS_JSON`.

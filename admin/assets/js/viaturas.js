@@ -49,6 +49,10 @@ const ViaturasPage = (() => {
       unit: String(value.lotacao ?? '20º BPM'),
       initialKm: Number(value.kmInicial || 0),
       km: Number(value.kmAtual || 0),
+      nextReviewKm: Number(value.proximaRevisaoKm || 0),
+      reviewAlertLeadKm: Number(value.antecedenciaAlertaKm ?? 1000),
+      reviewStatus: String(value.statusRevisao || 'NÃO CONFIGURADA'),
+      reviewRemainingKm: Number(value.kmRestanteRevisao || 0),
       status: normalizeStatus(value.status),
       registration: String(value.cadastro || 'PENDENTE').toUpperCase(),
       notes: String(value.observacoes || ''),
@@ -173,6 +177,8 @@ const ViaturasPage = (() => {
     setValue('vehicleUnit', vehicle?.unit || '20º BPM');
     setValue('vehicleInitialKm', vehicle?.initialKm || '');
     setValue('vehicleCurrentKm', vehicle?.km || '');
+    setValue('vehicleNextReviewKm', vehicle?.nextReviewKm || '');
+    setValue('vehicleReviewAlertLeadKm', vehicle?.reviewAlertLeadKm ?? 1000);
     setValue('vehicleNotes', vehicle?.notes);
     $('vehicleModalTitle').textContent = vehicle ? `Editar ${vehicle.prefix}` : 'Nova viatura';
     $('vehiclePrefix').readOnly = Boolean(vehicle);
@@ -187,7 +193,7 @@ const ViaturasPage = (() => {
     selected = vehicle;
     const status = statusMap[vehicle.status] || statusMap.ATIVA;
     $('vehicleDetailTitle').textContent = vehicle.prefix;
-    $('vehicleDetailBody').innerHTML = `<div class="detail-hero"><div><span class="vehicle-status-chip ${status[1]}">${status[0]}</span><h3>${esc(vehicle.prefix)}</h3><p>${esc(vehicle.model || 'Modelo não informado')} · ${esc(vehicle.plate || 'Placa não informada')}</p></div><div class="detail-km"><span>KM atual</span><strong>${fmtKm(vehicle.km)}</strong></div></div><div class="detail-grid">${detailField('Placa', vehicle.plate)}${detailField('Chassi', vehicle.chassis)}${detailField('Nº do motor', vehicle.engine)}${detailField('RENAVAM', vehicle.renavam)}${detailField('Marca', vehicle.brand)}${detailField('Modelo', vehicle.model)}${detailField('Ano', vehicle.year)}${detailField('Combustível', vehicle.fuelType)}${detailField('Tipo', vehicle.type)}${detailField('Lotação', vehicle.unit)}${detailField('KM inicial', fmtKm(vehicle.initialKm))}${detailField('Avarias abertas', vehicle.openDamages)}</div><div class="mt-4"><h4 class="h6">Observações administrativas</h4><p class="text-secondary">${esc(vehicle.notes || 'Nenhuma observação registrada.')}</p></div>`;
+    $('vehicleDetailBody').innerHTML = `<div class="detail-hero"><div><span class="vehicle-status-chip ${status[1]}">${status[0]}</span><h3>${esc(vehicle.prefix)}</h3><p>${esc(vehicle.model || 'Modelo não informado')} · ${esc(vehicle.plate || 'Placa não informada')}</p></div><div class="detail-km"><span>KM atual</span><strong>${fmtKm(vehicle.km)}</strong></div></div><div class="detail-grid">${detailField('Placa', vehicle.plate)}${detailField('Chassi', vehicle.chassis)}${detailField('Nº do motor', vehicle.engine)}${detailField('RENAVAM', vehicle.renavam)}${detailField('Marca', vehicle.brand)}${detailField('Modelo', vehicle.model)}${detailField('Ano', vehicle.year)}${detailField('Combustível', vehicle.fuelType)}${detailField('Tipo', vehicle.type)}${detailField('Lotação', vehicle.unit)}${detailField('KM inicial', fmtKm(vehicle.initialKm))}${detailField('Próxima revisão', vehicle.nextReviewKm ? fmtKm(vehicle.nextReviewKm) : 'Não configurada')}${detailField('Alerta antecipado', vehicle.nextReviewKm ? fmtKm(vehicle.reviewAlertLeadKm) + ' antes' : 'Não configurado')}${detailField('Situação da revisão', vehicle.reviewStatus)}${detailField('Avarias abertas', vehicle.openDamages)}</div><div class="mt-4"><h4 class="h6">Observações administrativas</h4><p class="text-secondary">${esc(vehicle.notes || 'Nenhuma observação registrada.')}</p></div>`;
     bootstrap.Modal.getOrCreateInstance($('vehicleDetailModal')).show();
   }
 
@@ -214,6 +220,8 @@ const ViaturasPage = (() => {
       lotacao: $('vehicleUnit').value.trim(),
       kmInicial: $('vehicleInitialKm').value,
       kmAtual: $('vehicleCurrentKm').value,
+      proximaRevisaoKm: $('vehicleNextReviewKm').value,
+      antecedenciaAlertaKm: $('vehicleReviewAlertLeadKm').value,
       observacoes: $('vehicleNotes').value.trim(),
       admin: 'Administrador'
     };

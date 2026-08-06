@@ -1,8 +1,14 @@
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
-## Estado atual: Branch 02 — Checklist do Fiscal — v1.19.2-RC1
+## Estado atual: Branch 02 — Checklist do Fiscal — v1.19.3-RC1
 
 O sistema possui Checklists independentes para Condutor e Fiscal, utilizando o mesmo backend, planilha, Google Drive e Painel Administrativo. A Pesquisa Global reconhece a origem dos registros de forma retrocompatível, e a Gestão de Avarias informa se a ocorrência foi registrada por Condutor ou Fiscal.
+
+## Controle de próxima revisão
+
+O cadastro individual da viatura agora registra a quilometragem absoluta da próxima revisão e a antecedência do alerta. O valor padrão da antecedência é 1.000 km. A programação é sincronizada com a aba `REVISOES`, e cada novo checklist verifica se a viatura entrou na faixa de aviso ou ultrapassou a revisão prevista.
+
+A identificação `CONDUTOR/FISCAL` na Pesquisa Global e na Gestão de Avarias utiliza leitura retrocompatível da coluna `Tipo Checklist`, de `Tipo_Retirada` e de `ITENS_JSON`.
 
 # SIGVTR — Sistema Integrado de Gestão de Viaturas
 
