@@ -131,6 +131,8 @@ function buildSubmissionPayload(){
  const fotos=Object.keys(state.photos).map(tipo=>({...state.photos[tipo],tipo}));
  const avariasConhecidas=state.pending.map(d=>({idAvaria:d.idAvaria,item:d.item||d.posicaoLocal||"",itemKey:matchDamageToKey(d),decisao:state.decisions[d.idAvaria]||""}));
  return {action:"salvarRetiradaMobile",data:{
+  tipoChecklist:"CONDUTOR",
+  origemAplicacao:"CONDUTOR_WEB",
   idRequisicao:state.requestId,
   prefixo:getPrefix(),
   dataCliente:new Date().toLocaleDateString("en-CA",{timeZone:"America/Belem"}),

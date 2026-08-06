@@ -449,7 +449,9 @@ function updateVehicleKm_(ss, vehicleId, km) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idIndex]) === String(vehicleId)) {
       const current = Number(data[i][kmIndex]) || 0;
-      if (km >= current) sheet.getRange(i + 1, kmIndex + 1).setValue(km);
+      const informed = Number(km) || 0;
+      const nextKm = Math.max(current, informed);
+      if (nextKm !== current) sheet.getRange(i + 1, kmIndex + 1).setValue(nextKm);
       return;
     }
   }

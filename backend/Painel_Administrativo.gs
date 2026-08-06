@@ -193,7 +193,10 @@ function resolveChecklistTypeAdmin_(row){
     try{
       const parsed=JSON.parse(String(row.ITENS_JSON||"{}"));
       const parsedType=String(parsed.tipoChecklist||"").trim().toUpperCase();
+      const origin=String(parsed.origemAplicacao||"").trim().toUpperCase();
       if(parsedType==="FISCAL"||parsedType==="CONDUTOR")type=parsedType;
+      else if(origin==="FISCAL_WEB")type="FISCAL";
+      else if(origin==="CONDUTOR_WEB")type="CONDUTOR";
     }catch(_){}
   }
   return type==="FISCAL"?"FISCAL":"CONDUTOR";
@@ -257,7 +260,7 @@ function getAdminChecklistDetail_(id){
   const r=rows.find(function(row){return String(row.ID_RETIRADA||"")===id;});if(!r)throw new Error("Checklist não encontrado.");
   const v=vehicles[String(r.ID_VTR)]||{};
   let parsed={};try{parsed=JSON.parse(String(r.ITENS_JSON||"{}"));}catch(_){parsed={};}
-  const checklist={id:r.ID_RETIRADA||"",protocolo:r.Protocolo||"",prefixo:v.prefixo||"",placa:v.placa||"",modelo:v.modelo||"",tipoChecklist:String(r["Tipo Checklist"]||parsed.tipoChecklist||"CONDUTOR").toUpperCase(),condutor:joinRankName_(r["Posto/Graduação"],r.Motorista),postoGraduacao:r["Posto/Graduação"]||"",rg:r["RG PMPA"]||"",km:Number(r["KM Inicial"]||0),combustivel:normalizeFuelAdmin_(r["Combustível Inicial"]),turno:r.Turno||"",status:r.Status||"",dataHora:formatDateForApi_(r["Data/Hora Registro"]),observacoes:r.Observações||"",operacao:r["Operação/Outros"]||"",dispositivo:r.Dispositivo||"",navegador:r.Navegador||"",itens:parsed,itensJson:r.ITENS_JSON||""};
+  const checklist={id:r.ID_RETIRADA||"",protocolo:r.Protocolo||"",prefixo:v.prefixo||"",placa:v.placa||"",modelo:v.modelo||"",tipoChecklist:resolveChecklistTypeAdmin_(r),condutor:joinRankName_(r["Posto/Graduação"],r.Motorista),postoGraduacao:r["Posto/Graduação"]||"",rg:r["RG PMPA"]||"",km:Number(r["KM Inicial"]||0),combustivel:normalizeFuelAdmin_(r["Combustível Inicial"]),turno:r.Turno||"",status:r.Status||"",dataHora:formatDateForApi_(r["Data/Hora Registro"]),observacoes:r.Observações||"",operacao:r["Operação/Outros"]||"",dispositivo:r.Dispositivo||"",navegador:r.Navegador||"",itens:parsed,itensJson:r.ITENS_JSON||""};
   const fotos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)).filter(function(p){return String(p.ID_RETIRADA||"")===id;}).map(function(p){const driveUrl=String(p["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl);return{id:p.ID_FOTO||"",tipo:p["Tipo Foto"]||"Fotografia",nomeArquivo:p["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(p.Data||r["Data/Hora Registro"]),viewUrl:driveUrl,thumbnailUrl:fileId?"https://drive.google.com/thumbnail?id="+encodeURIComponent(fileId)+"&sz=w1600":driveUrl,url:driveUrl};});
   const avarias=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).filter(function(a){return String(a.ID_RETIRADA_DETECCAO||"")===id;}).map(function(a){return{id:a.ID_AVARIA||"",item:a.Item||"",descricao:a.Descrição||"",situacao:a.Situação||"",local:a["Posição/Local"]||a.Item||"",data:formatDateForApi_(a["Data Detecção"])};});
   return {checklist:checklist,fotos:fotos,avarias:avarias};
