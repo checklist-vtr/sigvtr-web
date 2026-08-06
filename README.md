@@ -47,3 +47,7 @@ A Branch `feature/checklist-fiscal-v1` adiciona um frontend independente em `/fi
 - O histórico cronológico identifica Checklist do Condutor e Checklist do Fiscal.
 - Registros antigos sem tipo continuam tratados como `CONDUTOR`.
 - O Checklist do Condutor permanece congelado.
+
+
+### Correção v1.19.5-RC1
+O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel possui resolução retrocompatível da origem e cache administrativo renovado.

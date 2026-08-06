@@ -1,3 +1,10 @@
+## Entrega 06 — Correção definitiva do tipo Fiscal e cache administrativo
+
+- Corrigido o payload do Checklist do Fiscal para enviar explicitamente `tipoChecklist: "FISCAL"`.
+- Pesquisa Global, Dashboard, Checklists e Histórico passam a resolver o tipo por `Tipo Checklist`, `Tipo_Retirada` ou `ITENS_JSON`.
+- Atualizado o Service Worker administrativo para liberar a tela nova de revisão preventiva em Viaturas.
+- Checklist do Condutor permanece inalterado.
+
 # ATUALIZAÇÃO — v1.19.4-RC1
 
 ## Entrega 05 — Controle administrativo de revisão

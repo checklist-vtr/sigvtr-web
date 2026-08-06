@@ -1,3 +1,10 @@
+## v1.19.5-RC1 — Correção de identificação do Fiscal e atualização de cache
+
+- Corrigido o payload do Checklist do Fiscal para enviar explicitamente `tipoChecklist: "FISCAL"`.
+- Pesquisa Global, Dashboard, Checklists e Histórico passam a resolver o tipo por `Tipo Checklist`, `Tipo_Retirada` ou `ITENS_JSON`.
+- Atualizado o Service Worker administrativo para liberar a tela nova de revisão preventiva em Viaturas.
+- Checklist do Condutor permanece inalterado.
+
 ## v1.19.4-RC1 — Branch 02 — Entrega 05
 
 - Adiciona edição da próxima revisão e da antecedência do alerta no cadastro individual da viatura.
