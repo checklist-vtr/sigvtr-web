@@ -70,3 +70,12 @@ Os arquivos `index.html`, `css/style.css`, `js/app.js`, `manifest.json` e `sw.js
 ### Próxima etapa
 
 Validar os filtros e a Pesquisa Global em ambiente publicado. Após aprovação, revisar a apresentação da origem nas avarias e consolidar os testes finais multiplataforma da Branch 02.
+
+
+## Entrega 07 — Correção estrutural Fiscal e Viaturas
+
+- O Checklist do Fiscal passa a usar a rota exclusiva `salvarChecklistFiscal`.
+- O backend força `FISCAL` nessa rota, independentemente do nome, RG ou função anterior do militar.
+- A resposta do backend informa `tipoChecklist` e `backendVersion` para diagnóstico.
+- A tela de Viaturas injeta os campos de revisão pelo JavaScript quando uma cópia HTML antiga estiver em cache.
+- Cache Fiscal e Administrativo atualizado para v1.19.6-RC1.

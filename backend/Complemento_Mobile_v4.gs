@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.9.24
+ * Versão do pacote: 1.19.6-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -9,6 +9,7 @@ function doPost(e){
   try{lock.waitLock(30000);acquired=true;if(!e||!e.postData||!String(e.postData.contents||"").trim())throw new Error("Requisição sem conteúdo.");
     let payload;try{payload=JSON.parse(e.postData.contents);}catch(_){throw new Error("JSON inválido na requisição.");}
     const action=String(payload.action||"").trim();
+    if(action==="salvarChecklistFiscal"){const fiscalData=payload.data||{};fiscalData.tipoChecklist="FISCAL";return json_(saveMobileWithdrawal_(fiscalData));}
     if(action==="salvarRetiradaMobile")return json_(saveMobileWithdrawal_(payload.data||{}));
     if(action==="salvarRetirada")return json_(saveWithdrawal_(payload.data||{}));
     if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(payload.data||{})});
@@ -46,7 +47,7 @@ function saveMobileWithdrawal_(input){
   appendLog_(ss,{idUsuario:"",action:"CHECKLIST "+data.tipoChecklist,referenceId:idWithdrawal,description:"Checklist "+data.tipoChecklist.toLowerCase()+" "+status+" - "+data.prefixo+" - "+protocol,device:data.dispositivo||{},result:"SUCESSO",now:now});
   if(vehicle.id)updateVehicleKm_(ss,vehicle.id,Number(data.kmInicial));
   invalidateAdminSearchCache_();
-  return {success:true,id:idWithdrawal,protocolo:protocol,status:status,fotosSalvas:photoRecords.length,novasAvarias:newKeys.length,novosItens:newKeys.map(mobileItemName_),idAlerta:alertResult.idAlerta||""};
+  return {success:true,id:idWithdrawal,protocolo:protocol,status:status,tipoChecklist:data.tipoChecklist,backendVersion:"1.19.6-RC1",fotosSalvas:photoRecords.length,novasAvarias:newKeys.length,novosItens:newKeys.map(mobileItemName_),idAlerta:alertResult.idAlerta||""};
 }
 function sanitizeMobileWithdrawalData_(input){
   if(!input||typeof input!=="object"||Array.isArray(input))throw new Error("Dados do checklist não informados.");

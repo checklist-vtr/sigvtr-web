@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.19.5-RC1";
+const APP_VERSION="1.19.6-RC1";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -130,7 +130,7 @@ function createRequestId(){
 function buildSubmissionPayload(){
  const fotos=Object.keys(state.photos).map(tipo=>({...state.photos[tipo],tipo}));
  const avariasConhecidas=state.pending.map(d=>({idAvaria:d.idAvaria,item:d.item||d.posicaoLocal||"",itemKey:matchDamageToKey(d),decisao:state.decisions[d.idAvaria]||""}));
- return {action:"salvarRetiradaMobile",data:{
+ return {action:"salvarChecklistFiscal",data:{
   tipoChecklist:"FISCAL",
   idRequisicao:state.requestId,
   prefixo:getPrefix(),
@@ -197,7 +197,7 @@ async function submit(event){
   stopSendingMessages();$("#sendingModal").hidden=true;
   const novas=Number(result.novasAvarias||0);
   const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
-  $("#successMessage").textContent=`Protocolo ${result.protocolo}. Registro concluído com sucesso.${detail}`;
+  $("#successMessage").textContent=`Protocolo ${result.protocolo}. Checklist do Fiscal registrado com sucesso.${detail}`;
   $("#successModal").hidden=false;
   toast("Checklist registrado com sucesso.");
  }catch(err){

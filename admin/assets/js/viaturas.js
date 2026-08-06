@@ -156,11 +156,28 @@ const ViaturasPage = (() => {
     }
   }
 
+
+  function ensureReviewFields() {
+    if ($('vehicleNextReviewKm') && $('vehicleReviewAdvanceKm')) return;
+    const current = $('vehicleCurrentKm');
+    if (!current) return;
+    const currentCol = current.closest('.col-12');
+    if (!currentCol || !currentCol.parentElement) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'contents-review-fields';
+    wrapper.innerHTML = `<div class="col-12"><hr><h3 class="h6 mb-1">Controle de revisão preventiva</h3><p class="text-secondary small mb-0">Defina a próxima revisão e quantos quilômetros antes o administrador deve receber o alerta.</p></div><div class="col-12 col-md-6"><label class="form-label">Próxima revisão (km)</label><input id="vehicleNextReviewKm" class="form-control" type="number" min="0" step="1" placeholder="Ex.: 40000"></div><div class="col-12 col-md-6"><label class="form-label">Alerta antecipado (km)</label><input id="vehicleReviewAdvanceKm" class="form-control" type="number" min="0" step="1" value="200"><div class="form-text">Ex.: 200 gera o alerta 200 km antes da revisão.</div></div>`;
+    const nodes = Array.from(wrapper.children);
+    let anchor = currentCol;
+    nodes.forEach(node => { anchor.insertAdjacentElement('afterend', node); anchor = node; });
+  }
+
   function setValue(id, value = '') {
-    $(id).value = value ?? '';
+    const element = $(id);
+    if (element) element.value = value ?? '';
   }
 
   function openForm(vehicle = null) {
+    ensureReviewFields();
     selected = vehicle;
     setValue('vehicleId', vehicle?.id);
     setValue('vehiclePrefix', vehicle?.prefix);

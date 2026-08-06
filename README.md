@@ -51,3 +51,7 @@ A Branch `feature/checklist-fiscal-v1` adiciona um frontend independente em `/fi
 
 ### Correção v1.19.5-RC1
 O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel possui resolução retrocompatível da origem e cache administrativo renovado.
+
+
+### Branch 02 — v1.19.6-RC1
+O Fiscal utiliza rota exclusiva no backend, garantindo classificação por formulário e não por militar. O cadastro de viaturas possui recuperação defensiva dos campos de revisão.

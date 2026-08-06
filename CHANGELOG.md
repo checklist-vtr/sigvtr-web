@@ -71,3 +71,12 @@
 - Adicionada identificação `FISCAL`/`CONDUTOR` no backend, com compatibilidade retroativa.
 - Integrada a origem do checklist à listagem e ao detalhamento administrativo.
 - Alertas e histórico passam a identificar o Checklist do Fiscal.
+
+
+## v1.19.6-RC1 — Entrega 07
+
+- O Checklist do Fiscal passa a usar a rota exclusiva `salvarChecklistFiscal`.
+- O backend força `FISCAL` nessa rota, independentemente do nome, RG ou função anterior do militar.
+- A resposta do backend informa `tipoChecklist` e `backendVersion` para diagnóstico.
+- A tela de Viaturas injeta os campos de revisão pelo JavaScript quando uma cópia HTML antiga estiver em cache.
+- Cache Fiscal e Administrativo atualizado para v1.19.6-RC1.
