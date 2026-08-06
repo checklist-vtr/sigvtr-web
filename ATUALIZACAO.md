@@ -1,29 +1,22 @@
-# ATUALIZAÇÃO — v1.19.3-RC1
+# ATUALIZAÇÃO — v1.19.4-RC1
 
-## Branch 02 — Checklist do Fiscal — Entrega 04
+## Entrega 05 — Controle administrativo de revisão
 
-Esta entrega consolida as pendências da Pesquisa Global e da Gestão de Avarias e adiciona o controle administrativo de próxima revisão por quilometragem.
+No módulo **Viaturas**, abra **Editar cadastro** para definir ou alterar:
 
-### Arquivos alterados
+- Próxima revisão (km);
+- Alerta antecipado (km), por exemplo, alterar de 1.000 para 200.
 
-- `backend/Painel_Administrativo.gs`
-- `admin/viaturas.html`
-- `admin/assets/js/viaturas.js`
-- `admin/assets/js/avarias.js`
-- `admin/avarias.html`
-- `admin/busca-global.html`
-- `admin/sw.js`
-- `README.md`
-- `CHANGELOG.md`
-- `ATUALIZACAO.md`
+No prontuário da viatura, o botão **Registrar revisão realizada** encerra o ciclo anterior, resolve os alertas vinculados e exige a configuração da próxima revisão.
 
-### Apps Script
+Fluxo adotado:
 
-Substituir somente `Painel_Administrativo.gs` e publicar a versão `SIGVTR v1.19.3-RC1 — Branch 02 — Revisões e consolidação da pesquisa — Entrega 04`.
+1. PROGRAMADA: fora da faixa de alerta;
+2. ALERTA: entrou na antecedência configurada;
+3. ATINGIDA: KM atual igual ao KM da revisão;
+4. VENCIDA: KM atual maior que o KM da revisão e permanece assim até a baixa administrativa.
 
-### Banco de dados
-
-O sistema acrescenta automaticamente as colunas `Próxima Revisão KM` e `Antecedência Alerta KM` à aba `VIATURAS`, além de `Antecedência Alerta KM` à aba `REVISOES`. Não criar nova planilha.
+Não foram criados níveis adicionais.
 
 # ATUALIZAÇÃO — v1.19.2-RC1
 

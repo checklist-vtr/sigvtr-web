@@ -13,6 +13,7 @@ function doPost(e){
     if(action==="salvarRetirada")return json_(saveWithdrawal_(payload.data||{}));
     if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(payload.data||{})});
     if(action==="adminSalvarViatura")return json_({success:true,data:saveAdminVehicle_(payload.data||{})});
+    if(action==="adminRegistrarRevisaoViatura")return json_({success:true,data:registerAdminVehicleReview_(payload.data||{})});
     if(action==="adminImportarFrotaOficial")return json_({success:true,data:importOfficialFleet_(payload.data||{})});
     if(action==="adminAtualizarViaturasEmMassa")return json_({success:true,data:updateAdminVehiclesBulk_(payload.data||{})});
     if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(payload.data||{})});

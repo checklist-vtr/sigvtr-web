@@ -1,14 +1,14 @@
+## v1.19.4-RC1 — Branch 02 — Entrega 05
+
+- Adiciona edição da próxima revisão e da antecedência do alerta no cadastro individual da viatura.
+- Define 200 km como sugestão inicial, mantendo o valor totalmente editável pela Administração.
+- Implementa estados PROGRAMADA, ALERTA, ATINGIDA e VENCIDA, sem níveis intermediários.
+- Gera um alerta preventivo na faixa configurada e um alerta de limite ao atingir/ultrapassar a revisão.
+- Mantém a revisão vencida até o registro administrativo da realização.
+- Adiciona ação “Registrar revisão realizada”, resolve os alertas anteriores e inicia novo ciclo.
+- Preserva integralmente os Checklists do Condutor e do Fiscal.
+
 # CHANGELOG
-
-## v1.19.3-RC1 — Branch 02 — Entrega 04
-
-- Corrige definitivamente a Pesquisa Global de `FISCAL` usando identificação retrocompatível.
-- Permite localizar avarias por `Fiscal`, `Condutor`, `Avaria` e `Avarias`.
-- Inclui origem do checklist na listagem e no prontuário da avaria.
-- Adiciona `Próxima Revisão KM` e `Antecedência Alerta KM` ao cadastro da viatura.
-- Sincroniza a programação com a aba `REVISOES`.
-- Gera alerta quando a viatura entra na faixa antecipada ou ultrapassa a revisão.
-- Mantém os checklists do Condutor e do Fiscal sem alterações.
 
 ## v1.19.2-RC1 — Branch 02 — Entrega 03
 
