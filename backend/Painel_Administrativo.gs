@@ -1,12 +1,13 @@
 /******************************************************************
  * SIGVTR - Painel Administrativo, Alertas e Histórico por Viatura
- * Versão: 1.13.1-rc1
+ * Versão: 1.13.2-rc1
  ******************************************************************/
 const ADMIN_ALERT_HEADERS = [
   "ID_ALERTA","Tipo","Tipo Checklist","ID_REFERENCIA","ID_VTR","Prefixo","Condutor",
   "Posto/Graduação","RG PMPA","KM","Título","Descrição","Data","Hora",
   "Data/Hora Registro","Status","Mensagem WhatsApp","Data Visualização",
   "Data Encaminhamento","Data Resolução","Data Arquivamento",
+  "Status Notificação","Data Visualização Notificação",
   "ID_ADMIN_ULTIMA_ACAO","Última Atualização"
 ];
 const ADMIN_REVIEW_HEADERS = [
@@ -17,7 +18,8 @@ const ADMIN_REVIEW_HEADERS = [
 
 function ensureAdminSheets_(){
   const ss=getSpreadsheet_();
-  ensureSheetWithHeaders_(ss,"ALERTAS",ADMIN_ALERT_HEADERS);
+  const alertSheet=ensureSheetWithHeaders_(ss,"ALERTAS",ADMIN_ALERT_HEADERS);
+  migrateAdminNotificationState_(alertSheet);
   ensureSheetWithHeaders_(ss,"REVISOES",ADMIN_REVIEW_HEADERS);
 }
 function ensureSheetWithHeaders_(ss,name,headers){
@@ -29,6 +31,21 @@ function ensureSheetWithHeaders_(ss,name,headers){
   headers.forEach(function(h){if(current.indexOf(h)===-1){col++;sh.getRange(1,col).setValue(h);current.push(h);}});
   sh.getRange(1,1,1,current.length).setFontWeight("bold");sh.setFrozenRows(1);
   return sh;
+}
+function migrateAdminNotificationState_(sh){
+  if(!sh||sh.getLastRow()<2)return;
+  const heads=getHeaders_(sh),statusI=heads.indexOf("Status Notificação"),viewI=heads.indexOf("Data Visualização Notificação");
+  if(statusI<0)return;
+  const rows=sh.getRange(2,1,sh.getLastRow()-1,heads.length).getValues();
+  let changed=false;
+  rows.forEach(function(row){
+    if(!String(row[statusI]||"").trim()){
+      row[statusI]="VISUALIZADA";
+      if(viewI>=0&&!row[viewI])row[viewI]=row[heads.indexOf("Data/Hora Registro")]||new Date();
+      changed=true;
+    }
+  });
+  if(changed)sh.getRange(2,1,rows.length,heads.length).setValues(rows);
 }
 function createAdminAlert_(payload){
   ensureAdminSheets_();
@@ -44,6 +61,7 @@ function createAdminAlert_(payload){
     "Título":payload.titulo||type,"Descrição":payload.descricao||"","Data":date,"Hora":time,
     "Data/Hora Registro":now,"Status":"NOVO","Mensagem WhatsApp":payload.mensagemWhatsApp||buildAdminWhatsAppMessage_(payload,date,time),
     "Data Visualização":"","Data Encaminhamento":"","Data Resolução":"","Data Arquivamento":"",
+    "Status Notificação":"NOVA","Data Visualização Notificação":"",
     "ID_ADMIN_ULTIMA_ACAO":"","Última Atualização":now
   };
   appendByHeaders_(sh,headers,values);return values["ID_ALERTA"];
@@ -172,12 +190,36 @@ function getAdminRealtimeAlerts_(params){
   const start=Math.max(2,sh.getLastRow()-scan+1);
   const values=sh.getRange(start,1,sh.getLastRow()-start+1,headers.length).getValues();
   let rows=values.map(function(row){const o={};headers.forEach(function(h,i){o[h]=row[i];});return o;});
-  const status=String((params||{}).status||"").trim().toUpperCase();
-  if(status)rows=rows.filter(function(r){return String(r.Status||"").trim().toUpperCase()===status;});
+  const notificationStatus=String((params||{}).statusNotificacao||"").trim().toUpperCase();
+  if(notificationStatus)rows=rows.filter(function(r){return String(r["Status Notificação"]||"").trim().toUpperCase()===notificationStatus;});
   rows.sort(function(a,b){return dateValue_(b["Data/Hora Registro"])-dateValue_(a["Data/Hora Registro"]);});
   const total=rows.length;
-  rows=rows.slice(0,requested).map(function(r){return {ID_ALERTA:r.ID_ALERTA||"",Tipo:r.Tipo||"",Título:r.Título||"",Descrição:r.Descrição||"",Prefixo:r.Prefixo||"",Status:r.Status||"",Data:formatDateOnlyAdmin_(r.Data||r["Data/Hora Registro"]),Hora:formatTimeOnlyAdmin_(r.Hora||r["Data/Hora Registro"])};});
+  rows=rows.slice(0,requested).map(adminRealtimeAlertDto_);
   return {items:rows,total:total};
+}
+function adminRealtimeAlertDto_(r){
+  return {ID_ALERTA:r.ID_ALERTA||"",Tipo:r.Tipo||"",Título:r.Título||"",Descrição:r.Descrição||"",Prefixo:r.Prefixo||"",Status:r.Status||"",statusNotificacao:r["Status Notificação"]||"",Data:formatDateOnlyAdmin_(r.Data||r["Data/Hora Registro"]),Hora:formatTimeOnlyAdmin_(r.Hora||r["Data/Hora Registro"])};
+}
+function consumeAdminNotifications_(data){
+  ensureAdminSheets_();
+  const sh=requireSheet_(getSpreadsheet_(),"ALERTAS");
+  if(sh.getLastRow()<2)return {items:[],total:0};
+  const heads=getHeaders_(sh),idI=heads.indexOf("ID_ALERTA"),statusI=heads.indexOf("Status Notificação"),viewI=heads.indexOf("Data Visualização Notificação");
+  if(idI<0||statusI<0)throw new Error("Estrutura de notificações do painel indisponível.");
+  const requested=Math.min(Math.max(Number((data||{}).limit)||20,1),50),values=sh.getDataRange().getValues(),candidates=[];
+  for(let i=1;i<values.length;i++){
+    if(String(values[i][statusI]||"").trim().toUpperCase()==="NOVA")candidates.push({sheetRow:i+1,row:values[i]});
+  }
+  candidates.sort(function(a,b){return dateValue_(a.row[heads.indexOf("Data/Hora Registro")])-dateValue_(b.row[heads.indexOf("Data/Hora Registro")]);});
+  const selected=candidates.slice(0,requested),now=new Date();
+  selected.forEach(function(item){
+    sh.getRange(item.sheetRow,statusI+1).setValue("VISUALIZADA");
+    if(viewI>=0)sh.getRange(item.sheetRow,viewI+1).setValue(now);
+    item.row[statusI]="VISUALIZADA";
+    if(viewI>=0)item.row[viewI]=now;
+  });
+  const items=selected.map(function(item){const o={};heads.forEach(function(h,i){o[h]=item.row[i];});return adminRealtimeAlertDto_(o);});
+  return {items:items,total:Math.max(0,candidates.length-selected.length)};
 }
 
 
