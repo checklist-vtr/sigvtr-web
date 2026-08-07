@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Sistema Integrado de Gestão de Viaturas
  * Arquivo: Código.gs
- * Versão do pacote: 1.9.23
+ * Versão do pacote: 1.20.0-RC1
  * API: 2.0
  * Data: 03/08/2026
  *
@@ -14,7 +14,7 @@
  ******************************************************************/
 
 const SIGVTR = {
-  PACKAGE_VERSION: "1.9.23",
+  PACKAGE_VERSION: "1.20.0-RC1",
   API_VERSION: "2.0",
   TIMEZONE: "America/Belem",
   ROOT_FOLDER_NAME: "SIGVTR - Fotos",
@@ -61,18 +61,9 @@ function doGet(e) {
       return json_({success:true,data:confirmMobileWithdrawalByRequestId_(idRequisicao)});
     }
 
-    if (action === "adminDashboard") return json_({success:true,data:getAdminDashboard_()});
-    if (action === "adminAlertas") return json_({success:true,data:getAdminAlerts_(e.parameter || {})});
-    if (action === "adminAlertasRecentes") return json_({success:true,data:getAdminRealtimeAlerts_(e.parameter || {})});
-    if (action === "adminChecklists") return json_({success:true,data:getAdminChecklists_(e.parameter || {})});
-    if (action === "adminChecklistDetalhe") return json_({success:true,data:getAdminChecklistDetail_(String((e.parameter||{}).id||""))});
-    if (action === "adminAvarias") return json_({success:true,data:getAdminDamages_(e.parameter || {})});
-    if (action === "adminAvariaDetalhe") return json_({success:true,data:getAdminDamageDetail_(String((e.parameter||{}).id||""))});
-    if (action === "adminViaturas") return json_({success:true,data:getAdminVehicles_(e.parameter || {})});
-    if (action === "adminViaturaDetalhe") return json_({success:true,data:getAdminVehicleDetail_(String((e.parameter||{}).id||""),String((e.parameter||{}).prefixo||""))});
-    if (action === "adminHistoricoViatura") return json_({success:true,data:getAdminVehicleHistory_(String((e.parameter||{}).prefixo||""))});
-    if (action === "adminBuscaGlobal") return json_({success:true,data:globalAdminSearch_(e.parameter || {})});
-    if (action === "adminCapacidade") return json_({success:true,data:getAdminCapacityStatus_()});
+    if (action.indexOf("admin") === 0) {
+      return json_({success:false,code:"SESSION_REQUIRED",message:"Operação administrativa exige POST autenticado."});
+    }
 
     if (action === "bootstrap") {
       return json_({

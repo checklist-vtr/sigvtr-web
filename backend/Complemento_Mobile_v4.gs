@@ -1,39 +1,77 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.19.9-RC1
+ * Versão do pacote: 1.20.0-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
-  const lock=LockService.getScriptLock();let acquired=false;
-  try{lock.waitLock(30000);acquired=true;if(!e||!e.postData||!String(e.postData.contents||"").trim())throw new Error("Requisição sem conteúdo.");
-    let payload;try{payload=JSON.parse(e.postData.contents);}catch(_){throw new Error("JSON inválido na requisição.");}
-    const action=String(payload.action||"").trim();
-    if(action==="salvarChecklistFiscal"){
-      const fiscalData=payload.data||{};
-      fiscalData.tipoChecklist="FISCAL";
-      fiscalData.origemAplicacao="FISCAL_WEB";
-      return json_(saveMobileWithdrawal_(fiscalData,"FISCAL"));
+  let payload;
+  try{
+    if(!e||!e.postData||!String(e.postData.contents||"").trim())throw new Error("Requisição sem conteúdo.");
+    try{payload=JSON.parse(e.postData.contents);}catch(_){throw new Error("JSON inválido na requisição.");}
+    const action=String(payload.action||"").trim(),data=payload.data||{},token=String(payload.token||"");
+
+    // Autenticação: estas rotas gerenciam o próprio LockService quando necessário.
+    if(action==="adminLogin")return json_(adminLogin_(data));
+    if(action==="adminValidarSessao")return json_({success:true,data:adminSessionInfo_(token)});
+    if(action==="adminLogout")return json_({success:true,data:adminLogout_(token)});
+    if(action==="adminAlterarMinhaSenha")return json_({success:true,data:adminChangePassword_(token,data)});
+    if(action==="adminListarUsuarios")return json_({success:true,data:adminListUsers_(token)});
+    if(action==="adminSalvarUsuario")return json_({success:true,data:adminUpsertUser_(token,data)});
+    if(action==="adminRedefinirSenha")return json_({success:true,data:adminResetPassword_(token,data)});
+    if(action==="adminAtivarDesativarUsuario")return json_({success:true,data:adminSetUserActive_(token,data)});
+    if(action==="adminEncerrarSessoes")return json_({success:true,data:adminEndUserSessions_(token,data)});
+
+    // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
+    if(action.indexOf("admin")===0){
+      adminAuthorize_(token,action);
+      if(action==="adminDashboard")return json_({success:true,data:getAdminDashboard_()});
+      if(action==="adminAlertas")return json_({success:true,data:getAdminAlerts_(data)});
+      if(action==="adminAlertasRecentes")return json_({success:true,data:getAdminRealtimeAlerts_(data)});
+      if(action==="adminChecklists")return json_({success:true,data:getAdminChecklists_(data)});
+      if(action==="adminChecklistDetalhe")return json_({success:true,data:getAdminChecklistDetail_(String(data.id||""))});
+      if(action==="adminAvarias")return json_({success:true,data:getAdminDamages_(data)});
+      if(action==="adminAvariaDetalhe")return json_({success:true,data:getAdminDamageDetail_(String(data.id||""))});
+      if(action==="adminViaturas")return json_({success:true,data:getAdminVehicles_(data)});
+      if(action==="adminViaturaDetalhe")return json_({success:true,data:getAdminVehicleDetail_(String(data.id||""),String(data.prefixo||""))});
+      if(action==="adminHistoricoViatura")return json_({success:true,data:getAdminVehicleHistory_(String(data.prefixo||""))});
+      if(action==="adminBuscaGlobal")return json_({success:true,data:globalAdminSearch_(data)});
+      if(action==="adminCapacidade")return json_({success:true,data:getAdminCapacityStatus_()});
     }
-    if(action==="salvarRetiradaMobile"){
-      const driverData=payload.data||{};
-      driverData.tipoChecklist="CONDUTOR";
-      driverData.origemAplicacao="CONDUTOR_WEB";
-      return json_(saveMobileWithdrawal_(driverData,"CONDUTOR"));
-    }
-    if(action==="salvarRetirada")return json_(saveWithdrawal_(payload.data||{}));
-    if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(payload.data||{})});
-    if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(payload.data||{})});
-    if(action==="adminSalvarViatura")return json_({success:true,data:saveAdminVehicle_(payload.data||{})});
-    if(action==="adminRegistrarRevisaoViatura")return json_({success:true,data:registerAdminVehicleReview_(payload.data||{})});
-    if(action==="adminImportarFrotaOficial")return json_({success:true,data:importOfficialFleet_(payload.data||{})});
-    if(action==="adminAtualizarViaturasEmMassa")return json_({success:true,data:updateAdminVehiclesBulk_(payload.data||{})});
-    if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(payload.data||{})});
-    if(action==="adminGerarPacoteArquivamento")return json_({success:true,data:generateArchiveDataPackage_(payload.data||{})});
-    if(action==="adminConfirmarArquivoFisico")return json_({success:true,data:confirmPhysicalArchive_(payload.data||{})});
-    throw new Error("Ação não reconhecida.");
-  }catch(error){console.error(error);return json_({success:false,message:error&&error.message?error.message:"Erro interno no SIGVTR."});}
-  finally{if(acquired)try{lock.releaseLock();}catch(_){}}
+
+    const lock=LockService.getScriptLock();let acquired=false;
+    try{
+      lock.waitLock(30000);acquired=true;
+      if(action==="salvarChecklistFiscal"){
+        const fiscalData=data;fiscalData.tipoChecklist="FISCAL";fiscalData.origemAplicacao="FISCAL_WEB";
+        return json_(saveMobileWithdrawal_(fiscalData,"FISCAL"));
+      }
+      if(action==="salvarRetiradaMobile"){
+        const driverData=data;driverData.tipoChecklist="CONDUTOR";driverData.origemAplicacao="CONDUTOR_WEB";
+        return json_(saveMobileWithdrawal_(driverData,"CONDUTOR"));
+      }
+      if(action==="salvarRetirada")return json_(saveWithdrawal_(data));
+
+      if(action.indexOf("admin")===0){
+        adminAuthorize_(token,action);
+        if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(data)});
+        if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(data)});
+        if(action==="adminSalvarViatura")return json_({success:true,data:saveAdminVehicle_(data)});
+        if(action==="adminRegistrarRevisaoViatura")return json_({success:true,data:registerAdminVehicleReview_(data)});
+        if(action==="adminImportarFrotaOficial")return json_({success:true,data:importOfficialFleet_(data)});
+        if(action==="adminAtualizarViaturasEmMassa")return json_({success:true,data:updateAdminVehiclesBulk_(data)});
+        if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(data)});
+        if(action==="adminGerarPacoteArquivamento")return json_({success:true,data:generateArchiveDataPackage_(data)});
+        if(action==="adminConfirmarArquivoFisico")return json_({success:true,data:confirmPhysicalArchive_(data)});
+      }
+      throw new Error("Ação não reconhecida.");
+    }finally{if(acquired)try{lock.releaseLock();}catch(_){}}
+  }catch(error){
+    console.error(error);
+    const code=String(error&&error.message||"");
+    const safe=(code==="FORBIDDEN")?"Acesso negado.":(/^SESSION_/.test(code)?"Sessão inválida ou expirada.":(error&&error.message?error.message:"Erro interno no SIGVTR."));
+    return json_({success:false,code:code,message:safe});
+  }
 }
 function saveMobileWithdrawal_(input,expectedType){
   const data=sanitizeMobileWithdrawalData_(input);
