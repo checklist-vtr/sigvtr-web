@@ -67,3 +67,12 @@ Não há exclusão física de contas.
 As operações administrativas usam POST autenticado. O token não é colocado em URL/GET. Cada ação administrativa é novamente autorizada no backend pela matriz RBAC.
 
 As rotas públicas necessárias aos checklists Condutor/Fiscal permanecem independentes da autenticação administrativa.
+
+
+## Ajustes v1.20.1-RC1
+- Mantido o mesmo fator criptográfico de 4096 iterações; nenhuma redução de segurança foi aplicada para ganho de velocidade. A conversão interna para hexadecimal foi otimizada sem alterar o resultado dos hashes existentes.
+- Buscas de usuário e sessão passaram a localizar apenas a linha necessária, evitando leitura integral das abas em cada validação.
+- A gravação de `ULTIMA_ATIVIDADE` é limitada a intervalos de 2 minutos; o timeout de inatividade permanece em 30 minutos e pode expirar de forma conservadora alguns segundos/minutos antes, nunca depois do limite por causa dessa otimização.
+- A troca obrigatória do primeiro acesso continua verificando novamente a senha temporária atual e aplicando o KDF completo na nova senha; essa defesa em profundidade foi preservada mesmo com impacto de tempo.
+- O botão **Sair** ficou visível também na barra superior e continua executando logout real no backend.
+- As funções públicas `configurarSegredosAutenticacao()` e `bootstrapInitialUsers()` passam a integrar oficialmente o arquivo versionado, apenas como wrappers das rotinas privadas de instalação manual.

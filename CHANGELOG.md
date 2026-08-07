@@ -1,5 +1,17 @@
 ## v1.19.5-RC1 — Correção de identificação do Fiscal e atualização de cache
 
+## 1.20.1-RC1 — Autenticação: desempenho seguro e logout visível
+
+- Mantém integralmente o KDF de senhas com 4096 iterações, salt individual e pepper em Script Properties.
+- Otimiza buscas de usuários e sessões para leitura apenas da linha necessária.
+- Evita gravação de `ULTIMA_ATIVIDADE` a cada requisição, mantendo timeout de 30 minutos de forma conservadora.
+- Retira o cálculo de senha de dentro do `ScriptLock`, preservando controle de concorrência na atualização de falhas/bloqueios.
+- Otimiza a conversão hexadecimal do KDF sem alterar os hashes já existentes.
+- Mantém nova e antiga senha com KDF completo durante a troca de senha.
+- Adiciona botão **Sair** visível na barra superior, além da opção já existente no rodapé lateral.
+- Oficializa no código versionado os wrappers manuais de configuração inicial do Apps Script.
+- Nenhuma alteração nos módulos Condutor e Fiscal.
+
 - Corrigido o payload do Checklist do Fiscal para enviar explicitamente `tipoChecklist: "FISCAL"`.
 - Pesquisa Global, Dashboard, Checklists e Histórico passam a resolver o tipo por `Tipo Checklist`, `Tipo_Retirada` ou `ITENS_JSON`.
 - Atualizado o Service Worker administrativo para liberar a tela nova de revisão preventiva em Viaturas.

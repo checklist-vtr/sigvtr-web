@@ -1,5 +1,5 @@
 const ApiService=(()=>{
-  const CONFIG={baseUrl:"https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec",timeout:30000,retries:1,cachePrefix:"sigvtr_admin_api_v1200rc1:"};
+  const CONFIG={baseUrl:"https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec",timeout:30000,retries:1,cachePrefix:"sigvtr_admin_api_v1201rc1:"};
   const memory=new Map(),pending=new Map();
   try{Object.keys(localStorage).filter(k=>k.startsWith('sigvtr_admin_api_')&&!k.startsWith(CONFIG.cachePrefix)).forEach(k=>localStorage.removeItem(k));localStorage.removeItem('sigvtr_admin_vehicles_v1');sessionStorage.removeItem('sigvtr_admin_vehicles_v1');}catch(_){}
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));

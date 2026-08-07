@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Autenticação e autorização administrativa
- * Versão: 1.20.0-RC1
+ * Versão: 1.20.1-RC1
  *
  * Observação criptográfica:
  * Google Apps Script não possui bcrypt/Argon2/PBKDF2 nativos. Para não
@@ -10,6 +10,7 @@
  ******************************************************************/
 const ADMIN_AUTH = Object.freeze({
   SESSION_IDLE_MINUTES: 30,
+  SESSION_TOUCH_MINUTES: 2,
   SESSION_ABSOLUTE_HOURS: 8,
   MAX_FAILED_ATTEMPTS: 5,
   BLOCK_MINUTES: 15,
@@ -48,7 +49,12 @@ const ADMIN_AUTH = Object.freeze({
   }
 });
 
+let ADMIN_AUTH_STRUCTURE_READY_=false;
+const ADMIN_AUTH_HEADER_CACHE_={};
+const ADMIN_HEX_TABLE_=Array.from({length:256},(_,i)=>('0'+i.toString(16)).slice(-2));
+
 function ensureAdminAuthStructure_(){
+  if(ADMIN_AUTH_STRUCTURE_READY_)return {success:true};
   const ss=getSpreadsheet_();
   const users=ss.getSheetByName(SIGVTR.SHEETS.USERS);
   if(!users)throw new Error('Aba USUARIOS não encontrada.');
@@ -56,6 +62,7 @@ function ensureAdminAuthStructure_(){
   let sessions=ss.getSheetByName(ADMIN_AUTH.SESSION_SHEET);
   if(!sessions){sessions=ss.insertSheet(ADMIN_AUTH.SESSION_SHEET);sessions.getRange(1,1,1,ADMIN_AUTH.SESSION_COLUMNS.length).setValues([ADMIN_AUTH.SESSION_COLUMNS]);}
   else ensureColumns_(sessions,ADMIN_AUTH.SESSION_COLUMNS);
+  ADMIN_AUTH_STRUCTURE_READY_=true;
   return {success:true};
 }
 function ensureColumns_(sheet,columns){
@@ -64,15 +71,18 @@ function ensureColumns_(sheet,columns){
   columns.forEach(name=>{if(headers.indexOf(name)<0){headers.push(name);sheet.getRange(1,headers.length).setValue(name);}});
 }
 function adminHeaderMap_(sheet){
+  const key=String(sheet.getSheetId());
+  if(ADMIN_AUTH_HEADER_CACHE_[key])return ADMIN_AUTH_HEADER_CACHE_[key];
   const headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(v=>String(v||'').trim());
-  const map={};headers.forEach((h,i)=>map[h]=i);return {headers,map};
+  const map={};headers.forEach((h,i)=>map[h]=i);
+  return ADMIN_AUTH_HEADER_CACHE_[key]={headers,map};
 }
 function adminNormalizeLogin_(v){return String(v||'').trim().toLowerCase();}
 function adminNormalizeRole_(v){const role=String(v||'').trim().toUpperCase();if(ADMIN_AUTH.VALID_ROLES.indexOf(role)<0)throw new Error('Perfil administrativo inválido.');return role;}
 function adminIsYes_(v){return ['SIM','S','TRUE','1','ATIVO'].indexOf(String(v||'').trim().toUpperCase())>=0;}
 function adminNowIso_(){return Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,"yyyy-MM-dd'T'HH:mm:ssXXX");}
 function adminSecret_(name){const v=PropertiesService.getScriptProperties().getProperty(name);if(!v)throw new Error('Configuração de segurança ausente: '+name+'.');return v;}
-function adminBytesHex_(bytes){return bytes.map(b=>('0'+((b<0?b+256:b)&255).toString(16)).slice(-2)).join('');}
+function adminBytesHex_(bytes){let out='';for(let i=0;i<bytes.length;i++)out+=ADMIN_HEX_TABLE_[(bytes[i]+256)&255];return out;}
 function adminHmacHex_(value,key){return adminBytesHex_(Utilities.computeHmacSha256Signature(String(value),String(key),Utilities.Charset.UTF_8));}
 function adminTokenHash_(token){return adminHmacHex_(token,adminSecret_('SESSION_SECRET'));}
 function adminPasswordHash_(password,salt){
@@ -89,13 +99,21 @@ function adminValidatePassword_(password,login,role){
   const low=password.toLowerCase();if(low===String(login||'').toLowerCase()||low===String(role||'').toLowerCase())throw new Error('A senha não pode ser igual ao login ou perfil.');
   const trivial=['123456789012','password123!','senha123456!','sigvtr123456!','admin123456!'];if(trivial.indexOf(low)>=0)throw new Error('Escolha uma senha menos previsível.');
 }
+function adminFindRowExact_(sheet,columnIndex,value,caseSensitive){
+  const lastRow=sheet.getLastRow();if(lastRow<2||columnIndex===undefined||columnIndex<0)return 0;
+  const text=String(value||'').trim();if(!text)return 0;
+  const finder=sheet.getRange(2,columnIndex+1,lastRow-1,1).createTextFinder(text).matchEntireCell(true).matchCase(!!caseSensitive);
+  const cell=finder.findNext();return cell?cell.getRow():0;
+}
 function adminFindUserByLogin_(login){
-  ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh),values=sh.getDataRange().getValues();login=adminNormalizeLogin_(login);
-  for(let r=1;r<values.length;r++){if(adminNormalizeLogin_(values[r][hm.map.LOGIN])===login&&login)return {sheet:sh,row:r+1,values:values[r],hm};}return null;
+  ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh);login=adminNormalizeLogin_(login);
+  const row=adminFindRowExact_(sh,hm.map.LOGIN,login,false);if(!row)return null;
+  return {sheet:sh,row,values:sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],hm};
 }
 function adminFindUserById_(id){
-  ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh),values=sh.getDataRange().getValues();const idIdx=hm.map.ID_USUARIO;
-  for(let r=1;r<values.length;r++){if(String(values[r][idIdx]||'')===String(id||''))return {sheet:sh,row:r+1,values:values[r],hm};}return null;
+  ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh);
+  const row=adminFindRowExact_(sh,hm.map.ID_USUARIO,String(id||''),true);if(!row)return null;
+  return {sheet:sh,row,values:sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],hm};
 }
 function adminUserObject_(rec){const m=rec.hm.map,v=rec.values;return {id:String(v[m.ID_USUARIO]||''),login:String(v[m.LOGIN]||''),name:String(v[m.NOME_ADMIN]||v[m['Nome de Guerra']]||v[m['Nome Completo']]||v[m.LOGIN]||''),role:String(v[m.PERFIL_ADMIN]||'').toUpperCase(),active:adminIsYes_(v[m.ATIVO_ADMIN]),mustChangePassword:adminIsYes_(v[m.TROCAR_SENHA]),lastLogin:v[m.ULTIMO_LOGIN]||'',blockedUntil:v[m.BLOQUEADO_ATE]||''};}
 function adminSetCells_(rec,patch){Object.keys(patch).forEach(k=>{if(rec.hm.map[k]===undefined)return;rec.sheet.getRange(rec.row,rec.hm.map[k]+1).setValue(patch[k]);rec.values[rec.hm.map[k]]=patch[k];});}
@@ -111,34 +129,63 @@ function adminCreateSession_(user){
   sh.appendRow(['SES-'+Utilities.getUuid(),user.id,adminTokenHash_(token),now,absolute,now,'NAO','','']);return {token,expiresAt:absolute.toISOString()};
 }
 function adminLogin_(data){
+  const login=adminNormalizeLogin_(data&&data.login),password=String(data&&data.password||''),generic='Usuário ou senha inválidos.';
+  let rec=adminFindUserByLogin_(login);
+  if(!rec){adminPasswordHash_(password||'x','fake-'+adminSecret_('SESSION_SECRET').slice(0,12));adminLogSecurity_('LOGIN_FALHA',null,'AUTH','NEGADO','Credenciais inválidas.');return {success:false,code:'INVALID_CREDENTIALS',message:generic};}
+  let user=adminUserObject_(rec),m=rec.hm.map,v=rec.values,blocked=v[m.BLOQUEADO_ATE]?new Date(v[m.BLOQUEADO_ATE]):null;
+  if(!user.active){adminLogSecurity_('LOGIN_FALHA',user,'AUTH','NEGADO','Credenciais inválidas.');return {success:false,code:'INVALID_CREDENTIALS',message:generic};}
+  if(blocked&&blocked.getTime()>Date.now())return {success:false,code:'LOCKED',message:'Acesso temporariamente bloqueado.',blockedUntil:blocked.toISOString()};
+
+  // O cálculo de senha é propositalmente executado fora do ScriptLock. Isso mantém
+  // o fator criptográfico integral sem bloquear outros usuários enquanto o KDF roda.
+  const expected=String(v[m.SENHA_HASH]||''),salt=String(v[m.SALT]||''),actual=salt?adminPasswordHash_(password,salt):'',valid=!!expected&&!!salt&&adminConstantEqual_(expected,actual);
+
   const lock=LockService.getScriptLock();lock.waitLock(30000);try{
-    const login=adminNormalizeLogin_(data&&data.login),password=String(data&&data.password||'');const rec=adminFindUserByLogin_(login);const generic='Usuário ou senha inválidos.';
-    if(!rec){adminPasswordHash_(password||'x','fake-'+adminSecret_('SESSION_SECRET').slice(0,12));adminLogSecurity_('LOGIN_FALHA',null,'AUTH','NEGADO','Credenciais inválidas.');return {success:false,code:'INVALID_CREDENTIALS',message:generic};}
-    const user=adminUserObject_(rec),m=rec.hm.map,v=rec.values,blocked=v[m.BLOQUEADO_ATE]?new Date(v[m.BLOQUEADO_ATE]):null;
-    if(!user.active){adminLogSecurity_('LOGIN_FALHA',user,'AUTH','NEGADO','Credenciais inválidas.');return {success:false,code:'INVALID_CREDENTIALS',message:generic};}
-    if(blocked&&blocked.getTime()>Date.now()){return {success:false,code:'LOCKED',message:'Acesso temporariamente bloqueado.',blockedUntil:blocked.toISOString()};}
-    const expected=String(v[m.SENHA_HASH]||''),salt=String(v[m.SALT]||''),actual=salt?adminPasswordHash_(password,salt):'';
-    if(!expected||!salt||!adminConstantEqual_(expected,actual)){
+    // Releitura dentro do lock evita race condition na contagem de falhas/bloqueio.
+    rec=adminFindUserByLogin_(login);if(!rec)return {success:false,code:'INVALID_CREDENTIALS',message:generic};
+    user=adminUserObject_(rec);m=rec.hm.map;v=rec.values;blocked=v[m.BLOQUEADO_ATE]?new Date(v[m.BLOQUEADO_ATE]):null;
+    if(!user.active)return {success:false,code:'INVALID_CREDENTIALS',message:generic};
+    if(blocked&&blocked.getTime()>Date.now())return {success:false,code:'LOCKED',message:'Acesso temporariamente bloqueado.',blockedUntil:blocked.toISOString()};
+    // Se a credencial foi alterada enquanto o KDF era calculado, refaz a validação no próximo login.
+    if(String(v[m.SENHA_HASH]||'')!==expected||String(v[m.SALT]||'')!==salt)return {success:false,code:'CREDENTIAL_CHANGED',message:'Credencial atualizada. Tente novamente.'};
+    if(!valid){
       const failures=(Number(v[m.TENTATIVAS_FALHAS])||0)+1,patch={TENTATIVAS_FALHAS:failures,ALTERADO_EM:new Date()};
       if(failures>=ADMIN_AUTH.MAX_FAILED_ATTEMPTS)patch.BLOQUEADO_ATE=new Date(Date.now()+ADMIN_AUTH.BLOCK_MINUTES*60000);
       adminSetCells_(rec,patch);adminLogSecurity_(failures>=ADMIN_AUTH.MAX_FAILED_ATTEMPTS?'USUARIO_BLOQUEADO':'LOGIN_FALHA',user,'AUTH','NEGADO','Credenciais inválidas.');
       return {success:false,code:failures>=ADMIN_AUTH.MAX_FAILED_ATTEMPTS?'LOCKED':'INVALID_CREDENTIALS',message:failures>=ADMIN_AUTH.MAX_FAILED_ATTEMPTS?'Acesso temporariamente bloqueado.':generic};
     }
     adminSetCells_(rec,{TENTATIVAS_FALHAS:0,BLOQUEADO_ATE:'',ULTIMO_LOGIN:new Date()});const session=adminCreateSession_(user);adminLogSecurity_('LOGIN_SUCESSO',user,'AUTH','SUCESSO','Login administrativo.');
-    return {success:true,token:session.token,expiresAt:session.expiresAt,user:user};
+    return {success:true,token:session.token,expiresAt:session.expiresAt,user};
   }finally{lock.releaseLock();}
 }
 function adminValidateSession_(token,touch){
-  token=String(token||'');if(!token)throw new Error('SESSION_REQUIRED');ensureAdminAuthStructure_();const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),data=sh.getDataRange().getValues(),hash=adminTokenHash_(token),now=Date.now();
-  for(let r=1;r<data.length;r++){if(!adminConstantEqual_(String(data[r][hm.map.TOKEN_HASH]||''),hash))continue;if(adminIsYes_(data[r][hm.map.REVOGADA]))throw new Error('SESSION_INVALID');const absolute=new Date(data[r][hm.map.EXPIRA_EM]).getTime(),last=new Date(data[r][hm.map.ULTIMA_ATIVIDADE]).getTime();if(!absolute||absolute<=now||!last||last+ADMIN_AUTH.SESSION_IDLE_MINUTES*60000<=now){sh.getRange(r+1,hm.map.REVOGADA+1).setValue('SIM');sh.getRange(r+1,hm.map.REVOGADA_EM+1).setValue(new Date());sh.getRange(r+1,hm.map.MOTIVO_REVOGACAO+1).setValue('EXPIRADA');throw new Error('SESSION_EXPIRED');}
-    const rec=adminFindUserById_(data[r][hm.map.ID_USUARIO]);if(!rec)throw new Error('SESSION_INVALID');const user=adminUserObject_(rec);if(!user.active)throw new Error('SESSION_INVALID');if(touch!==false)sh.getRange(r+1,hm.map.ULTIMA_ATIVIDADE+1).setValue(new Date());return {user,sessionRow:r+1,sessionSheet:sh,sessionMap:hm.map};}
-  throw new Error('SESSION_INVALID');
+  token=String(token||'');if(!token)throw new Error('SESSION_REQUIRED');ensureAdminAuthStructure_();
+  const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),hash=adminTokenHash_(token),row=adminFindRowExact_(sh,hm.map.TOKEN_HASH,hash,true),now=Date.now();
+  if(!row)throw new Error('SESSION_INVALID');
+  const data=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];
+  if(adminIsYes_(data[hm.map.REVOGADA]))throw new Error('SESSION_INVALID');
+  const absolute=new Date(data[hm.map.EXPIRA_EM]).getTime(),last=new Date(data[hm.map.ULTIMA_ATIVIDADE]).getTime();
+  if(!absolute||absolute<=now||!last||last+ADMIN_AUTH.SESSION_IDLE_MINUTES*60000<=now){
+    sh.getRange(row,hm.map.REVOGADA+1,1,3).setValues([['SIM',new Date(),'EXPIRADA']]);throw new Error('SESSION_EXPIRED');
+  }
+  const rec=adminFindUserById_(data[hm.map.ID_USUARIO]);if(!rec)throw new Error('SESSION_INVALID');const user=adminUserObject_(rec);if(!user.active)throw new Error('SESSION_INVALID');
+  // Evita uma gravação no Sheets a cada chamada administrativa. O timeout continua
+  // conservador: a atividade só é renovada quando o último toque tem >= 2 minutos.
+  if(touch!==false&&last+ADMIN_AUTH.SESSION_TOUCH_MINUTES*60000<=now)sh.getRange(row,hm.map.ULTIMA_ATIVIDADE+1).setValue(new Date());
+  return {user,sessionRow:row,sessionSheet:sh,sessionMap:hm.map};
 }
 function adminAuthorize_(token,action){const ctx=adminValidateSession_(token,true),role=adminNormalizeRole_(ctx.user.role),perms=ADMIN_AUTH.PERMISSIONS[role]||[];if(perms.indexOf('*')<0&&perms.indexOf(action)<0){adminLogSecurity_('ACESSO_NEGADO',ctx.user,action,'NEGADO','Permissão insuficiente.');throw new Error('FORBIDDEN');}return ctx;}
 function adminSessionInfo_(token){const ctx=adminValidateSession_(token,true);return {success:true,user:ctx.user};}
 function adminLogout_(token){try{const ctx=adminValidateSession_(token,false);ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA+1).setValue('SIM');ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA_EM+1).setValue(new Date());ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.MOTIVO_REVOGACAO+1).setValue('LOGOUT');adminLogSecurity_('LOGOUT',ctx.user,'AUTH','SUCESSO','Logout administrativo.');}catch(_){}return {success:true};}
 function adminRevokeAllSessions_(idUsuario,motivo){ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),data=sh.getDataRange().getValues();for(let r=1;r<data.length;r++)if(String(data[r][hm.map.ID_USUARIO]||'')===String(idUsuario)&&!adminIsYes_(data[r][hm.map.REVOGADA])){sh.getRange(r+1,hm.map.REVOGADA+1,1,3).setValues([['SIM',new Date(),motivo||'REVOGADA']]);}}
-function adminChangePassword_(token,data){const ctx=adminAuthorize_(token,'adminAlterarMinhaSenha'),rec=adminFindUserById_(ctx.user.id),old=String(data&&data.senhaAtual||''),next=String(data&&data.novaSenha||''),m=rec.hm.map,v=rec.values;const actual=adminPasswordHash_(old,String(v[m.SALT]||''));if(!adminConstantEqual_(actual,String(v[m.SENHA_HASH]||'')))throw new Error('Senha atual inválida.');adminValidatePassword_(next,ctx.user.login,ctx.user.role);const salt=Utilities.getUuid()+Utilities.getUuid(),hash=adminPasswordHash_(next,salt);adminSetCells_(rec,{SALT:salt,SENHA_HASH:hash,TROCAR_SENHA:'NAO',ULTIMA_TROCA_SENHA:new Date(),ALTERADO_EM:new Date(),ALTERADO_POR:ctx.user.login});adminRevokeAllSessions_(ctx.user.id,'SENHA_ALTERADA');adminLogSecurity_('SENHA_ALTERADA',ctx.user,'USUARIOS','SUCESSO','Senha própria alterada.');const s=adminCreateSession_(adminUserObject_(rec));return {success:true,token:s.token,expiresAt:s.expiresAt,user:adminUserObject_(rec)};}
+function adminChangePassword_(token,data){
+  const ctx=adminAuthorize_(token,'adminAlterarMinhaSenha'),rec=adminFindUserById_(ctx.user.id),old=String(data&&data.senhaAtual||''),next=String(data&&data.novaSenha||''),m=rec.hm.map,v=rec.values;
+  // Defesa em profundidade: mesmo na troca obrigatória do primeiro acesso,
+  // a senha atual é verificada novamente. O fator criptográfico não é reduzido.
+  const actual=adminPasswordHash_(old,String(v[m.SALT]||''));if(!adminConstantEqual_(actual,String(v[m.SENHA_HASH]||'')))throw new Error('Senha atual inválida.');
+  adminValidatePassword_(next,ctx.user.login,ctx.user.role);const salt=Utilities.getUuid()+Utilities.getUuid(),hash=adminPasswordHash_(next,salt);
+  adminSetCells_(rec,{SALT:salt,SENHA_HASH:hash,TROCAR_SENHA:'NAO',ULTIMA_TROCA_SENHA:new Date(),ALTERADO_EM:new Date(),ALTERADO_POR:ctx.user.login});adminRevokeAllSessions_(ctx.user.id,'SENHA_ALTERADA');adminLogSecurity_('SENHA_ALTERADA',ctx.user,'USUARIOS','SUCESSO','Senha própria alterada.');const s=adminCreateSession_(adminUserObject_(rec));return {success:true,token:s.token,expiresAt:s.expiresAt,user:adminUserObject_(rec)};
+}
 function adminListUsers_(token){const ctx=adminAuthorize_(token,'adminListarUsuarios'),sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh),data=sh.getDataRange().getValues(),out=[];for(let r=1;r<data.length;r++){if(!adminNormalizeLogin_(data[r][hm.map.LOGIN]))continue;out.push(adminUserObject_({sheet:sh,row:r+1,values:data[r],hm}));}return {users:out,currentUser:ctx.user};}
 function adminUpsertUser_(token,data){const ctx=adminAuthorize_(token,'adminSalvarUsuario'),lock=LockService.getScriptLock();lock.waitLock(30000);try{const login=adminNormalizeLogin_(data&&data.login),name=String(data&&data.name||'').trim().slice(0,120),role=adminNormalizeRole_(data&&data.role),active=!!(data&&data.active);if(!/^[a-z0-9._-]{3,40}$/.test(login))throw new Error('Login inválido.');if(!name)throw new Error('Nome obrigatório.');let rec=data&&data.id?adminFindUserById_(data.id):adminFindUserByLogin_(login);if(rec){const existing=adminFindUserByLogin_(login);if(existing&&existing.row!==rec.row)throw new Error('Login já utilizado.');adminSetCells_(rec,{LOGIN:login,NOME_ADMIN:name,PERFIL_ADMIN:role,ATIVO_ADMIN:active?'SIM':'NAO',ALTERADO_EM:new Date(),ALTERADO_POR:ctx.user.login});adminRevokeAllSessions_(adminUserObject_(rec).id,'USUARIO_ALTERADO');adminLogSecurity_('PERFIL_ALTERADO',adminUserObject_(rec),'USUARIOS','SUCESSO','Conta administrativa alterada por DEV.');return {success:true,user:adminUserObject_(rec)};}
     const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.USERS),hm=adminHeaderMap_(sh),row=new Array(sh.getLastColumn()).fill(''),id='USR-ADM-'+Utilities.getUuid();const put=(k,v)=>{if(hm.map[k]!==undefined)row[hm.map[k]]=v;};put('ID_USUARIO',id);put('LOGIN',login);put('NOME_ADMIN',name);put('PERFIL_ADMIN',role);put('ATIVO_ADMIN',active?'SIM':'NAO');put('TROCAR_SENHA','SIM');put('CRIADO_EM',new Date());put('CRIADO_POR',ctx.user.login);put('ALTERADO_EM',new Date());put('ALTERADO_POR',ctx.user.login);sh.appendRow(row);adminLogSecurity_('USUARIO_CRIADO',{id,login,name,role},'USUARIOS','SUCESSO','Conta administrativa criada sem senha.');return {success:true,user:{id,login,name,role,active,mustChangePassword:true}};
@@ -173,3 +220,8 @@ function bootstrapInitialUsers_(){
   });
   props.deleteProperty('INITIAL_PASSWORD_CMD');props.deleteProperty('INITIAL_PASSWORD_SUBCMD');props.deleteProperty('INITIAL_PASSWORD_FISCAL');props.deleteProperty('INITIAL_PASSWORD_DEV');props.setProperty('ADMIN_BOOTSTRAP_DONE','SIM');return {success:true,users:['cmd','subcmd','fiscal','dev'],temporaryPasswordsRemoved:true};
 }
+
+
+/** Funções públicas para instalação manual pelo editor do Apps Script. */
+function configurarSegredosAutenticacao(){return configurarSegredosAutenticacao_();}
+function bootstrapInitialUsers(){return bootstrapInitialUsers_();}
