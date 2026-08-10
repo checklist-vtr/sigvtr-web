@@ -1,3 +1,13 @@
+## 1.20.2-RC1 — Acesso às fotografias do SIGVTR
+
+- Novas fotografias passam a ser compartilhadas automaticamente como `ANYONE_WITH_LINK / VIEW` no Google Drive.
+- Mantém as pastas do SIGVTR privadas; somente os arquivos fotográficos registrados recebem acesso por link.
+- Preserva `resourcekey` do Google Drive nos links quando exigida pela política de segurança do Drive.
+- Corrige a URL de miniaturas do Painel Administrativo para encaminhar a `resourcekey` quando existente.
+- Adiciona a rotina manual e idempotente `liberarAcessoFotosExistentesSIGVTR()` para corrigir somente fotos já indexadas na aba `FOTOS`.
+- A rotina não percorre indiscriminadamente a pasta raiz e não altera outros documentos do Drive.
+- Nenhuma alteração visual ou funcional nos checklists Condutor/Fiscal.
+
 ## v1.19.5-RC1 — Correção de identificação do Fiscal e atualização de cache
 
 ## 1.20.1-RC1 — Autenticação: desempenho seguro e logout visível

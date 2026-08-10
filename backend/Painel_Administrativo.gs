@@ -303,7 +303,7 @@ function getAdminChecklistDetail_(id){
   const v=vehicles[String(r.ID_VTR)]||{};
   let parsed={};try{parsed=JSON.parse(String(r.ITENS_JSON||"{}"));}catch(_){parsed={};}
   const checklist={id:r.ID_RETIRADA||"",protocolo:r.Protocolo||"",prefixo:v.prefixo||"",placa:v.placa||"",modelo:v.modelo||"",tipoChecklist:resolveChecklistTypeAdmin_(r),condutor:joinRankName_(r["Posto/Graduação"],r.Motorista),postoGraduacao:r["Posto/Graduação"]||"",rg:r["RG PMPA"]||"",km:Number(r["KM Inicial"]||0),combustivel:normalizeFuelAdmin_(r["Combustível Inicial"]),turno:r.Turno||"",status:r.Status||"",dataHora:formatDateForApi_(r["Data/Hora Registro"]),observacoes:r.Observações||"",operacao:r["Operação/Outros"]||"",dispositivo:r.Dispositivo||"",navegador:r.Navegador||"",itens:parsed,itensJson:r.ITENS_JSON||""};
-  const fotos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)).filter(function(p){return String(p.ID_RETIRADA||"")===id;}).map(function(p){const driveUrl=String(p["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl);return{id:p.ID_FOTO||"",tipo:p["Tipo Foto"]||"Fotografia",nomeArquivo:p["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(p.Data||r["Data/Hora Registro"]),viewUrl:driveUrl,thumbnailUrl:fileId?"https://drive.google.com/thumbnail?id="+encodeURIComponent(fileId)+"&sz=w1600":driveUrl,url:driveUrl};});
+  const fotos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)).filter(function(p){return String(p.ID_RETIRADA||"")===id;}).map(function(p){const driveUrl=String(p["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl);return{id:p.ID_FOTO||"",tipo:p["Tipo Foto"]||"Fotografia",nomeArquivo:p["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(p.Data||r["Data/Hora Registro"]),viewUrl:driveUrl,thumbnailUrl:fileId?buildDriveThumbnailUrlAdmin_(driveUrl):driveUrl,url:driveUrl};});
   const avarias=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).filter(function(a){return String(a.ID_RETIRADA_DETECCAO||"")===id;}).map(function(a){return{id:a.ID_AVARIA||"",item:a.Item||"",descricao:a.Descrição||"",situacao:a.Situação||"",local:a["Posição/Local"]||a.Item||"",data:formatDateForApi_(a["Data Detecção"])};});
   return {checklist:checklist,fotos:fotos,avarias:avarias};
 }
@@ -324,7 +324,7 @@ function formatDateOnlyAdmin_(v){if(v instanceof Date&&!isNaN(v.getTime()))retur
 function formatTimeOnlyAdmin_(v){if(v instanceof Date&&!isNaN(v.getTime()))return Utilities.formatDate(v,SIGVTR.TIMEZONE,"HH:mm:ss");const s=String(v||"");const m=s.match(/(\d{2}):(\d{2})(?::(\d{2}))?/);if(m)return m[0];const d=new Date(s);return isNaN(d.getTime())?s:Utilities.formatDate(d,SIGVTR.TIMEZONE,"HH:mm:ss");}
 function getAdminVehicleHistory_(prefixo){
   const query=normalizeAdminPrefixSearch_(prefixo);if(!query)throw new Error("Informe o prefixo da viatura.");const ss=getSpreadsheet_(),vehicles=getActiveVehicles_(),vehicle=vehicles.find(function(v){return normalizeAdminPrefixSearch_(v.prefixo)===query||normalizeAdminPrefixSearch_(v.prefixo).endsWith(query);});if(!vehicle)throw new Error("Viatura não encontrada.");
-  const checklists=getAdminChecklists_({prefixo:vehicle.prefixo,limit:1000}).items,damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).filter(function(r){return String(r.ID_VTR)===String(vehicle.id);}),events=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.EVENTS)).filter(function(r){return String(r.ID_VTR)===String(vehicle.id);}),alerts=getAdminAlerts_({prefixo:vehicle.prefixo,limit:1000}).items,photos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS));const withdrawalIds={},checklistById={};checklists.forEach(function(c){withdrawalIds[c.id]=true;checklistById[String(c.id)]={protocolo:c.protocolo||"",dataHora:c.dataHora||""};});const relatedPhotos=photos.filter(function(p){return withdrawalIds[String(p.ID_RETIRADA)];}).map(function(p){const driveUrl=String(p["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl),checklist=checklistById[String(p.ID_RETIRADA)]||{};return {id:p.ID_FOTO||"",idRetirada:p.ID_RETIRADA||"",tipo:p["Tipo Foto"]||"Fotografia",nomeArquivo:p["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(p.Data||checklist.dataHora),protocolo:checklist.protocolo||"",viewUrl:driveUrl,thumbnailUrl:fileId?"https://drive.google.com/thumbnail?id="+encodeURIComponent(fileId)+"&sz=w1600":driveUrl,url:driveUrl};});
+  const checklists=getAdminChecklists_({prefixo:vehicle.prefixo,limit:1000}).items,damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).filter(function(r){return String(r.ID_VTR)===String(vehicle.id);}),events=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.EVENTS)).filter(function(r){return String(r.ID_VTR)===String(vehicle.id);}),alerts=getAdminAlerts_({prefixo:vehicle.prefixo,limit:1000}).items,photos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS));const withdrawalIds={},checklistById={};checklists.forEach(function(c){withdrawalIds[c.id]=true;checklistById[String(c.id)]={protocolo:c.protocolo||"",dataHora:c.dataHora||""};});const relatedPhotos=photos.filter(function(p){return withdrawalIds[String(p.ID_RETIRADA)];}).map(function(p){const driveUrl=String(p["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl),checklist=checklistById[String(p.ID_RETIRADA)]||{};return {id:p.ID_FOTO||"",idRetirada:p.ID_RETIRADA||"",tipo:p["Tipo Foto"]||"Fotografia",nomeArquivo:p["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(p.Data||checklist.dataHora),protocolo:checklist.protocolo||"",viewUrl:driveUrl,thumbnailUrl:fileId?buildDriveThumbnailUrlAdmin_(driveUrl):driveUrl,url:driveUrl};});
   const timeline=[];checklists.forEach(function(c){timeline.push({tipo:"CHECKLIST",dataHora:c.dataHora,titulo:"Checklist "+(c.tipoChecklist==="FISCAL"?"do Fiscal ":"do Condutor ")+c.protocolo,descricao:c.condutor+" · "+c.km+" km · "+c.status});});damages.forEach(function(d){timeline.push({tipo:"AVARIA",dataHora:formatDateForApi_(d["Data Detecção"]),titulo:d.Item||"Avaria",descricao:(d.Descrição||"")+" · "+(d.Situação||"")});});events.forEach(function(e){timeline.push({tipo:"EVENTO",dataHora:String(e.Data||"")+" "+String(e.Hora||""),titulo:e["Tipo do Evento"]||"Evento",descricao:e.Observação||e.Motivo||""});});alerts.forEach(function(a){timeline.push({tipo:"ALERTA",dataHora:formatDateForApi_(a["Data/Hora Registro"]),titulo:a.Título||a.Tipo,descricao:a.Descrição||""});});timeline.sort(function(a,b){return parseBrazilDate_(b.dataHora)-parseBrazilDate_(a.dataHora);});
   return {viatura:vehicle,resumo:{checklists:checklists.length,avariasPendentes:damages.filter(function(d){return ["PENDENTE","EM MANUTENÇÃO"].indexOf(String(d.Situação).toUpperCase())>=0;}).length,avariasResolvidas:damages.filter(function(d){return String(d.Situação).toUpperCase()==="RESOLVIDA";}).length,alertas:alerts.length,fotos:relatedPhotos.length},checklists:checklists,avarias:damages,eventos:events,alertas:alerts,fotos:relatedPhotos,timeline:timeline};
 }
@@ -336,6 +336,19 @@ function extractDriveFileIdAdmin_(url){
   const patterns=[/\/d\/([A-Za-z0-9_-]{10,})/,/[?&]id=([A-Za-z0-9_-]{10,})/,/open\?id=([A-Za-z0-9_-]{10,})/];
   for(let i=0;i<patterns.length;i++){const m=s.match(patterns[i]);if(m)return m[1];}
   return /^[A-Za-z0-9_-]{10,}$/.test(s)?s:"";
+}
+
+function extractDriveResourceKeyAdmin_(url){
+  const s=String(url||"").trim(),m=s.match(/[?&]resourcekey=([^&#]+)/i);
+  if(!m)return "";
+  try{return decodeURIComponent(m[1]);}catch(_){return m[1];}
+}
+
+function buildDriveThumbnailUrlAdmin_(url){
+  const fileId=extractDriveFileIdAdmin_(url);
+  if(!fileId)return String(url||"");
+  const key=extractDriveResourceKeyAdmin_(url);
+  return "https://drive.google.com/thumbnail?id="+encodeURIComponent(fileId)+"&sz=w1600"+(key?"&resourcekey="+encodeURIComponent(key):"");
 }
 
 function readSheetObjects_(sh){if(!sh||sh.getLastRow()<2)return[];const values=sh.getDataRange().getValues(),heads=values.shift().map(function(h){return String(h).trim();});return values.map(function(row){const o={};heads.forEach(function(h,i){o[h]=row[i];});return o;});}
@@ -386,7 +399,7 @@ function getAdminDamageDetail_(id){
   const withdrawal=withdrawals.find(function(row){return String(row.ID_RETIRADA||"")===String(r.ID_RETIRADA_DETECCAO||"");})||{};
   const photos=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)).filter(function(photo){return String(photo.ID_RETIRADA||"")===String(r.ID_RETIRADA_DETECCAO||"");}).map(function(photo){
     const driveUrl=String(photo["Link Drive"]||"").trim(),fileId=extractDriveFileIdAdmin_(driveUrl);
-    return {id:photo.ID_FOTO||"",tipo:photo["Tipo Foto"]||"Fotografia",nomeArquivo:photo["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(photo.Data||r["Data Detecção"]),viewUrl:driveUrl,thumbnailUrl:fileId?"https://drive.google.com/thumbnail?id="+encodeURIComponent(fileId)+"&sz=w1600":driveUrl,url:driveUrl};
+    return {id:photo.ID_FOTO||"",tipo:photo["Tipo Foto"]||"Fotografia",nomeArquivo:photo["Nome Arquivo"]||"foto",dataHora:formatDateForApi_(photo.Data||r["Data Detecção"]),viewUrl:driveUrl,thumbnailUrl:fileId?buildDriveThumbnailUrlAdmin_(driveUrl):driveUrl,url:driveUrl};
   });
   const history=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.LOGS)).filter(function(log){return String(log.ID_REFERENCIA||"")===id;}).map(function(log){
     const description=String(log.Descrição||"");

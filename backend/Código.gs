@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Sistema Integrado de Gestão de Viaturas
  * Arquivo: Código.gs
- * Versão do pacote: 1.20.0-RC1
+ * Versão do pacote: 1.20.2-RC1
  * API: 2.0
  * Data: 03/08/2026
  *
@@ -14,7 +14,7 @@
  ******************************************************************/
 
 const SIGVTR = {
-  PACKAGE_VERSION: "1.20.0-RC1",
+  PACKAGE_VERSION: "1.20.2-RC1",
   API_VERSION: "2.0",
   TIMEZONE: "America/Belem",
   ROOT_FOLDER_NAME: "SIGVTR - Fotos",
@@ -419,10 +419,12 @@ function savePhotos_(photos, prefix, date, idWithdrawal, protocol) {
       Utilities.newBlob(bytes, photo.mimeType || "image/jpeg", name)
     );
 
+    const publicUrl = prepareSigvtrPhotoForLinkAccess_(file);
+
     return {
       id: "FOTO-" + Utilities.getUuid(),
       name,
-      url: file.getUrl(),
+      url: publicUrl,
       idWithdrawal
     };
   });
@@ -508,6 +510,115 @@ function validateRequiredSheets_(ss) {
     const name = SIGVTR.SHEETS[key];
     if (!ss.getSheetByName(name)) throw new Error("Aba obrigatória não encontrada: " + name);
   });
+}
+
+
+/**
+ * Libera somente uma fotografia do SIGVTR para leitura por link.
+ * A pasta continua privada; apenas o arquivo fotográfico recebe VIEW.
+ * Mantém a resource key do Google Drive quando ela existir.
+ */
+function prepareSigvtrPhotoForLinkAccess_(file) {
+  if (!file) throw new Error("Arquivo de fotografia não informado.");
+
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    throw new Error(
+      "Não foi possível liberar a fotografia para visualização por link. " +
+      "Verifique se a conta proprietária permite compartilhamento 'qualquer pessoa com o link'. " +
+      (error && error.message ? error.message : "")
+    );
+  }
+
+  return buildSigvtrDriveViewUrl_(file);
+}
+
+/** Gera link canônico do Drive preservando resource key quando exigida. */
+function buildSigvtrDriveViewUrl_(file) {
+  const id = String(file.getId() || "").trim();
+  if (!id) return String(file.getUrl() || "");
+
+  let key = "";
+  try { key = String(file.getResourceKey() || "").trim(); } catch (_) {}
+
+  return "https://drive.google.com/file/d/" + encodeURIComponent(id) +
+    "/view?usp=drivesdk" +
+    (key ? "&resourcekey=" + encodeURIComponent(key) : "");
+}
+
+/** Extrai ID de links do Drive usados historicamente no SIGVTR. */
+function extractSigvtrDriveFileId_(url) {
+  const s = String(url || "").trim();
+  if (!s) return "";
+  const patterns = [
+    /\/d\/([A-Za-z0-9_-]{10,})/,
+    /[?&]id=([A-Za-z0-9_-]{10,})/,
+    /open\?id=([A-Za-z0-9_-]{10,})/
+  ];
+  for (let i = 0; i < patterns.length; i++) {
+    const match = s.match(patterns[i]);
+    if (match) return match[1];
+  }
+  return /^[A-Za-z0-9_-]{10,}$/.test(s) ? s : "";
+}
+
+/**
+ * Migração manual e idempotente das fotos já registradas na aba FOTOS.
+ * NÃO percorre a pasta raiz e NÃO altera documentos fora do índice FOTOS.
+ * Pode ser executada novamente com segurança.
+ */
+function liberarAcessoFotosExistentesSIGVTR() {
+  const ss = getSpreadsheet_();
+  const sheet = requireSheet_(ss, SIGVTR.SHEETS.PHOTOS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return {success:true, processadas:0, liberadas:0, jaLiberadas:0, falhas:0, mensagem:"Nenhuma fotografia cadastrada."};
+  }
+
+  const headers = getHeaders_(sheet).map(function(h){ return String(h).trim(); });
+  const linkIndex = headers.indexOf("Link Drive");
+  if (linkIndex < 0) throw new Error("Cabeçalho 'Link Drive' não encontrado na aba FOTOS.");
+
+  const values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  let processadas = 0, liberadas = 0, jaLiberadas = 0, falhas = 0;
+  const erros = [];
+
+  values.forEach(function(row, idx) {
+    const originalUrl = String(row[linkIndex] || "").trim();
+    const fileId = extractSigvtrDriveFileId_(originalUrl);
+    if (!fileId) return;
+    processadas++;
+
+    try {
+      const file = DriveApp.getFileById(fileId);
+      const alreadyPublic =
+        file.getSharingAccess() === DriveApp.Access.ANYONE_WITH_LINK &&
+        file.getSharingPermission() === DriveApp.Permission.VIEW;
+
+      const canonicalUrl = prepareSigvtrPhotoForLinkAccess_(file);
+      if (canonicalUrl && canonicalUrl !== originalUrl) {
+        sheet.getRange(idx + 2, linkIndex + 1).setValue(canonicalUrl);
+      }
+
+      if (alreadyPublic) jaLiberadas++;
+      else liberadas++;
+    } catch (error) {
+      falhas++;
+      if (erros.length < 20) {
+        erros.push({linha: idx + 2, idArquivo: fileId, erro: String(error && error.message || error)});
+      }
+    }
+  });
+
+  return {
+    success: falhas === 0,
+    processadas: processadas,
+    liberadas: liberadas,
+    jaLiberadas: jaLiberadas,
+    falhas: falhas,
+    erros: erros
+  };
 }
 
 function getRootFolder_() {
