@@ -332,3 +332,16 @@ body.dark-mode {
 .empty-state i{font-size:1.35rem;color:var(--sigvtr-primary)}
 .loading-state{display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;border:1px solid #b9dff0;border-radius:12px;background:#e9f8ff;color:#14566e}
 @media(max-width:575.98px){.sidebar-brand-icon{width:50px;height:50px;min-width:50px}.sidebar-brand{min-height:76px}}
+
+
+/* Menu lateral recolhível no desktop — v1.20.4-RC1 */
+.sidebar-desktop-toggle{display:none}
+@media (min-width:992px){
+  .sidebar,.admin-main,.topbar{transition:transform .25s ease,margin-left .25s ease,left .25s ease}
+  .sidebar-desktop-toggle{position:fixed;display:grid;place-items:center;top:92px;left:calc(var(--sigvtr-sidebar-width) - 18px);width:38px;height:38px;border-radius:50%;border:3px solid var(--sigvtr-bg);background:var(--sigvtr-primary-dark);color:#fff;box-shadow:0 8px 20px rgba(8,47,107,.28);z-index:1050;transition:left .25s ease,transform .2s ease}
+  .sidebar-desktop-toggle:hover{transform:scale(1.06)}
+  body.sidebar-collapsed .sidebar{transform:translateX(-100%)}
+  body.sidebar-collapsed .admin-main{margin-left:0}
+  body.sidebar-collapsed .topbar{left:0}
+  body.sidebar-collapsed .sidebar-desktop-toggle{left:12px}
+}

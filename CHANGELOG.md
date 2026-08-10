@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.20.4-RC1 — Ajustes do módulo Cartões e navegação administrativa
+
+- Corrige a estrutura da página `admin/cartoes.html` para usar o mesmo shell do Painel Administrativo, eliminando sobreposição do conteúdo com a sidebar no desktop.
+- Adiciona controle para recolher/expandir a sidebar do Painel Administrativo em navegadores desktop, preservando o comportamento mobile existente.
+- Configura o botão “Consultar na Ticket Log” para abrir o site oficial `https://www.ticketlog.com.br/` em nova aba.
+- Adiciona botão de copiar ao lado do número de cada cartão, com feedback visual e fallback compatível.
+- Ajusta a grade responsiva de cartões para até 4 colunas no desktop.
+- Atualiza o cache administrativo/PWA para `v1204rc1`.
+- Checklist Condutor e Checklist Fiscal permanecem inalterados.
+
 ## 1.20.3-RC1 — Módulo Cartões de Abastecimento
 
 - Adicionada a nova página administrativa `admin/cartoes.html`.
