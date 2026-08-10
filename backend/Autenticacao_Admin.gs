@@ -28,21 +28,21 @@ const ADMIN_AUTH = Object.freeze({
     CMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminCapacidade','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminCapacidade','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminGerarPacoteArquivamento','adminConfirmarArquivoFisico','adminAlterarMinhaSenha'
     ],
     SUBCMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminCapacidade','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminCapacidade','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminGerarPacoteArquivamento','adminConfirmarArquivoFisico','adminAlterarMinhaSenha'
     ],
     FISCAL: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
+      'adminBuscaGlobal','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
       'adminAlterarMinhaSenha'
     ],
     DEV: ['*']

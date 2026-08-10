@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Sistema Integrado de Gestão de Viaturas
  * Arquivo: Código.gs
- * Versão do pacote: 1.20.2-RC1
+ * Versão do pacote: 1.20.3-RC1
  * API: 2.0
  * Data: 03/08/2026
  *
@@ -14,7 +14,7 @@
  ******************************************************************/
 
 const SIGVTR = {
-  PACKAGE_VERSION: "1.20.2-RC1",
+  PACKAGE_VERSION: "1.20.3-RC1",
   API_VERSION: "2.0",
   TIMEZONE: "America/Belem",
   ROOT_FOLDER_NAME: "SIGVTR - Fotos",
@@ -28,7 +28,8 @@ const SIGVTR = {
     DAMAGES: "AVARIAS",
     PHOTOS: "FOTOS",
     LOGS: "LOGS",
-    ITEMS: "CHECKLIST_ITENS"
+    ITEMS: "CHECKLIST_ITENS",
+    CARDS: "CARTOES"
   }
 };
 

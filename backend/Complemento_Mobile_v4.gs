@@ -24,7 +24,7 @@ function doPost(e){
 
     // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
     if(action.indexOf("admin")===0){
-      adminAuthorize_(token,action);
+      const adminReadCtx=adminAuthorize_(token,action);
       if(action==="adminDashboard")return json_({success:true,data:getAdminDashboard_()});
       if(action==="adminAlertas")return json_({success:true,data:getAdminAlerts_(data)});
       if(action==="adminAlertasRecentes")return json_({success:true,data:getAdminRealtimeAlerts_(data)});
@@ -37,6 +37,7 @@ function doPost(e){
       if(action==="adminHistoricoViatura")return json_({success:true,data:getAdminVehicleHistory_(String(data.prefixo||""))});
       if(action==="adminBuscaGlobal")return json_({success:true,data:globalAdminSearch_(data)});
       if(action==="adminCapacidade")return json_({success:true,data:getAdminCapacityStatus_()});
+      if(action==="adminCartoes")return json_({success:true,data:getAdminCards_(adminReadCtx.user)});
     }
 
     const lock=LockService.getScriptLock();let acquired=false;
@@ -53,7 +54,7 @@ function doPost(e){
       if(action==="salvarRetirada")return json_(saveWithdrawal_(data));
 
       if(action.indexOf("admin")===0){
-        adminAuthorize_(token,action);
+        const adminWriteCtx=adminAuthorize_(token,action);
         if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(data)});
         if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(data)});
         if(action==="adminSalvarViatura")return json_({success:true,data:saveAdminVehicle_(data)});
@@ -63,6 +64,7 @@ function doPost(e){
         if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(data)});
         if(action==="adminGerarPacoteArquivamento")return json_({success:true,data:generateArchiveDataPackage_(data)});
         if(action==="adminConfirmarArquivoFisico")return json_({success:true,data:confirmPhysicalArchive_(data)});
+        if(action==="adminSalvarCartao")return json_({success:true,data:saveAdminCard_(data,adminWriteCtx.user)});
       }
       throw new Error("Ação não reconhecida.");
     }finally{if(acquired)try{lock.releaseLock();}catch(_){}}

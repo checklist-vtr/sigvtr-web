@@ -1,3 +1,17 @@
+# Changelog
+
+## 1.20.3-RC1 — Módulo Cartões de Abastecimento
+
+- Adicionada a nova página administrativa `admin/cartoes.html`.
+- Adicionados cards visuais responsivos para cartões TITULAR e RESERVA, com pesquisa e filtros.
+- Adicionado cadastro/edição com prevenção de duplicidade no backend e sem exclusão física.
+- Criada a aba lógica `CARTOES`, independente de `VIATURAS`, com auditoria de criação/alteração.
+- Adicionadas permissões backend para CMD, SUBCMD, FISCAL e DEV no módulo Cartões.
+- Incluída a função idempotente `bootstrapCartoesTitulares()` com os 21 cartões do documento oficial fornecido.
+- Preparada a interface para futura URL/API oficial da Ticket Log, sem scraping, CPF ou saldo fictício.
+- Atualizado o cache administrativo/PWA para incluir o novo módulo.
+- Checklist Condutor e Checklist Fiscal não foram alterados.
+
 ## 1.20.2-RC1 — Acesso às fotografias do SIGVTR
 
 - Novas fotografias passam a ser compartilhadas automaticamente como `ANYONE_WITH_LINK / VIEW` no Google Drive.
