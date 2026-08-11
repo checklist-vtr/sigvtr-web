@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Painel Administrativo, Alertas e Histórico por Viatura
- * Versão: 1.13.2-rc1
+ * Versão: 1.13.3-rc1
  ******************************************************************/
 const ADMIN_ALERT_HEADERS = [
   "ID_ALERTA","Tipo","Tipo Checklist","ID_REFERENCIA","ID_VTR","Prefixo","Condutor",
@@ -79,10 +79,10 @@ function buildAdminWhatsAppMessage_(p,date,time){
   const personLabel=String(p.tipoChecklist||"CONDUTOR").toUpperCase()==="FISCAL"?"Fiscal":"Condutor";
   return "📋 SIGVTR\n\nNovo checklist do "+personLabel.toLowerCase()+" recebido.\n\nViatura:\n"+(p.prefixo||"")+"\n\n"+personLabel+":\n"+rank+(p.condutor||"")+"\n\nData:\n"+date+"\n\nHora:\n"+time+"\n\nKM:\n"+(p.km||0)+"\n\nRegistro disponível no Painel Administrativo.";
 }
-function createAlertsForMobileWithdrawal_(c,newKeys){
+function createAlertsForMobileWithdrawal_(c,newEntries){
   const checklistType=String(c.data.tipoChecklist||"CONDUTOR").toUpperCase(),personLabel=checklistType==="FISCAL"?"Fiscal":"Condutor";
   const idAlerta=createAdminAlert_({tipo:"CHECKLIST",tipoChecklist:checklistType,idReferencia:c.idWithdrawal,idVtr:c.vehicle.id,prefixo:c.data.prefixo,condutor:c.data.condutor,postoGraduacao:c.data.postoGraduacao,rg:c.data.rg,km:c.data.kmInicial,titulo:"Novo Checklist do "+personLabel,descricao:"Checklist do "+personLabel.toLowerCase()+" concluído com status "+c.status+".",now:c.now});
-  const avariaAlertIds=[];(newKeys||[]).forEach(function(k){const id=createAdminAlert_({tipo:"AVARIA",tipoChecklist:checklistType,idReferencia:c.idWithdrawal+":"+k,idVtr:c.vehicle.id,prefixo:c.data.prefixo,condutor:c.data.condutor,postoGraduacao:c.data.postoGraduacao,rg:c.data.rg,km:c.data.kmInicial,titulo:"Nova avaria",descricao:mobileItemName_(k)+": "+(c.data.descricoesAlteracoes[k]||"Alteração registrada."),now:c.now});if(id)avariaAlertIds.push(id);});
+  const avariaAlertIds=[];(newEntries||[]).forEach(function(entry,index){const item=typeof entry==="string"?mobileItemName_(entry):(entry.item||mobileItemName_(entry.key)),description=typeof entry==="string"?(c.data.descricoesAlteracoes[entry]||"Alteração registrada."):(entry.description||"Alteração registrada."),ref=typeof entry==="string"?entry:(entry.key+"-"+(entry.occurrence||index+1));const id=createAdminAlert_({tipo:"AVARIA",tipoChecklist:checklistType,idReferencia:c.idWithdrawal+":"+ref,idVtr:c.vehicle.id,prefixo:c.data.prefixo,condutor:c.data.condutor,postoGraduacao:c.data.postoGraduacao,rg:c.data.rg,km:c.data.kmInicial,titulo:"Nova avaria",descricao:item+": "+description,now:c.now});if(id)avariaAlertIds.push(id);});
   checkPreventiveReviewForVehicle_(c.vehicle.id,c.data.prefixo,Number(c.data.kmInicial),c.now);
   return {idAlerta:idAlerta||"",avariaAlertIds:avariaAlertIds};
 }

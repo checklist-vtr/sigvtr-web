@@ -1,10 +1,10 @@
-const CACHE_NAME="sigvtr-fiscal-v1199rc1";
-const OFFLINE_PAGE="./index.html?v=1.19.9-rc1";
+const CACHE_NAME="sigvtr-fiscal-v11910rc1";
+const OFFLINE_PAGE="./index.html?v=1.19.10-rc1";
 const APP_FILES=[
  OFFLINE_PAGE,
- "./css/style.css?v=1.19.9-rc1",
- "./js/app.js?v=1.19.9-rc1",
- "./manifest.json?v=1.19.9-rc1",
+ "./css/style.css?v=1.19.10-rc1",
+ "./js/app.js?v=1.19.10-rc1",
+ "./manifest.json?v=1.19.10-rc1",
  "../assets/icons/android-chrome-192x192.png",
  "../assets/icons/android-chrome-512x512.png",
  "../assets/logo/brasao-20bpm-oficial.webp",

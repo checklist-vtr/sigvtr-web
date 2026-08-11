@@ -79,3 +79,6 @@ body.modal-open{overflow:hidden}.photo-quality-panel{position:relative;z-index:2
 
 /* Proteção contra pull-to-refresh sem bloquear a rolagem normal */
 html,body{overscroll-behavior-y:none}
+
+/* v1.18.3-RC1 — múltiplas ocorrências em Outras alterações */
+.multi-alterations{display:grid;gap:12px}.multi-alteration{padding:12px;border:1px solid var(--border);border-radius:11px;background:#fff}.multi-alteration-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.multi-alteration-head strong{color:var(--green);font-size:.86rem}.remove-other-alteration{border:1px solid #e4b5b5;background:#fff;color:var(--red);border-radius:8px;padding:7px 9px;font-size:.72rem;font-weight:750}.add-other-alteration{margin-top:12px;border:1px solid var(--green2);background:#fff;color:var(--green);border-radius:9px;padding:10px 12px;font-weight:800}.add-other-alteration:hover,.add-other-alteration:focus-visible{background:#f2faf6}.multi-alteration .inline-photo{margin-top:10px}@media(max-width:650px){.multi-alteration-head{align-items:flex-start}.remove-other-alteration{flex:0 0 auto}.add-other-alteration{width:100%}}
