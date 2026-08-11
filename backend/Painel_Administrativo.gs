@@ -508,3 +508,55 @@ function updateAdminVehiclesBulk_(input){
   rows.forEach(function(row,index){const id=String(row[idCol]||"").trim();if(!wanted[id])return;found[id]=true;sh.getRange(index+2,targetCol+1).setValue(value);const updCol=headers.indexOf("Última Atualização"),userCol=headers.indexOf("Atualizado Por");if(updCol>=0)sh.getRange(index+2,updCol+1).setValue(now);if(userCol>=0)sh.getRange(index+2,userCol+1).setValue(admin);updated++;appendLog_(getSpreadsheet_(),{idUsuario:admin,action:"ATUALIZAÇÃO EM MASSA DE VIATURA",referenceId:id,description:"Campo: "+header+" | Novo valor: "+String(value),device:{},result:"SUCESSO",now:now});});
   return {atualizadas:updated,naoLocalizadas:ids.filter(function(id){return !found[id];}).length,campo:header,valor:value};
 }
+
+/******************************************************************
+ * SIGVTR - Relatórios operacionais e gerenciais
+ * Versão do módulo: 1.20.6-RC1
+ ******************************************************************/
+function getAdminReports_(params){
+  params=params||{};
+  const ss=getSpreadsheet_(),vehicles=vehicleIndexAdmin_(ss),withdrawalRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),damageRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES));
+  const startDate=parseIsoDateAdmin_(params.dataInicial,false),endDate=parseIsoDateAdmin_(params.dataFinal,true),type=String(params.tipoChecklist||'').trim().toUpperCase(),fuel=normalizeReportFuel_(params.combustivel),prefixQuery=normalizeAdminPrefixSearch_(params.prefixo||'');
+  const maxRows=10000;
+  let records=withdrawalRows.map(function(r){
+    const v=vehicles[String(r.ID_VTR||'')]||{},date=formatDateForApi_(r['Data/Hora Registro']),checkType=resolveChecklistTypeAdmin_(r),normalizedFuel=normalizeFuelAdmin_(r['Combustível Inicial']);
+    let parsed={};try{parsed=JSON.parse(String(r.ITENS_JSON||'{}'));}catch(_){parsed={};}
+    return {id:String(r.ID_RETIRADA||''),idVtr:String(r.ID_VTR||''),protocolo:String(r.Protocolo||''),prefixo:String(v.prefixo||r.Prefixo||''),tipoChecklist:checkType,condutor:joinRankName_(r['Posto/Graduação'],r.Motorista),rg:String(r['RG PMPA']||''),km:Number(r['KM Inicial']||0),combustivel:normalizedFuel,turno:String(r.Turno||''),status:String(r.Status||''),dataHora:date,operacao:String(r['Operação/Outros']||''),itens:parsed&&parsed.itens&&typeof parsed.itens==='object'?parsed.itens:{}};
+  }).filter(function(r){
+    const time=parseBrazilDate_(r.dataHora);
+    if(startDate&&time<startDate)return false;if(endDate&&time>endDate)return false;
+    if(type&&r.tipoChecklist!==type)return false;if(fuel&&r.combustivel!==fuel)return false;
+    if(prefixQuery&&normalizeAdminPrefixSearch_(r.prefixo).indexOf(prefixQuery)<0)return false;
+    return true;
+  }).sort(function(a,b){return parseBrazilDate_(b.dataHora)-parseBrazilDate_(a.dataHora);});
+
+  const totalUntruncated=records.length,truncated=records.length>maxRows;if(truncated)records=records.slice(0,maxRows);
+  const ids={};records.forEach(function(r){ids[r.id]=true;});
+  const damages=damageRows.filter(function(d){return ids[String(d.ID_RETIRADA_DETECCAO||'')];});
+  const damageCountByWithdrawal={};damages.forEach(function(d){const id=String(d.ID_RETIRADA_DETECCAO||'');damageCountByWithdrawal[id]=(damageCountByWithdrawal[id]||0)+1;});
+  records.forEach(function(r){r.avarias=damageCountByWithdrawal[r.id]||0;});
+
+  const fuelOrder=['RESERVA','1/4','1/2','3/4','CHEIO'],fuelDistribution={};fuelOrder.forEach(function(k){fuelDistribution[k]=0;});
+  const byVehicle={},byDay={},itemCounts={};let driverCount=0,fiscalCount=0,withDamage=0;
+  records.forEach(function(r){
+    if(r.tipoChecklist==='FISCAL')fiscalCount++;else driverCount++;
+    if(r.avarias>0)withDamage++;
+    if(Object.prototype.hasOwnProperty.call(fuelDistribution,r.combustivel))fuelDistribution[r.combustivel]++;
+    const key=r.idVtr||r.prefixo||'SEM_VIATURA';if(!byVehicle[key])byVehicle[key]={idVtr:r.idVtr,prefixo:r.prefixo,checklists:0,condutor:0,fiscal:0,avarias:0,kms:[],latestTime:0,ultimoCombustivel:''};
+    const v=byVehicle[key];v.checklists++;r.tipoChecklist==='FISCAL'?v.fiscal++:v.condutor++;v.avarias+=r.avarias;if(Number.isFinite(r.km))v.kms.push(r.km);
+    const t=parseBrazilDate_(r.dataHora);if(t>v.latestTime){v.latestTime=t;v.ultimoCombustivel=r.combustivel;}
+    const day=String(r.dataHora||'').match(/\d{2}\/\d{2}\/\d{4}/);const dk=day?day[0]:'Sem data';if(!byDay[dk])byDay[dk]={data:dk,total:0,condutor:0,fiscal:0,avarias:0};byDay[dk].total++;r.tipoChecklist==='FISCAL'?byDay[dk].fiscal++:byDay[dk].condutor++;byDay[dk].avarias+=r.avarias;
+    Object.keys(r.itens||{}).forEach(function(itemKey){if(String(r.itens[itemKey])!=='nao')return;const label=typeof mobileItemName_==='function'?mobileItemName_(itemKey):itemKey;itemCounts[label]=(itemCounts[label]||0)+1;});
+  });
+
+  const vehicleRows=Object.keys(byVehicle).map(function(k){const v=byVehicle[k],kms=v.kms.filter(function(n){return Number.isFinite(n);});const min=kms.length?Math.min.apply(null,kms):0,max=kms.length?Math.max.apply(null,kms):0;return {prefixo:v.prefixo,checklists:v.checklists,condutor:v.condutor,fiscal:v.fiscal,kmInicial:min,kmFinal:max,kmPercorrido:Math.max(0,max-min),avarias:v.avarias,ultimoCombustivel:v.ultimoCombustivel};}).sort(function(a,b){return String(a.prefixo).localeCompare(String(b.prefixo),'pt-BR',{numeric:true});});
+  const dayRows=Object.keys(byDay).map(function(k){return byDay[k];}).sort(function(a,b){return parseBrazilDate_(b.data)-parseBrazilDate_(a.data);});
+  const recurringItems=Object.keys(itemCounts).map(function(k){return {item:k,quantidade:itemCounts[k]};}).sort(function(a,b){return b.quantidade-a.quantidade||String(a.item).localeCompare(String(b.item),'pt-BR');}).slice(0,30);
+  const openDamages=damages.filter(function(d){return ['PENDENTE','EM MANUTENÇÃO'].indexOf(String(d.Situação||'').toUpperCase())>=0;}).length;
+  const resolvedDamages=damages.filter(function(d){return String(d.Situação||'').toUpperCase()==='RESOLVIDA';}).length;
+  const fuelRows=fuelOrder.map(function(k){return {nivel:k,quantidade:fuelDistribution[k]||0,percentual:records.length?Math.round((fuelDistribution[k]||0)*1000/records.length)/10:0};});
+  const latestFuel=records.map(function(r){return {dataHora:r.dataHora,protocolo:r.protocolo,prefixo:r.prefixo,tipoChecklist:r.tipoChecklist,responsavel:r.condutor,km:r.km,combustivel:r.combustivel,status:r.status,avarias:r.avarias};});
+
+  return {filtros:{dataInicial:String(params.dataInicial||''),dataFinal:String(params.dataFinal||''),prefixo:String(params.prefixo||''),tipoChecklist:type,combustivel:fuel},resumo:{checklists:records.length,condutor:driverCount,fiscal:fiscalCount,comAvaria:withDamage,avarias:damages.length,avariasAbertas:openDamages,avariasResolvidas:resolvedDamages,viaturas:vehicleRows.length},combustivel:{distribuicao:fuelRows,registros:latestFuel},viaturas:vehicleRows,atividade:dayRows,itensRecorrentes:recurringItems,registros:latestFuel,totalSemLimite:totalUntruncated,truncado:truncated,geradoEm:Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,'dd/MM/yyyy HH:mm:ss')};
+}
+function normalizeReportFuel_(value){const v=String(value||'').trim().toUpperCase();return ['RESERVA','1/4','1/2','3/4','CHEIO'].indexOf(v)>=0?v:'';}

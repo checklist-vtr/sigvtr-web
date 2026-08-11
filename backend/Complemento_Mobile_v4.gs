@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.1-RC1
+ * Versão do pacote: 1.20.2-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -36,6 +36,7 @@ function doPost(e){
       if(action==="adminViaturaDetalhe")return json_({success:true,data:getAdminVehicleDetail_(String(data.id||""),String(data.prefixo||""))});
       if(action==="adminHistoricoViatura")return json_({success:true,data:getAdminVehicleHistory_(String(data.prefixo||""))});
       if(action==="adminBuscaGlobal")return json_({success:true,data:globalAdminSearch_(data)});
+      if(action==="adminRelatorios")return json_({success:true,data:getAdminReports_(data)});
       if(action==="adminCapacidade")return json_({success:true,data:getAdminCapacityStatus_()});
       if(action==="adminCartoes")return json_({success:true,data:getAdminCards_(adminReadCtx.user)});
     }

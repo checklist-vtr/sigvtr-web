@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Autenticação e autorização administrativa
- * Versão: 1.20.2-RC1
+ * Versão: 1.20.3-RC1
  *
  * Observação criptográfica:
  * Google Apps Script não possui bcrypt/Argon2/PBKDF2 nativos. Para não
@@ -28,21 +28,21 @@ const ADMIN_AUTH = Object.freeze({
     CMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminRelatorios','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminAlterarMinhaSenha'
     ],
     SUBCMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminRelatorios','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminAlterarMinhaSenha'
     ],
     FISCAL: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
+      'adminBuscaGlobal','adminRelatorios','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
       'adminAlterarMinhaSenha'
     ],
     DEV: ['*']
