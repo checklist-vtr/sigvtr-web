@@ -76,3 +76,6 @@ body.modal-open{overflow:hidden}.photo-quality-panel{position:relative;z-index:2
 .app-footer-standard a{color:var(--green2);font-weight:700;text-decoration:none;overflow-wrap:anywhere}
 .app-footer-standard a:hover{text-decoration:underline}
 .app-footer-standard .footer-version{font-size:.72rem;opacity:.82;margin-top:.55rem}
+
+/* Proteção contra pull-to-refresh sem bloquear a rolagem normal */
+html,body{overscroll-behavior-y:none}

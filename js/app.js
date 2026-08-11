@@ -1,5 +1,5 @@
 const API_URL="https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY7HgVXyGiGWGaoXeNOrmNNMUBCtXnutHVxJ13rv/exec";
-const APP_VERSION="1.17.0-RC1";
+const APP_VERSION="1.18.2-RC1";
 const SHIFT_LABELS={TURNO_1:"1º Turno",TURNO_2:"2º Turno",EXTRAORDINARIO:"Extraordinário",OUTROS:"Outros"};
 const RANK_LABELS={SD:"SD",CB:"CB","3_SGT":"3º SGT","2_SGT":"2º SGT","1_SGT":"1º SGT",SUB_TEN:"SUB TEN","2_TEN":"2º TEN","1_TEN":"1º TEN",CAP:"CAP",MAJ:"MAJ",TEN_CEL:"TEN CEL",CEL:"CEL"};
 const FIXED_PREFIX=/^50-(200[1-9]|201[0-9]|202[0-1])$/;
@@ -42,7 +42,15 @@ const ITEMS={
 const FINAL_PHOTOS=[{type:"frontal",label:"Frente"},{type:"traseira",label:"Traseira"},{type:"lado_esquerdo",label:"Lado esquerdo"},{type:"lado_direito",label:"Lado direito"}];
 const state={step:1,status:{},descriptions:{},photos:{},pending:[],decisions:{},device:{},pendingPhoto:null,isSubmitting:false,sendingTimer:null,requestId:""};
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
-window.addEventListener("DOMContentLoaded",()=>{buildPrefixes();buildStepper();renderItems();renderFinalPhotos();bind();detectDevice();registerSW();showStep(1)});
+const DRAFT_KEY="SIGVTR_CHECKLIST_CONDUTOR_DRAFT";
+let draftTimer=null,draftRestoring=false,draftFinalized=false;
+function draftFields(){return ["prefixoSelect","otherPrefix","condutor","postoGraduacao","rg","kmInicial","turno","otherOperation","combustivel","finalConfirmation"]}
+function draftSnapshot(){const fields={};draftFields().forEach(id=>{const el=$("#"+id);if(!el)return;fields[id]=el.type==="checkbox"?!!el.checked:el.value});return {version:1,savedAt:Date.now(),step:state.step,requestId:state.requestId||"",fields,status:{...state.status},descriptions:{...state.descriptions},decisions:{...state.decisions}}}
+function saveDraftNow(){if(draftRestoring||draftFinalized)return;try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draftSnapshot()))}catch(_){}}
+function scheduleDraftSave(){if(draftRestoring)return;clearTimeout(draftTimer);draftTimer=setTimeout(saveDraftNow,250)}
+function clearDraft(){draftFinalized=true;clearTimeout(draftTimer);draftTimer=null;try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}
+async function restoreDraft(){let draft;try{const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return false;draft=JSON.parse(raw)}catch(_){return false}if(!draft||draft.version!==1||!draft.fields||typeof draft.fields!=="object")return false;draftRestoring=true;try{for(const [id,value] of Object.entries(draft.fields)){const el=$("#"+id);if(!el)continue;if(el.type==="checkbox")el.checked=!!value;else el.value=String(value??"")}const otherPrefix=$("#otherPrefixWrap"),otherOperation=$("#otherOperationWrap");if(otherPrefix)otherPrefix.hidden=$("#prefixoSelect").value!=="OUTRO";if(otherOperation)otherOperation.hidden=$("#turno").value!=="OUTROS";state.status={};state.descriptions={};for(const [key,status] of Object.entries(draft.status||{})){const card=document.querySelector(`.inspection-card[data-key="${CSS.escape(key)}"]`);if(card&&["ok","nao","na"].includes(status))setStatus(card,status)}for(const [key,value] of Object.entries(draft.descriptions||{})){const card=document.querySelector(`.inspection-card[data-key="${CSS.escape(key)}"]`),ta=card&&card.querySelector("textarea");if(card&&ta&&state.status[key]==="nao"){const clean=sanitizeDescription(String(value||""));ta.value=clean;state.descriptions[key]=clean.trim()}}state.requestId=String(draft.requestId||"");if(getPrefix())await loadPending();state.decisions={};for(const [id,decision] of Object.entries(draft.decisions||{}))if(state.pending.some(d=>String(d.idAvaria)===String(id))&&["continua","agravou","solicitar_verificacao"].includes(decision))state.decisions[id]=decision;renderKnownDamages();const step=Number(draft.step);showStep(Number.isInteger(step)&&step>=1&&step<=STEPS.length?step:1);toast("Checklist em andamento recuperado. Reinsira as fotos necessárias.");return true}catch(_){return false}finally{draftRestoring=false}}
+window.addEventListener("DOMContentLoaded",async()=>{buildPrefixes();buildStepper();renderItems();renderFinalPhotos();bind();detectDevice();registerSW();showStep(1);await restoreDraft()});
 function buildPrefixes(){const select=$("#prefixoSelect");if(!select)return;if(select.options.length>2)return;let html='<option value="">Selecione</option>';for(let n=2001;n<=2021;n++)html+=`<option value="50-${n}">50-${n}</option>`;html+='<option value="OUTRO">Outros</option>';select.innerHTML=html}
 function buildStepper(){$("#stepDots").innerHTML=STEPS.map((_,i)=>`<button type="button" class="step-dot" data-jump="${i+1}">${i+1}</button>`).join("")}
 function renderItems(){renderGroup("externalItems",ITEMS.external);renderGroup("internalItems",ITEMS.internal);renderGroup("engineItems",ITEMS.engine)}
@@ -59,14 +67,15 @@ function bind(){
     if(n)next(Number(n.dataset.next));
     if(p)showStep(Number(p.dataset.prev));
     if(jump)navigateToStep(Number(jump.dataset.jump));
-    if(c)setStatus(c.closest(".inspection-card"),c.dataset.status);
+    if(c){setStatus(c.closest(".inspection-card"),c.dataset.status);scheduleDraftSave()}
     if(cap){const input=$("#photo_"+cap.dataset.capture);if(input)input.click()}
-    if(rm){delete state.photos[rm.dataset.removePhoto];renderPhoto(rm.dataset.removePhoto)}
-    if(dd){state.decisions[dd.dataset.damageId]=dd.dataset.damageDecision;renderKnownDamages()}
+    if(rm){delete state.photos[rm.dataset.removePhoto];renderPhoto(rm.dataset.removePhoto);scheduleDraftSave()}
+    if(dd){state.decisions[dd.dataset.damageId]=dd.dataset.damageDecision;renderKnownDamages();scheduleDraftSave()}
   });
-  document.addEventListener("change",async e=>{if(e.target.id==="turno"){const other=e.target.value==="OUTROS";$("#otherOperationWrap").hidden=!other;if(!other)$("#otherOperation").value=""}if(e.target.id==="prefixoSelect"){const other=e.target.value==="OUTRO";$("#otherPrefixWrap").hidden=!other;if(!other)$("#otherPrefix").value="";await loadPending()}if(e.target.type==="file"&&e.target.id.startsWith("photo_")){const type=e.target.id.replace("photo_","");if(e.target.files[0])await loadPhoto(type,e.target.files[0]);e.target.value=""}});
-  document.addEventListener("input",e=>{if(e.target.id==="condutor")e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}});
+  document.addEventListener("change",async e=>{if(e.target.id==="turno"){const other=e.target.value==="OUTROS";$("#otherOperationWrap").hidden=!other;if(!other)$("#otherOperation").value=""}if(e.target.id==="prefixoSelect"){const other=e.target.value==="OUTRO";$("#otherPrefixWrap").hidden=!other;if(!other)$("#otherPrefix").value="";await loadPending()}if(e.target.type==="file"&&e.target.id.startsWith("photo_")){const type=e.target.id.replace("photo_","");if(e.target.files[0])await loadPhoto(type,e.target.files[0]);e.target.value=""}scheduleDraftSave()});
+  document.addEventListener("input",e=>{if(e.target.id==="condutor")e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}scheduleDraftSave()});
   $("#checklistForm").addEventListener("submit",submit);
+  window.addEventListener("pagehide",saveDraftNow);
   $("#newChecklistButton").addEventListener("click",()=>location.reload());
   $("#closeAndRefreshButton").addEventListener("click",()=>location.reload());
   $("#photoQualityModal").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();confirmPendingPhoto()}else if(e.key==="Escape"){e.preventDefault();retakePendingPhoto()}});
@@ -189,7 +198,7 @@ async function submit(event){
  if(!validateStep(1)||!validateStep(2)||!validateStep(3)||!validateStep(4)||!validateStep(5)){toast("Revise as etapas indicadas antes de enviar.");return}
  if(!$("#finalConfirmation").checked){error("submitError","Confirme que realizou a inspeção e que as informações são verdadeiras.");return}
  state.isSubmitting=true;
- if(!state.requestId)state.requestId=createRequestId();
+ if(!state.requestId)state.requestId=createRequestId();saveDraftNow();
  const button=$("#submitButton"),form=$("#checklistForm");
  button.disabled=true;button.textContent="ENVIANDO...";form.classList.add("loading");
  $("#sendingModal").hidden=false;document.body.classList.add("modal-open");startSendingMessages();
@@ -198,6 +207,7 @@ async function submit(event){
   stopSendingMessages();$("#sendingModal").hidden=true;
   const novas=Number(result.novasAvarias||0);
   const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
+  clearDraft();
   $("#successMessage").textContent=`Protocolo ${result.protocolo}. Registro concluído com sucesso.${detail}`;
   $("#successModal").hidden=false;
   toast("Checklist registrado com sucesso.");
@@ -209,6 +219,7 @@ async function submit(event){
    stopSendingMessages();$("#sendingModal").hidden=true;
    const novas=Number(recovered.novasAvarias||0);
    const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
+   clearDraft();
    $("#successMessage").textContent=`Protocolo ${recovered.protocolo}. O registro foi localizado e confirmado com sucesso após uma oscilação na comunicação.${detail}`;
    $("#successModal").hidden=false;
    toast("Checklist confirmado no banco de dados.");
@@ -228,4 +239,4 @@ function normalizeKey(v){return String(v||"").normalize("NFD").replace(/[\u0300-
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
-function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.17.0-rc1").catch(()=>{})}
+function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.18.2-rc1").catch(()=>{})}
