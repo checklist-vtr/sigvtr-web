@@ -23,7 +23,15 @@ const AssistentePage=(()=>{
     return out;
   }
 
-  function scrollBottom(){const box=$('aiConversation');box.scrollTop=box.scrollHeight;}
+  function scrollBottom(){
+    const box=$('aiConversation');
+    const last=box&&box.lastElementChild;
+    if(!last)return;
+    requestAnimationFrame(()=>{
+      const r=last.getBoundingClientRect();
+      if(r.bottom>window.innerHeight||r.top<0)last.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+  }
 
   function addUserMessage(question){
     $('aiConversation').insertAdjacentHTML('beforeend',

@@ -135,14 +135,16 @@ function getAdminDashboard_(){
     }
   });
 
-  const fuelCritical=[];
+  const fuelCritical=[],fuelAttention=[],fuelNormal=[];
   Object.keys(latestByVehicle).forEach(function(id){
     const row=latestByVehicle[id].row;
     const fuel=normalizeFuelAdmin_(row["Combustível Inicial"]||"");
-    if(fuel==="RESERVA"||fuel==="1/4"){
-      const vehicle=vehicles.find(function(v){return String(v["ID-VTR"]||"")===id;})||{};
-      fuelCritical.push({prefixo:vehicle.Prefixo||"",combustivel:fuel,dataHora:formatDateForApi_(row["Data/Hora Registro"])});
-    }
+    if(["RESERVA","1/4","1/2","3/4","CHEIO"].indexOf(fuel)<0)return;
+    const vehicle=vehicles.find(function(v){return String(v["ID-VTR"]||"")===id;})||{};
+    const item={prefixo:vehicle.Prefixo||"",combustivel:fuel,dataHora:formatDateForApi_(row["Data/Hora Registro"])};
+    if(fuel==="RESERVA"){item.classificacao="CRITICO";fuelCritical.push(item);}
+    else if(fuel==="1/4"){item.classificacao="ATENCAO";fuelAttention.push(item);}
+    else{item.classificacao="NORMAL";fuelNormal.push(item);}
   });
 
   let reviewsDue=0,reviewsSoon=0;
@@ -167,7 +169,15 @@ function getAdminDashboard_(){
     revisoesPendentes:alerts.filter(function(r){return String(r.Tipo).toUpperCase()==="REVISAO"&&["RESOLVIDO","ARQUIVADO"].indexOf(String(r.Status).toUpperCase())<0;}).length,
     alertasNovos:alerts.filter(function(r){return String(r.Status).toUpperCase()==="NOVO";}).length,
     pilares:{
-      combustivel:{criticos:fuelCritical.length,itens:fuelCritical.slice(0,5),mensagem:fuelCritical.length?"Viaturas com último registro em RESERVA ou 1/4.":"Nenhum nível crítico registrado."},
+      combustivel:{
+        criticos:fuelCritical.length,
+        atencao:fuelAttention.length,
+        normais:fuelNormal.length,
+        alertas:fuelCritical.length+fuelAttention.length,
+        itens:fuelCritical.concat(fuelAttention).slice(0,10),
+        regraSIGVTR:{critico:["RESERVA"],atencao:["1/4"],normal:["1/2","3/4","CHEIO"]},
+        mensagem:(fuelCritical.length||fuelAttention.length)?(fuelCritical.length+" crítico(s) em RESERVA · "+fuelAttention.length+" em atenção com 1/4."):"Nenhum nível crítico ou de atenção registrado."
+      },
       quilometragem:{vencidas:reviewsDue,proximas:reviewsSoon,mensagem:reviewsDue?"Há revisão preventiva vencida por quilometragem.":reviewsSoon?"Há viatura a até 1.000 km da revisão.":"Nenhuma revisão próxima ou vencida."},
       avarias:{abertas:openDamages.length,emManutencao:openDamages.filter(function(r){return String(r["Situação"]||"").toUpperCase()==="EM MANUTENÇÃO";}).length,mensagem:openDamages.length?"Avarias permanecem abertas até ação administrativa.":"Nenhuma avaria aberta."},
       frota:{total:vehicles.length,ativas:activeVehicles}

@@ -1,8 +1,8 @@
-/* Assistente SIGVTR — v1.20.7-RC1 */
-.ai-main-card{min-height:620px}
+/* Assistente SIGVTR — v1.20.10-RC1 */
+.ai-main-card{min-height:auto}
 .ai-readonly-badge{padding:.65rem .85rem;color:var(--sigvtr-text)!important;background:var(--sigvtr-surface)!important}
 .ai-status-dot{width:10px;height:10px;border-radius:50%;background:#198754;box-shadow:0 0 0 5px rgba(25,135,84,.12);flex:0 0 auto}
-.ai-conversation{min-height:330px;max-height:58vh;overflow-y:auto;padding:.25rem}
+.ai-conversation{min-height:260px;max-height:none;overflow:visible;padding:.25rem}
 .ai-welcome,.ai-message{display:flex;gap:.9rem;align-items:flex-start}
 .ai-welcome{padding:1rem;border:1px dashed var(--sigvtr-border);border-radius:16px;background:color-mix(in srgb,var(--sigvtr-surface) 88%,var(--sigvtr-primary-soft))}
 .ai-welcome-icon,.ai-avatar,.ai-info-icon{display:grid;place-items:center;flex:0 0 auto;width:42px;height:42px;border-radius:12px;background:var(--sigvtr-primary-soft);color:var(--sigvtr-primary);font-size:1.1rem}

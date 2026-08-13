@@ -225,9 +225,12 @@ function aiSanitizeDashboard_(d){
     checklistsHoje:Number(d.checklistsHoje||0),avariasPendentes:Number(d.avariasPendentes||0),revisoesPendentes:Number(d.revisoesPendentes||0),alertasNovos:Number(d.alertasNovos||0),
     pilares:{
       combustivel:d.pilares&&d.pilares.combustivel?{
-        regraSIGVTR:{tipo:'ALERTA_NIVEL_COMBUSTIVEL',niveisAlerta:['RESERVA','1/4'],descricao:'O próprio SIGVTR classifica o último registro em RESERVA ou 1/4 como alerta de combustível.'},
-        alertas:Number(d.pilares.combustivel.criticos||0),
-        itens:(d.pilares.combustivel.itens||[]).slice(0,10).map(function(i){return {prefixo:String(i.prefixo||''),combustivel:String(i.combustivel||''),dataHora:String(i.dataHora||'')};}),
+        regraSIGVTR:{tipo:'CLASSIFICACAO_NIVEL_COMBUSTIVEL',critico:['RESERVA'],atencao:['1/4'],normal:['1/2','3/4','CHEIO'],descricao:'Regra do SIGVTR: RESERVA = crítico; 1/4 = atenção; 1/2, 3/4 e CHEIO = normal.'},
+        criticos:Number(d.pilares.combustivel.criticos||0),
+        atencao:Number(d.pilares.combustivel.atencao||0),
+        normais:Number(d.pilares.combustivel.normais||0),
+        alertas:Number(d.pilares.combustivel.alertas||0),
+        itens:(d.pilares.combustivel.itens||[]).slice(0,10).map(function(i){return {prefixo:String(i.prefixo||''),combustivel:String(i.combustivel||''),classificacao:String(i.classificacao||''),dataHora:String(i.dataHora||'')};}),
         mensagem:String(d.pilares.combustivel.mensagem||'')
       }:null,
       quilometragem:d.pilares&&d.pilares.quilometragem?{vencidas:Number(d.pilares.quilometragem.vencidas||0),proximas:Number(d.pilares.quilometragem.proximas||0),mensagem:String(d.pilares.quilometragem.mensagem||'')}:null,
@@ -307,7 +310,7 @@ function aiSystemPrompt_(){
     'Campos de combustível representam NÍVEL DE COMBUSTÍVEL REGISTRADO no checklist. Nunca afirmar que houve abastecimento, consumo em litros, custo, autonomia ou quantidade abastecida apenas a partir de níveis como RESERVA, 1/4, 1/2, 3/4 ou CHEIO.',
     'Quando mencionar combustível, prefira expressões como “último nível registrado: 1/2” ou “nível informado no checklist: 3/4”.',
     'NÍVEIS DE COMBUSTÍVEL como RESERVA, 1/4, 1/2, 3/4 ou CHEIO são fatos descritivos, não classificações de risco. Não classifique um nível como baixo, crítico, insuficiente, anormal ou prioritário, nem recomende abastecimento, salvo se os dados fornecidos trouxerem explicitamente um limite, regra de negócio ou alerta do próprio SIGVTR que sustente essa conclusão.',
-    'Quando existir dashboard.pilares.combustivel.regraSIGVTR, você pode dizer que uma viatura está em ALERTA DE COMBUSTÍVEL segundo a regra do SIGVTR. Não chame isso de risco mecânico, uso inadequado ou causa de avaria, e não extrapole além da regra fornecida.',
+    'Quando existir dashboard.pilares.combustivel.regraSIGVTR, aplique exatamente a classificação do SIGVTR: RESERVA = CRÍTICO; 1/4 = ATENÇÃO; 1/2, 3/4 e CHEIO = NORMAL. Essa classificação se refere somente ao nível de combustível registrado e não autoriza inferir defeito mecânico, uso inadequado, causa de avaria, autonomia ou risco além do que a regra informa.',
     'Da mesma forma, quilometragem, quantidade de checklists, frequência de uso e outros números não devem ser classificados como altos, baixos, excessivos, anormais ou críticos sem critério explícito presente nos dados.',
     'A existência de uma avaria registrada pode ser destacada como fato e ponto de atenção. Porém, não atribua gravidade, urgência, criticidade, risco operacional, impacto na segurança, impacto na eficiência ou prioridade alta à avaria sem que esses atributos estejam explicitamente informados pelos dados ou por uma regra do SIGVTR.',
     'Sem classificação de gravidade fornecida pelo SIGVTR, use formulações neutras como “há X avarias abertas que requerem acompanhamento” ou “a viatura possui X avarias registradas”. Evite termos como crítico, grave, preocupante, significativo, perigoso, urgente ou equivalentes.',
