@@ -37,6 +37,7 @@ function doPost(e){
       if(action==="adminHistoricoViatura")return json_({success:true,data:getAdminVehicleHistory_(String(data.prefixo||""))});
       if(action==="adminBuscaGlobal")return json_({success:true,data:globalAdminSearch_(data)});
       if(action==="adminRelatorios")return json_({success:true,data:getAdminReports_(data)});
+      if(action==="adminAiAsk")return json_({success:true,data:adminAiAsk_(data,adminReadCtx.user)});
       if(action==="adminCapacidade")return json_({success:true,data:getAdminCapacityStatus_()});
       if(action==="adminCartoes")return json_({success:true,data:getAdminCards_(adminReadCtx.user)});
     }
@@ -72,7 +73,8 @@ function doPost(e){
   }catch(error){
     console.error(error);
     const code=String(error&&error.message||"");
-    const safe=(code==="FORBIDDEN")?"Acesso negado.":(/^SESSION_/.test(code)?"Sessão inválida ou expirada.":(error&&error.message?error.message:"Erro interno no SIGVTR."));
+    const aiSafe=(typeof aiPublicErrorMessage_==="function")?aiPublicErrorMessage_(code):"";
+    const safe=(code==="FORBIDDEN")?"Acesso negado.":(/^SESSION_/.test(code)?"Sessão inválida ou expirada.":(aiSafe||(error&&error.message?error.message:"Erro interno no SIGVTR.")));
     return json_({success:false,code:code,message:safe});
   }
 }
