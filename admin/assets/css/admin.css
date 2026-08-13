@@ -345,3 +345,68 @@ body.dark-mode {
   body.sidebar-collapsed .topbar{left:0}
   body.sidebar-collapsed .sidebar-desktop-toggle{left:12px}
 }
+
+
+/* Assistente SIGVTR no topo — v1.20.8-RC1 */
+.topbar-center{
+  flex:1 1 auto;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-width:0;
+  padding-inline:.5rem;
+}
+.ai-topbar-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.55rem;
+  min-height:42px;
+  padding:.55rem 1rem;
+  border:1px solid color-mix(in srgb,var(--sigvtr-primary) 28%,var(--sigvtr-border));
+  border-radius:12px;
+  background:var(--sigvtr-primary-soft);
+  color:var(--sigvtr-primary);
+  font-weight:700;
+  text-decoration:none;
+  white-space:nowrap;
+  transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.ai-topbar-link:hover{
+  color:var(--sigvtr-primary);
+  transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(13,71,161,.12);
+}
+.ai-topbar-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:24px;
+  height:20px;
+  padding:0 .38rem;
+  border-radius:999px;
+  background:var(--sigvtr-primary);
+  color:#fff;
+  font-size:.66rem;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+@media (max-width:1199.98px){
+  .ai-topbar-link{padding:.55rem .75rem}
+  .ai-topbar-badge{display:none}
+}
+@media (max-width:767.98px){
+  .topbar{gap:.55rem}
+  .topbar-center{flex:0 0 auto;padding-inline:0}
+  .ai-topbar-link{width:42px;height:42px;min-height:42px;padding:0;border-radius:12px}
+  .ai-topbar-link span{display:none}
+  .ai-topbar-link i{font-size:1.05rem}
+}
+@media (max-width:575.98px){
+  .topbar{padding-inline:.65rem}
+  .topbar-left{gap:.45rem;min-width:0}
+  .topbar-title{font-size:.92rem}
+  .topbar-date{font-size:.72rem;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-right{gap:.4rem}
+  .icon-button,.ai-topbar-link{width:38px;height:38px;min-height:38px;border-radius:10px}
+}
