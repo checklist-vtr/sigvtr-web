@@ -43,6 +43,7 @@ const ADMIN_AUTH = Object.freeze({
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
       'adminBuscaGlobal','adminRelatorios','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
+      'adminSalvarViatura','adminRegistrarRevisaoViatura',
       'adminAlterarMinhaSenha'
     ],
     DEV: ['*']

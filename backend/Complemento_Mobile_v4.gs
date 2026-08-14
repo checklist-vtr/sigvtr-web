@@ -59,8 +59,14 @@ function doPost(e){
         const adminWriteCtx=adminAuthorize_(token,action);
         if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(data)});
         if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(data)});
-        if(action==="adminSalvarViatura")return json_({success:true,data:saveAdminVehicle_(data)});
-        if(action==="adminRegistrarRevisaoViatura")return json_({success:true,data:registerAdminVehicleReview_(data)});
+        if(action==="adminSalvarViatura"){
+          const vehicleData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador")});
+          return json_({success:true,data:saveAdminVehicle_(vehicleData)});
+        }
+        if(action==="adminRegistrarRevisaoViatura"){
+          const reviewData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador")});
+          return json_({success:true,data:registerAdminVehicleReview_(reviewData)});
+        }
         if(action==="adminImportarFrotaOficial")return json_({success:true,data:importOfficialFleet_(data)});
         if(action==="adminAtualizarViaturasEmMassa")return json_({success:true,data:updateAdminVehiclesBulk_(data)});
         if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(data)});

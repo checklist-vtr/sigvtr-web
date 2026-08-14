@@ -6,3 +6,12 @@
 .bulk-vehicle-item.selected{border-color:var(--sigvtr-primary);background:var(--sigvtr-primary-soft)}
 .bulk-vehicle-item span{min-width:0}.bulk-vehicle-item strong,.bulk-vehicle-item small{display:block}.bulk-vehicle-item small{color:var(--sigvtr-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.12rem}
 @media(max-width:767.98px){.bulk-vehicle-list{grid-template-columns:1fr}.bulk-vehicle-item{grid-template-columns:auto minmax(0,1fr)}.bulk-vehicle-item .vehicle-status-chip{grid-column:2;width:max-content}}
+
+/* v1.20.11-RC1 — correção de rolagem dos modais de viatura/revisão em dispositivos móveis */
+@media(max-width:767.98px){
+  #vehicleModal .modal-dialog,#reviewModal .modal-dialog{margin:.5rem;height:calc(100dvh - 1rem);max-height:calc(100dvh - 1rem)}
+  #vehicleModal .modal-content,#reviewModal .modal-content{height:100%;max-height:100%;overflow:hidden}
+  #vehicleModal form,#reviewModal form{display:flex;flex-direction:column;min-height:0;height:100%}
+  #vehicleModal .modal-body,#reviewModal .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  #vehicleModal .modal-header,#vehicleModal .modal-footer,#reviewModal .modal-header,#reviewModal .modal-footer{flex:0 0 auto}
+}
