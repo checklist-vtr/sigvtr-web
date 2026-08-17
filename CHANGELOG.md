@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08 — Modernização visual dos Checklists Condutor e Fiscal
+
+- Moderniza o padrão visual compartilhado dos checklists Condutor e Fiscal sem alterar a lógica operacional.
+- Amplia legibilidade com tipografia base de 16px, hierarquia mais clara e textos auxiliares maiores.
+- Refina cabeçalho, apresentação institucional, stepper, cards de inspeção, inputs, selects, textareas e resumo final.
+- Amplia áreas de toque de botões e estados de seleção para uso confortável em celular.
+- Melhora a apresentação de avarias conhecidas, novas alterações, fotografias e previews.
+- Adiciona estados hover/focus discretos, foco visível por teclado e suporte a `prefers-reduced-motion`.
+- Refina layouts em 360px, 390px, 412px, tablet e desktop sem criar nova lógica responsiva em JavaScript.
+- Mantém a identidade SIGVTR/20º BPM e não adiciona fontes, frameworks ou bibliotecas externas.
+- Atualiza o cache do Condutor para `sigvtr-mobile-v1184rc1` e do Fiscal para `sigvtr-fiscal-v11911rc1`.
+- `js/app.js`, `fiscal/js/app.js` e todos os arquivos `.gs` permanecem inalterados.
+
+
 ## Relatórios 2.3 — Modernização visual e acessibilidade
 
 - Aumentada a tipografia base da página de Relatórios para melhorar a leitura.

@@ -1,3 +1,81 @@
+# ATUALIZAÇÃO — Modernização visual dos Checklists Condutor e Fiscal
+
+## Objetivo
+Modernizar a experiência dos Checklists do Condutor e do Fiscal para aparência de aplicativo atual, com foco em legibilidade, organização, acessibilidade e uso mobile, sem modificar a lógica operacional aprovada.
+
+## Alterações exclusivamente visuais
+- `css/style.css`
+- `fiscal/css/style.css`
+- `index.html` — apenas versão exibida e query strings de cache.
+- `fiscal/index.html` — apenas versão exibida e query strings de cache.
+- `sw.js` — somente renovação do nome do cache e referências versionadas.
+- `fiscal/sw.js` — somente renovação do nome do cache e referências versionadas.
+
+## O que foi modernizado
+- tipografia e hierarquia de títulos;
+- fundo geral e separação dos cards;
+- cabeçalho institucional;
+- indicador de etapas;
+- inputs, selects e textareas;
+- cards de inspeção;
+- botões de status e navegação;
+- área de avarias;
+- captura e prévia de fotos;
+- resumo, confirmação e modais;
+- foco por teclado, contraste e áreas de toque;
+- responsividade mobile-first e acabamento em desktop;
+- redução de movimento conforme preferência do sistema.
+
+## Preservação funcional
+Não houve alteração em campos, IDs, eventos, funções, regras, validações, submissão, compressão de fotos, upload, armazenamento, avarias, API, autenticação, Google Sheets, Google Drive ou Google Apps Script. Os arquivos `js/app.js`, `fiscal/js/app.js` e `backend/*.gs` permanecem byte a byte iguais ao ZIP de origem.
+
+## Performance
+A alteração utiliza apenas CSS e recursos já presentes. Não foram adicionados frameworks, fontes externas, imagens de fundo, bibliotecas ou novas requisições. O aumento do CSS é pequeno em termos absolutos e não deve gerar impacto perceptível no carregamento.
+
+## PWA / cache
+- Condutor: cache atualizado para `sigvtr-mobile-v1184rc1`, recursos `v1.18.4-rc1`.
+- Fiscal: cache atualizado para `sigvtr-fiscal-v11911rc1`, recursos `v1.19.11-rc1`.
+
+A estratégia de Service Worker foi preservada; houve apenas renovação das chaves/versionamento para forçar a obtenção do frontend atualizado.
+
+## Implantação
+### GitHub Desktop / Git
+1. Substituir os arquivos alterados pelos arquivos desta entrega.
+2. Conferir a lista de mudanças antes do commit.
+3. Fazer o commit com o título sugerido abaixo.
+4. Publicar/push para a branch utilizada no projeto.
+5. Validar Condutor e Fiscal em celular e desktop após a publicação.
+
+### Google Apps Script
+**Não é necessário substituir nem publicar arquivos no Apps Script**, pois nenhum arquivo `.gs` foi alterado.
+
+## Testes de homologação recomendados após publicação
+### Condutor e Fiscal
+- carregamento;
+- identificação e seleção de viatura;
+- KM e combustível;
+- campos obrigatórios;
+- navegação pelas seis etapas;
+- avarias conhecidas e nova alteração;
+- fotos e prévias;
+- resumo e confirmação;
+- envio real do checklist.
+
+### Visual
+- 360px, 390px e 412px;
+- tablet;
+- desktop amplo;
+- zoom 100% e 125%;
+- foco por teclado;
+- atualização/cache do PWA.
+
+## Commit sugerido
+**Título:** `Moderniza visual dos checklists Condutor e Fiscal`
+
+**Descrição:** `Moderniza tipografia, cards, inputs, botões, avarias, fotos, stepper e responsividade dos checklists Condutor e Fiscal, preservando integralmente a lógica operacional, backend e integrações. Atualiza somente o versionamento de cache/PWA necessário para distribuir o novo CSS.`
+
+---
+
 # ATUALIZAÇÃO — Relatórios 2.3 / Modernização visual
 
 ## Objetivo

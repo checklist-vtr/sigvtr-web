@@ -1,3 +1,16 @@
+## Modernização visual dos Checklists Condutor e Fiscal — 2026-08
+
+Os dois checklists receberam modernização exclusivamente visual, preservando integralmente regras, campos, IDs, eventos, validações, fotos, avarias, submissão, API e backend. O padrão visual compartilhado passa a priorizar tipografia legível, cards com melhor hierarquia, controles com áreas de toque maiores, estados visuais claros, melhor contraste, foco por teclado e responsividade mobile-first.
+
+Arquivos funcionais JavaScript e Google Apps Script não foram alterados. Os Service Workers foram versionados somente para renovação do cache dos arquivos de frontend.
+
+- Condutor: frontend/cache `v1.18.4-RC1`.
+- Fiscal: frontend/cache `v1.19.11-RC1`.
+- Sem nova dependência externa, framework, fonte remota ou biblioteca.
+- Sem necessidade de nova implantação do Google Apps Script.
+
+---
+
 ## Branch 02 — Checklist do Fiscal — v1.19.4-RC1
 
 A Branch 02 possui dois checklists independentes, Condutor e Fiscal, utilizando a mesma API, planilha e Google Drive. A Entrega 05 acrescenta ao cadastro administrativo da viatura o controle de próxima revisão, antecedência editável e baixa manual da revisão realizada, sem alterar os checklists homologados.
