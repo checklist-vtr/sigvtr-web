@@ -222,3 +222,25 @@ A opção **Importar frota oficial** foi retirada do menu **Ações em massa**. 
 
 ### Implantação
 Esta entrega é somente de frontend/PWA. Não exige nova implantação do Google Apps Script. Atualizar no GitHub os arquivos `admin/cartoes.html`, `admin/assets/css/cartoes.css`, `admin/viaturas.html`, `admin/assets/js/viaturas.js`, `admin/sw.js` e os documentos consolidados.
+
+
+## Histórico de Status da Frota — implementação
+
+- Nova aba do mesmo banco: `HISTORICO_STATUS_VTR`, criada com cabeçalhos controlados pelo backend.
+- O status atual e a `Data do Status` da aba `VIATURAS` continuam funcionando como antes.
+- Somente mudanças efetivas de Status geram transições permanentes; salvar o mesmo Status não gera histórico duplicado.
+- Edição individual, atualização em massa e a rotina backend de importação existente passam pelo mesmo registro histórico.
+- O responsável é obtido da sessão administrativa validada no backend; a atualização em massa não confia mais no texto de responsável enviado pelo frontend.
+- O Relatório `Frota / Viaturas` aceita `Posição da frota em` e reconstrói a última situação conhecida até o final da data informada. Sem data, mantém exatamente a situação atual.
+- Novo relatório `Movimentações de Status` consulta as transições por período, viatura, Status anterior, novo Status e responsável.
+- O Assistente SIGVTR IA permanece somente leitura e reutiliza `getAdminReportsV2_`, inclusive para posição histórica e movimentações.
+- O módulo registra um marco inicial real de implantação (`IMPLANTACAO_HISTORICO_STATUS`) para as viaturas existentes, sem inventar transições anteriores. Consultas anteriores a esse marco podem ter viaturas sem histórico confiável.
+- Retenção: não há rotina de exclusão ou limpeza automática do histórico.
+
+### Implantação
+
+1. Atualize apenas os arquivos `.gs` alterados no Apps Script.
+2. Salve o projeto e execute uma vez `initializeAdminVehicleStatusHistory_()` pelo editor do Apps Script para criar a aba e registrar o marco inicial da frota atual. A inicialização também possui proteção de contingência caso a primeira mudança de Status ocorra antes dessa execução manual.
+3. Crie uma nova versão/implantação do Web App usando a mesma URL operacional.
+4. Publique os arquivos web alterados no Git/Navegador.
+5. Valide edição individual, atualização em massa, posição histórica, CSV, impressão/PDF e Assistente IA.

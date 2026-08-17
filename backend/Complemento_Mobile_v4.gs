@@ -60,15 +60,26 @@ function doPost(e){
         if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(data)});
         if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(data)});
         if(action==="adminSalvarViatura"){
-          const vehicleData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador")});
+          const vehicleData=Object.assign({},data,{
+            admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador"),
+            adminId:String(adminWriteCtx.user.id||adminWriteCtx.user.login||""),
+            adminPerfil:String(adminWriteCtx.user.role||""),
+            origemStatus:"EDICAO_INDIVIDUAL"
+          });
           return json_({success:true,data:saveAdminVehicle_(vehicleData)});
         }
         if(action==="adminRegistrarRevisaoViatura"){
           const reviewData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador")});
           return json_({success:true,data:registerAdminVehicleReview_(reviewData)});
         }
-        if(action==="adminImportarFrotaOficial")return json_({success:true,data:importOfficialFleet_(data)});
-        if(action==="adminAtualizarViaturasEmMassa")return json_({success:true,data:updateAdminVehiclesBulk_(data)});
+        if(action==="adminImportarFrotaOficial"){
+          const importData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador"),adminId:String(adminWriteCtx.user.id||adminWriteCtx.user.login||""),adminPerfil:String(adminWriteCtx.user.role||""),origemStatus:"IMPORTACAO_FROTA_OFICIAL"});
+          return json_({success:true,data:importOfficialFleet_(importData)});
+        }
+        if(action==="adminAtualizarViaturasEmMassa"){
+          const bulkData=Object.assign({},data,{admin:String(adminWriteCtx.user.name||adminWriteCtx.user.login||"Administrador"),adminId:String(adminWriteCtx.user.id||adminWriteCtx.user.login||""),adminPerfil:String(adminWriteCtx.user.role||"")});
+          return json_({success:true,data:updateAdminVehiclesBulk_(bulkData)});
+        }
         if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(data)});
         if(action==="adminGerarPacoteArquivamento")return json_({success:true,data:generateArchiveDataPackage_(data)});
         if(action==="adminConfirmarArquivoFisico")return json_({success:true,data:confirmPhysicalArchive_(data)});

@@ -80,6 +80,7 @@ function aiClassifyQuestion_(question){
   const q=aiFold_(question);
   if(/histor|registros? da|resum.*vtr|viatura .* histor/.test(q)&&aiExtractPrefix_(question))return 'HISTORICO_VIATURA';
   if(/cartao|cartoes|titular|cartao reserva/.test(q))return 'CARTOES';
+  if(/mudanc|moviment|alterac.{0,20}status|quando.{0,30}(?:baixad|indisponiv|manutenc)|quantas vezes.{0,30}(?:indisponiv|baixad|manutenc)/.test(q))return 'MOVIMENTACOES_STATUS';
   if(/frota|status da viatura|status das viaturas|(?:viatur|vtr).{0,35}(?:ativa|ativas|baixada|baixadas|indisponivel|indisponiveis|reserva|reservas|manutencao|viagem)|(?:ativa|ativas|baixada|baixadas|indisponivel|indisponiveis|reserva|reservas|manutencao).{0,25}(?:viatur|vtr)|data do status|em viagem/.test(q))return 'FROTA';
   if(/combust|abastec|tanque|consumo|nivel de combustivel|combustivel.*reserva|reserva.*combustivel/.test(q))return 'COMBUSTIVEL';
   if(/avaria|defeito|problema|recorr|reincid/.test(q))return 'AVARIAS';
@@ -104,8 +105,9 @@ function aiExtractPrefix_(question){
   }catch(_){return '';}
 }
 
+function aiExtractHistoricalDate_(question){const q=String(question||'');let m=q.match(/\b(\d{2})[\/.-](\d{2})[\/.-](\d{4})\b/);if(m)return m[3]+'-'+m[2]+'-'+m[1];m=q.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m)return m[1]+'-'+m[2]+'-'+m[3];return '';}
 function aiBuildContext_(question,category){
-  const period=aiResolvePeriod_(question),prefix=aiExtractPrefix_(question);
+  const period=aiResolvePeriod_(question),prefix=aiExtractPrefix_(question),historicalDate=aiExtractHistoricalDate_(question);
   const base={
     generatedAt:Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,'dd/MM/yyyy HH:mm:ss'),
     category:category,
@@ -124,10 +126,12 @@ function aiBuildContext_(question,category){
   }
 
   const reportParams={prefixo:prefix||''};
+  if(category==='FROTA'&&historicalDate)reportParams.dataReferencia=historicalDate;
+  if(category==='MOVIMENTACOES_STATUS'&&!/\bquando\b|quantas vezes/.test(aiFold_(question))){reportParams.dataInicial=period.from;reportParams.dataFinal=period.to;}
   if(category==='CHECKLISTS'||category==='COMBUSTIVEL'||category==='AVARIAS'){
     reportParams.dataInicial=period.from;reportParams.dataFinal=period.to;
   }
-  const typeMap={CHECKLISTS:'CHECKLISTS',COMBUSTIVEL:'COMBUSTIVEL',AVARIAS:'AVARIAS',QUILOMETRAGEM_MANUTENCAO:'QUILOMETRAGEM',CARTOES:'CARTOES',FROTA:'FROTA'};
+  const typeMap={CHECKLISTS:'CHECKLISTS',COMBUSTIVEL:'COMBUSTIVEL',AVARIAS:'AVARIAS',QUILOMETRAGEM_MANUTENCAO:'QUILOMETRAGEM',CARTOES:'CARTOES',FROTA:'FROTA',MOVIMENTACOES_STATUS:'MOVIMENTACOES_STATUS'};
   if(typeMap[category]){
     reportParams.tipoRelatorio=typeMap[category];
     const context={meta:base,report:aiSanitizeReportV2_(getAdminReportsV2_(reportParams),typeMap[category])};
@@ -150,13 +154,14 @@ function aiBuildContext_(question,category){
 
 function aiSanitizeReportV2_(report,type,limit){
   report=report||{};type=String(type||report.tipoRelatorio||'').toUpperCase();limit=Math.max(1,Math.min(Number(limit)||60,100));
-  const rows=(report.registros||[]).slice(0,limit),out={scope:(type==='CHECKLISTS'||type==='COMBUSTIVEL'||type==='AVARIAS')?'PERIODO_SOLICITADO':'STATUS_ATUAL_GLOBAL',titulo:String(report.titulo||''),tipoRelatorio:type,resumo:report.resumo||{},filtros:report.filtros||{},totalRegistros:Number((report.registros||[]).length),registros:[]};
+  const rows=(report.registros||[]).slice(0,limit),out={scope:(type==='CHECKLISTS'||type==='COMBUSTIVEL'||type==='AVARIAS'||type==='MOVIMENTACOES_STATUS')?'PERIODO_SOLICITADO':(type==='FROTA'&&report.historico?'POSICAO_HISTORICA':'STATUS_ATUAL_GLOBAL'),titulo:String(report.titulo||''),tipoRelatorio:type,resumo:report.resumo||{},filtros:report.filtros||{},historico:report.historico||null,totalRegistros:Number((report.registros||[]).length),registros:[]};
   if(type==='FROTA')out.registros=rows.map(function(r){return {prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),marca:String(r.marca||''),modelo:String(r.modelo||''),ano:String(r.ano||''),status:String(r.status||''),dataStatus:String(r.dataStatus||''),kmAtual:Number(r.kmAtual||0),proximaRevisao:Number(r.proximaRevisao||0),statusRevisao:String(r.statusRevisao||''),avariasAbertas:Number(r.avariasAbertas||0),ultimoChecklist:String(r.ultimoChecklist||''),observacoes:aiCleanDataText_(r.observacoes,260)};});
   else if(type==='CARTOES')out.registros=rows.map(function(r){return {cartao:String(r.numeroFormatado||''),tipo:String(r.tipo||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),situacao:String(r.situacao||''),observacao:aiCleanDataText_(r.observacao,220),alteradoEm:String(r.alteradoEm||'')};});
   else if(type==='CHECKLISTS')out.registros=rows.map(function(r){return {dataHora:String(r.dataHora||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),tipoChecklist:String(r.tipoChecklist||''),km:Number(r.km||0),combustivel:String(r.combustivel||''),classificacaoCombustivel:String(r.classificacaoCombustivel||''),turno:String(r.turno||''),status:String(r.status||''),operacao:aiCleanDataText_(r.operacao,180),avarias:Number(r.avarias||0)};});
   else if(type==='COMBUSTIVEL')out.registros=rows.map(function(r){return {dataHora:String(r.dataHora||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),tipoChecklist:String(r.tipoChecklist||''),km:Number(r.km||0),combustivel:String(r.combustivel||''),classificacaoCombustivel:String(r.classificacaoCombustivel||''),status:String(r.status||'')};});
   else if(type==='AVARIAS')out.registros=rows.map(function(r){return {data:String(r.data||''),prefixo:String(r.prefixo||''),item:aiCleanDataText_(r.item,120),descricao:aiCleanDataText_(r.descricao,250),situacao:String(r.situacao||''),local:aiCleanDataText_(r.local,140),dataUltimaAtualizacao:String(r.dataUltimaAtualizacao||'')};});
   else if(type==='QUILOMETRAGEM')out.registros=rows.map(function(r){return {prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),kmAtual:Number(r.kmAtual||0),proximaRevisao:Number(r.proximaRevisao||0),distanciaRevisao:r.distanciaRevisao===''?'':Number(r.distanciaRevisao||0),statusRevisao:String(r.statusRevisao||''),antecedenciaAlerta:Number(r.antecedenciaAlerta||0),statusFrota:String(r.statusFrota||'')};});
+  else if(type==='MOVIMENTACOES_STATUS')out.registros=rows.map(function(r){return {dataHora:String(r.dataHora||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),statusAnterior:String(r.statusAnterior||''),novoStatus:String(r.novoStatus||''),responsavel:aiCleanDataText_(r.responsavel,120),perfil:String(r.perfil||''),observacao:aiCleanDataText_(r.observacao,260),origem:String(r.origem||'')};});
   out.limitado=Number((report.registros||[]).length)>out.registros.length;
   return out;
 }
@@ -165,6 +170,7 @@ function aiResolvePeriod_(question){
   if(/hoje|atual|neste dia/.test(q))return {from:yyyy+'-'+mm+'-'+dd,to:yyyy+'-'+mm+'-'+dd,label:'hoje'};
   if(/mes passado|ultimo mes/.test(q)){const firstThis=new Date(now.getFullYear(),now.getMonth(),1),lastPrev=new Date(firstThis.getTime()-86400000),firstPrev=new Date(lastPrev.getFullYear(),lastPrev.getMonth(),1);return {from:Utilities.formatDate(firstPrev,SIGVTR.TIMEZONE,'yyyy-MM-dd'),to:Utilities.formatDate(lastPrev,SIGVTR.TIMEZONE,'yyyy-MM-dd'),label:'mês passado'};}
   if(/este mes|neste mes|mes atual/.test(q))return {from:yyyy+'-'+mm+'-01',to:yyyy+'-'+mm+'-'+dd,label:'mês atual'};
+  if(/esta semana|nesta semana|semana atual/.test(q)){const dow=now.getDay(),delta=dow===0?6:dow-1,startWeek=new Date(now.getFullYear(),now.getMonth(),now.getDate()-delta);return {from:Utilities.formatDate(startWeek,SIGVTR.TIMEZONE,'yyyy-MM-dd'),to:yyyy+'-'+mm+'-'+dd,label:'semana atual'};}
   const daysMatch=q.match(/(?:ultimos?|ultimas?)\s+(\d{1,2})\s+dias?/);if(daysMatch){const days=Math.min(Math.max(Number(daysMatch[1])||30,1),90),startCustom=new Date(now.getTime()-(days-1)*86400000);return {from:Utilities.formatDate(startCustom,SIGVTR.TIMEZONE,'yyyy-MM-dd'),to:yyyy+'-'+mm+'-'+dd,label:'últimos '+days+' dias'};}
   const start=new Date(now.getTime()-29*86400000);
   return {from:Utilities.formatDate(start,SIGVTR.TIMEZONE,'yyyy-MM-dd'),to:yyyy+'-'+mm+'-'+dd,label:'últimos 30 dias'};
