@@ -1,5 +1,16 @@
 # Changelog
 
+## Relatórios 2.3 — Modernização visual e acessibilidade
+
+- Aumentada a tipografia base da página de Relatórios para melhorar a leitura.
+- Títulos, subtítulos, labels, campos, botões e seletores de colunas receberam hierarquia visual mais clara.
+- Cards do Resumo da Frota passaram a destacar melhor números e rótulos.
+- Tabela do relatório ganhou maior espaçamento de linhas, cabeçalho mais legível e hover discreto em desktop.
+- Campos e botões possuem áreas clicáveis maiores e foco visível para navegação por teclado.
+- Responsividade refinada para tablet e celular.
+- Impressão/PDF recebeu ajustes próprios de tipografia e densidade sem alterar os dados exportados.
+- Nenhuma regra de negócio, consulta, API ou backend foi alterado nesta etapa.
+
 ## Relatórios 2.2 — Cartões vinculados e Assistente IA consultando Relatórios 2.x
 
 - Adiciona a coluna opcional **Cartões vinculados** aos relatórios de Checklists, Frota, Combustível e Quilometragem/Revisões.

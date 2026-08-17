@@ -1,3 +1,36 @@
+# ATUALIZAÇÃO — Relatórios 2.3 / Modernização visual
+
+## Objetivo
+Modernizar a página de Relatórios com foco em **legibilidade, acessibilidade e uso em telas diferentes**, mantendo velocidade e compatibilidade.
+
+## Arquivos funcionais alterados
+- `admin/relatorios.html`
+- `admin/assets/css/relatorios.css`
+
+## Principais mudanças
+- fonte base maior;
+- títulos e subtítulos mais legíveis;
+- campos, botões e checkboxes com áreas de interação maiores;
+- cards do Resumo da Frota com números mais destacados;
+- tabela com fonte e altura de linha maiores;
+- foco visível para teclado;
+- melhor organização em celular/tablet;
+- ajustes de impressão/PDF;
+- respeito à preferência do sistema por redução de movimento.
+
+## O que NÃO foi alterado
+Não houve alteração de backend, Apps Script, APIs, regras de relatório, Assistente IA, filtros, dados, exportação CSV ou lógica de negócio. Portanto, **esta atualização visual não exige nova implantação do Google Apps Script**.
+
+## Implantação
+No Git/Navegador, publicar os arquivos de frontend alterados. Como o CSS recebeu nova versão no query string, o navegador/PWA tende a buscar a folha de estilos atualizada sem depender do cache antigo.
+
+## Commit sugerido
+**Título:** `Moderniza visual dos Relatórios com foco em acessibilidade`
+
+**Descrição:** `Aumenta tipografia, melhora cards, filtros, seletores e tabela da página Relatórios, com refinamentos responsivos e de impressão, sem alterar backend ou regras de negócio.`
+
+---
+
 # ATUALIZAÇÃO — Relatórios 2.2 / Assistente IA
 
 ## Cartões relacionados às viaturas nos relatórios

@@ -57,6 +57,12 @@ O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel poss
 O Fiscal utiliza rota exclusiva no backend, garantindo classificação por formulário e não por militar. O cadastro de viaturas possui recuperação defensiva dos campos de revisão.
 
 
+
+### Relatórios 2.3 — Modernização visual e acessibilidade
+A página **Relatórios** passa a ser o piloto visual do SIGVTR, com tipografia maior, melhor hierarquia de títulos, controles com áreas clicáveis mais amplas, cards de resumo mais legíveis, tabela com maior espaçamento, estados de foco visíveis e ajustes específicos para celular e impressão/PDF.
+
+A modernização é **somente de frontend/CSS**, sem framework novo, sem biblioteca adicional e sem alteração das regras de negócio ou consultas do Relatórios 2.2. O objetivo é melhorar leitura e acessibilidade mantendo o desempenho e a identidade visual já aprovada.
+
 ### Relatórios 2.2 — Cartões vinculados e Assistente IA alinhado aos Relatórios
 O gerador de relatórios passa a disponibilizar **Cartões vinculados** nas consultas de Checklists, Frota, Combustível e Quilometragem/Revisões, relacionando o cartão à viatura por ID/prefixo já existente no cadastro. O relatório específico de Cartões e o Relatório Personalizado permanecem disponíveis.
 
