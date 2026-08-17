@@ -74,3 +74,7 @@ O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da vi
 
 ### Relatórios 2.3.1
 As ações **Gerar relatório**, **Exportar CSV** e **Imprimir / Salvar PDF** ficam agrupadas no final do seletor de informações. Exportações só são habilitadas após a geração. A impressão ajusta automaticamente orientação e densidade conforme a quantidade de colunas selecionadas.
+
+
+### Ajustes administrativos — Cartões e Viaturas
+O modal de cartões mantém o rodapé com **Salvar cartão** acessível em zoom 100%, usando rolagem interna apenas no corpo do formulário quando necessário. A ação **Importar frota oficial** não é mais exibida em Viaturas após a carga inicial; o backend correspondente permanece preservado apenas para contingência técnica.

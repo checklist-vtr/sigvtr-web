@@ -210,3 +210,15 @@ Validar os filtros e a Pesquisa Global em ambiente publicado. Após aprovação,
 - Compacta discretamente o bloco de Relatórios rápidos em telas amplas.
 - Adiciona impressão adaptativa: até 5 colunas usa A4 retrato e fonte maior; de 6 a 8 colunas usa A4 paisagem com densidade média; acima de 8 colunas usa A4 paisagem compacta.
 - Nenhuma API, regra de negócio ou backend foi alterado nesta etapa.
+
+
+## Ajuste administrativo — Cartões e Viaturas — 17/08/2026
+
+### Cartões
+O modal de cadastro/edição passa a ter o corpo rolável e o rodapé fixo dentro da janela. Em zoom 100%, o usuário consegue chegar aos botões **Cancelar** e **Salvar cartão** sem precisar reduzir a escala do navegador.
+
+### Viaturas
+A opção **Importar frota oficial** foi retirada do menu **Ações em massa**. A importação oficial é uma operação de carga inicial e, após sua utilização, não deve permanecer disponível como rotina administrativa. A função de backend foi preservada somente para compatibilidade e recuperação técnica.
+
+### Implantação
+Esta entrega é somente de frontend/PWA. Não exige nova implantação do Google Apps Script. Atualizar no GitHub os arquivos `admin/cartoes.html`, `admin/assets/css/cartoes.css`, `admin/viaturas.html`, `admin/assets/js/viaturas.js`, `admin/sw.js` e os documentos consolidados.

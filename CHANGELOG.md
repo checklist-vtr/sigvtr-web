@@ -171,3 +171,13 @@
 - Compacta discretamente o bloco de Relatórios rápidos em telas amplas.
 - Adiciona impressão adaptativa: até 5 colunas usa A4 retrato e fonte maior; de 6 a 8 colunas usa A4 paisagem com densidade média; acima de 8 colunas usa A4 paisagem compacta.
 - Nenhuma API, regra de negócio ou backend foi alterado nesta etapa.
+
+
+## Ajustes administrativos — Cartões e Viaturas — 17/08/2026
+
+- Corrige o modal **Editar/Novo cartão** para manter cabeçalho e rodapé visíveis em zoom 100%, com rolagem somente no corpo quando a altura da tela for insuficiente.
+- Garante acesso permanente aos botões **Cancelar** e **Salvar cartão** em desktop, notebook e telas menores.
+- Remove do frontend de **Viaturas** a ação **Importar frota oficial**, pois a importação inicial da relação oficial já cumpriu sua finalidade e não deve permanecer como ação operacional recorrente.
+- Mantém a função de importação no backend apenas por compatibilidade/recuperação técnica; ela deixa de ser exposta ao usuário administrativo.
+- Atualiza o cache PWA administrativo para distribuir os ajustes sem depender do cache anterior.
+- Nenhuma regra de cadastro, cartão, viatura, checklist, relatório ou Assistente IA foi alterada.

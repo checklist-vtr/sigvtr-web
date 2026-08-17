@@ -302,20 +302,6 @@ const ViaturasPage = (() => {
     }
   }
 
-  async function importFleet() {
-    if (!confirm('Importar/atualizar as 21 viaturas oficiais de 50-2001 a 50-2021? Registros existentes serão preservados e apenas os dados cadastrais serão completados.')) return;
-    const button = $('importFleetButton');
-    button.disabled = true;
-    try {
-      const result = await ApiService.post('adminImportarFrotaOficial', { admin: 'Administrador' });
-      alert(`Importação concluída. Criadas: ${result.criadas || 0}. Atualizadas: ${result.atualizadas || 0}.`);
-      await load();
-    } catch (error) {
-      alert(`Falha na importação: ${error.message}`);
-    } finally {
-      button.disabled = false;
-    }
-  }
 
   function renderBulkValueField() {
     const field = $('bulkField').value;
@@ -407,7 +393,6 @@ const ViaturasPage = (() => {
     if (!AdminLayout.init()) return;
     $('newVehicleButton').onclick = () => openForm();
     $('refreshVehiclesButton').onclick = load;
-    $('importFleetButton').onclick = importFleet;
     $('bulkEditButton').onclick = openBulkEdit;
     $('vehicleForm').onsubmit = save;
     $('bulkEditForm').onsubmit = applyBulkUpdate;

@@ -10,3 +10,15 @@
 @media(max-width:1199.98px){.fuel-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:767.98px){.fuel-card-grid{grid-template-columns:1fr}}
 @media(max-width:575.98px){.fuel-card-grid{grid-template-columns:1fr}.fuel-card{min-height:0;padding:1rem}.fuel-card-number{font-size:1rem;letter-spacing:.055em}.fuel-card-meta{grid-template-columns:1fr 1fr}.fuel-card-actions{display:grid;grid-template-columns:1fr}.fuel-card-actions .btn{width:100%}.cards-toolbar{padding:.85rem}}
+
+
+/* v1.20.13-RC1 — modal de cartão com corpo rolável e rodapé sempre acessível */
+#cardModal .modal-content{overflow:hidden}
+#cardModal .modal-content>form{display:flex;flex-direction:column;min-height:0;max-height:100%}
+#cardModal .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#cardModal .modal-header,#cardModal .modal-footer{flex:0 0 auto}
+@media(max-width:767.98px){
+  #cardModal .modal-dialog{margin:.5rem;height:calc(100dvh - 1rem);max-height:calc(100dvh - 1rem)}
+  #cardModal .modal-content{height:100%;max-height:100%}
+  #cardModal .modal-content>form{height:100%}
+}
