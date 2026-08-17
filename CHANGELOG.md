@@ -1,5 +1,12 @@
 # Changelog
 
+## Relatórios 2.1.1 — Status temporários no Resumo da Frota
+
+- O Resumo da Frota passa a exibir **Indisponíveis** e **Em manutenção**, além dos totais já existentes.
+- O status `INDISPONIVEL`, já suportado pelo cadastro de Viaturas, é contado diretamente no resumo do relatório, inclusive quando usado para afastamentos temporários como viagens.
+- Mantidos os filtros, Data do Status, observações, regras de reserva e demais funcionalidades do Relatórios 2.1.
+- Nenhuma alteração no fluxo dos Checklists Condutor/Fiscal ou nos demais módulos administrativos.
+
 ## 1.20.4-RC1 — Ajustes do módulo Cartões e navegação administrativa
 
 - Corrige a estrutura da página `admin/cartoes.html` para usar o mesmo shell do Painel Administrativo, eliminando sobreposição do conteúdo com a sidebar no desktop.

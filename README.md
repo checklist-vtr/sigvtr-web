@@ -57,5 +57,5 @@ O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel poss
 O Fiscal utiliza rota exclusiva no backend, garantindo classificação por formulário e não por militar. O cadastro de viaturas possui recuperação defensiva dos campos de revisão.
 
 
-### Relatórios 2.1
-O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da viatura. A data é registrada automaticamente nas novas mudanças de status.
+### Relatórios 2.1.1
+O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da viatura. A data é registrada automaticamente nas novas mudanças de status. O resumo contabiliza também os status **INDISPONIVEL** e **MANUTENCAO**, permitindo visualizar imediatamente viaturas temporariamente fora do serviço, como em viagens ou manutenções.

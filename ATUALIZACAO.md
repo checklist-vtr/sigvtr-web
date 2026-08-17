@@ -1,3 +1,30 @@
+# ATUALIZAÇÃO — Relatórios 2.1.1
+
+## Resumo da Frota — status temporários
+
+O resumo do relatório **Frota / Viaturas** agora contabiliza também:
+
+- **Indisponíveis** — viaturas com status `INDISPONIVEL`, incluindo afastamentos temporários como viagens;
+- **Em manutenção** — viaturas com status `MANUTENCAO`.
+
+A observação administrativa continua livre para detalhar o motivo, por exemplo `Em viagem até 22/08/2026`. A **Data do Status** permanece sendo atualizada quando há mudança efetiva do status.
+
+### Arquivos alterados
+
+- `backend/Painel_Administrativo.gs`
+- `admin/assets/js/relatorios.js`
+- `admin/assets/css/relatorios.css`
+- `admin/relatorios.html`
+- `README.md`
+- `CHANGELOG.md`
+- `ATUALIZACAO.md`
+
+### Implantação
+
+Substituir `Painel_Administrativo.gs` no Google Apps Script e publicar uma nova versão do Web App. Atualizar no Git/Navegador os arquivos administrativos alterados.
+
+---
+
 ## Entrega 06 — Correção definitiva do tipo Fiscal e cache administrativo
 
 - Corrigido o payload do Checklist do Fiscal para enviar explicitamente `tipoChecklist: "FISCAL"`.
