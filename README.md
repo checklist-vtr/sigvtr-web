@@ -57,5 +57,10 @@ O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel poss
 O Fiscal utiliza rota exclusiva no backend, garantindo classificação por formulário e não por militar. O cadastro de viaturas possui recuperação defensiva dos campos de revisão.
 
 
+### Relatórios 2.2 — Cartões vinculados e Assistente IA alinhado aos Relatórios
+O gerador de relatórios passa a disponibilizar **Cartões vinculados** nas consultas de Checklists, Frota, Combustível e Quilometragem/Revisões, relacionando o cartão à viatura por ID/prefixo já existente no cadastro. O relatório específico de Cartões e o Relatório Personalizado permanecem disponíveis.
+
+O **Assistente SIGVTR IA** passa a consultar as mesmas funções somente leitura do Relatórios 2.x para Frota, Cartões, Checklists, Combustível, Avarias e Quilometragem/Revisões. Assim, perguntas sobre status da frota, Data do Status, viaturas indisponíveis/baixadas/reserva, cartões vinculados e revisões usam os mesmos dados consolidados do gerador de relatórios, sem duplicar regras de negócio.
+
 ### Relatórios 2.1.1
 O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da viatura. A data é registrada automaticamente nas novas mudanças de status. O resumo contabiliza também os status **INDISPONIVEL** e **MANUTENCAO**, permitindo visualizar imediatamente viaturas temporariamente fora do serviço, como em viagens ou manutenções.

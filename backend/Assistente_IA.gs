@@ -78,11 +78,13 @@ function aiRedactQuestionForExternal_(value){
 /** Classificação local: evita usar tokens de IA apenas para decidir quais dados consultar. */
 function aiClassifyQuestion_(question){
   const q=aiFold_(question);
-  if(/combust|abastec|reserva|tanque|consumo/.test(q))return 'COMBUSTIVEL';
+  if(/histor|registros? da|resum.*vtr|viatura .* histor/.test(q)&&aiExtractPrefix_(question))return 'HISTORICO_VIATURA';
+  if(/cartao|cartoes|titular|cartao reserva/.test(q))return 'CARTOES';
+  if(/frota|status da viatura|status das viaturas|(?:viatur|vtr).{0,35}(?:ativa|ativas|baixada|baixadas|indisponivel|indisponiveis|reserva|reservas|manutencao|viagem)|(?:ativa|ativas|baixada|baixadas|indisponivel|indisponiveis|reserva|reservas|manutencao).{0,25}(?:viatur|vtr)|data do status|em viagem/.test(q))return 'FROTA';
+  if(/combust|abastec|tanque|consumo|nivel de combustivel|combustivel.*reserva|reserva.*combustivel/.test(q))return 'COMBUSTIVEL';
   if(/avaria|defeito|problema|recorr|reincid/.test(q))return 'AVARIAS';
   if(/quilometr|\bkm\b|rodagem|rodou|revisao|preventiv|manutenc/.test(q))return 'QUILOMETRAGEM_MANUTENCAO';
   if(/checklist|fiscal|condutor|inspec/.test(q))return 'CHECKLISTS';
-  if(/histor|registros? da|resum.*vtr|viatura .* histor/.test(q)&&aiExtractPrefix_(question))return 'HISTORICO_VIATURA';
   return 'GERAL';
 }
 function aiFold_(value){
@@ -103,29 +105,61 @@ function aiExtractPrefix_(question){
 }
 
 function aiBuildContext_(question,category){
-  const period=aiResolvePeriod_(question);
+  const period=aiResolvePeriod_(question),prefix=aiExtractPrefix_(question);
   const base={
     generatedAt:Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,'dd/MM/yyyy HH:mm:ss'),
     category:category,
-    period:{from:period.from,to:period.to,label:period.label}
+    period:{from:period.from,to:period.to,label:period.label},
+    prefixoIdentificado:prefix||''
   };
 
   if(category==='HISTORICO_VIATURA'){
-    const prefix=aiExtractPrefix_(question);
     if(!prefix)return aiLimitContext_({meta:base,notice:'Nenhum prefixo de viatura existente foi identificado na pergunta.'});
-    return aiLimitContext_({meta:base,vehicleHistory:aiSanitizeVehicleHistory_(getAdminVehicleHistory_(prefix))});
+    return aiLimitContext_({
+      meta:base,
+      vehicleHistory:aiSanitizeVehicleHistory_(getAdminVehicleHistory_(prefix)),
+      fleet:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'FROTA',prefixo:prefix}), 'FROTA'),
+      cards:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'CARTOES',prefixo:prefix}), 'CARTOES')
+    });
   }
 
-  const reportParams={dataInicial:period.from,dataFinal:period.to};
-  const reports=getAdminReports_(reportParams);
-  const context={meta:base,report:aiSanitizeReports_(reports,category)};
+  const reportParams={prefixo:prefix||''};
+  if(category==='CHECKLISTS'||category==='COMBUSTIVEL'||category==='AVARIAS'){
+    reportParams.dataInicial=period.from;reportParams.dataFinal=period.to;
+  }
+  const typeMap={CHECKLISTS:'CHECKLISTS',COMBUSTIVEL:'COMBUSTIVEL',AVARIAS:'AVARIAS',QUILOMETRAGEM_MANUTENCAO:'QUILOMETRAGEM',CARTOES:'CARTOES',FROTA:'FROTA'};
+  if(typeMap[category]){
+    reportParams.tipoRelatorio=typeMap[category];
+    const context={meta:base,report:aiSanitizeReportV2_(getAdminReportsV2_(reportParams),typeMap[category])};
+    if(category==='COMBUSTIVEL')context.dataNotice='Os registros disponíveis representam níveis de combustível informados nos checklists. Eles não equivalem, por si só, a litros consumidos ou custo de abastecimento.';
+    return aiLimitContext_(context);
+  }
 
-  if(category==='AVARIAS'||category==='GERAL')context.damages=aiAggregateDamages_(period);
-  if(category==='QUILOMETRAGEM_MANUTENCAO'||category==='GERAL'){context.dashboard=aiSanitizeDashboard_(getAdminDashboard_());context.maintenance=aiMaintenanceSnapshot_();}
-  if(category==='COMBUSTIVEL')context.dataNotice='Os registros disponíveis representam níveis de combustível informados nos checklists. Eles não equivalem, por si só, a litros consumidos ou custo de abastecimento.';
-  return aiLimitContext_(context);
+  return aiLimitContext_({
+    meta:base,
+    reports:{
+      frota:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'FROTA',prefixo:prefix||''}),'FROTA'),
+      cartoes:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'CARTOES',prefixo:prefix||''}),'CARTOES'),
+      checklists:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'CHECKLISTS',prefixo:prefix||'',dataInicial:period.from,dataFinal:period.to}),'CHECKLISTS',25),
+      combustivel:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'COMBUSTIVEL',prefixo:prefix||'',dataInicial:period.from,dataFinal:period.to}),'COMBUSTIVEL',25),
+      avarias:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'AVARIAS',prefixo:prefix||'',dataInicial:period.from,dataFinal:period.to}),'AVARIAS',25),
+      revisoes:aiSanitizeReportV2_(getAdminReportsV2_({tipoRelatorio:'QUILOMETRAGEM',prefixo:prefix||''}),'QUILOMETRAGEM')
+    }
+  });
 }
 
+function aiSanitizeReportV2_(report,type,limit){
+  report=report||{};type=String(type||report.tipoRelatorio||'').toUpperCase();limit=Math.max(1,Math.min(Number(limit)||60,100));
+  const rows=(report.registros||[]).slice(0,limit),out={scope:(type==='CHECKLISTS'||type==='COMBUSTIVEL'||type==='AVARIAS')?'PERIODO_SOLICITADO':'STATUS_ATUAL_GLOBAL',titulo:String(report.titulo||''),tipoRelatorio:type,resumo:report.resumo||{},filtros:report.filtros||{},totalRegistros:Number((report.registros||[]).length),registros:[]};
+  if(type==='FROTA')out.registros=rows.map(function(r){return {prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),marca:String(r.marca||''),modelo:String(r.modelo||''),ano:String(r.ano||''),status:String(r.status||''),dataStatus:String(r.dataStatus||''),kmAtual:Number(r.kmAtual||0),proximaRevisao:Number(r.proximaRevisao||0),statusRevisao:String(r.statusRevisao||''),avariasAbertas:Number(r.avariasAbertas||0),ultimoChecklist:String(r.ultimoChecklist||''),observacoes:aiCleanDataText_(r.observacoes,260)};});
+  else if(type==='CARTOES')out.registros=rows.map(function(r){return {cartao:String(r.numeroFormatado||''),tipo:String(r.tipo||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),situacao:String(r.situacao||''),observacao:aiCleanDataText_(r.observacao,220),alteradoEm:String(r.alteradoEm||'')};});
+  else if(type==='CHECKLISTS')out.registros=rows.map(function(r){return {dataHora:String(r.dataHora||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),tipoChecklist:String(r.tipoChecklist||''),km:Number(r.km||0),combustivel:String(r.combustivel||''),classificacaoCombustivel:String(r.classificacaoCombustivel||''),turno:String(r.turno||''),status:String(r.status||''),operacao:aiCleanDataText_(r.operacao,180),avarias:Number(r.avarias||0)};});
+  else if(type==='COMBUSTIVEL')out.registros=rows.map(function(r){return {dataHora:String(r.dataHora||''),prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),tipoChecklist:String(r.tipoChecklist||''),km:Number(r.km||0),combustivel:String(r.combustivel||''),classificacaoCombustivel:String(r.classificacaoCombustivel||''),status:String(r.status||'')};});
+  else if(type==='AVARIAS')out.registros=rows.map(function(r){return {data:String(r.data||''),prefixo:String(r.prefixo||''),item:aiCleanDataText_(r.item,120),descricao:aiCleanDataText_(r.descricao,250),situacao:String(r.situacao||''),local:aiCleanDataText_(r.local,140),dataUltimaAtualizacao:String(r.dataUltimaAtualizacao||'')};});
+  else if(type==='QUILOMETRAGEM')out.registros=rows.map(function(r){return {prefixo:String(r.prefixo||''),placa:String(r.placa||''),cartoes:aiCleanDataText_(r.cartoes,220),kmAtual:Number(r.kmAtual||0),proximaRevisao:Number(r.proximaRevisao||0),distanciaRevisao:r.distanciaRevisao===''?'':Number(r.distanciaRevisao||0),statusRevisao:String(r.statusRevisao||''),antecedenciaAlerta:Number(r.antecedenciaAlerta||0),statusFrota:String(r.statusFrota||'')};});
+  out.limitado=Number((report.registros||[]).length)>out.registros.length;
+  return out;
+}
 function aiResolvePeriod_(question){
   const now=new Date(),q=aiFold_(question),yyyy=Utilities.formatDate(now,SIGVTR.TIMEZONE,'yyyy'),mm=Utilities.formatDate(now,SIGVTR.TIMEZONE,'MM'),dd=Utilities.formatDate(now,SIGVTR.TIMEZONE,'dd');
   if(/hoje|atual|neste dia/.test(q))return {from:yyyy+'-'+mm+'-'+dd,to:yyyy+'-'+mm+'-'+dd,label:'hoje'};
@@ -263,8 +297,11 @@ function aiLimitContext_(context){
   if(context.report&&context.report.vehicles)context.report.vehicles=context.report.vehicles.slice(0,40);
   if(context.damages&&context.damages.porViatura)context.damages.porViatura=context.damages.porViatura.slice(0,20);
   if(context.vehicleHistory){context.vehicleHistory.damages=(context.vehicleHistory.damages||[]).slice(0,20);context.vehicleHistory.events=(context.vehicleHistory.events||[]).slice(0,15);context.vehicleHistory.alerts=(context.vehicleHistory.alerts||[]).slice(0,15);}
+  if(context.reports)Object.keys(context.reports).forEach(function(k){if(context.reports[k]&&context.reports[k].registros)context.reports[k].registros=context.reports[k].registros.slice(0,15);});
+  if(context.fleet&&context.fleet.registros)context.fleet.registros=context.fleet.registros.slice(0,25);
+  if(context.cards&&context.cards.registros)context.cards.registros=context.cards.registros.slice(0,25);
   json=JSON.stringify(context);if(json.length<=SIGVTR_AI.MAX_CONTEXT_CHARS)return context;
-  return {meta:context.meta,notice:'O contexto foi reduzido por limite de tamanho.',dataNotice:context.dataNotice,report:context.report?{scope:context.report.scope,scopeNotice:context.report.scopeNotice,summary:context.report.summary,fuelDistribution:context.report.fuelDistribution,recurringItems:(context.report.recurringItems||[]).slice(0,10),vehicles:(context.report.vehicles||[]).slice(0,15)}:undefined,damages:context.damages?{scope:context.damages.scope,scopeNotice:context.damages.scopeNotice,semanticNotice:context.damages.semanticNotice,avariasNoPeriodo:context.damages.avariasNoPeriodo,sourceLimited:context.damages.sourceLimited,recurringItems:(context.damages.recurringItems||[]).slice(0,10),porViatura:(context.damages.porViatura||[]).slice(0,10)}:undefined,dashboard:context.dashboard,maintenance:context.maintenance?{scope:context.maintenance.scope,scopeNotice:context.maintenance.scopeNotice,totalAtencao:context.maintenance.totalAtencao,items:(context.maintenance.items||[]).slice(0,20),notice:context.maintenance.notice}:undefined};
+  const reduced={meta:context.meta,notice:'O contexto foi reduzido por limite de tamanho.',dataNotice:context.dataNotice};if(context.report)reduced.report={scope:context.report.scope,titulo:context.report.titulo,tipoRelatorio:context.report.tipoRelatorio,resumo:context.report.resumo,totalRegistros:context.report.totalRegistros,registros:(context.report.registros||[]).slice(0,12),limitado:true};if(context.reports){reduced.reports={};Object.keys(context.reports).forEach(function(k){const r=context.reports[k]||{};reduced.reports[k]={scope:r.scope,titulo:r.titulo,tipoRelatorio:r.tipoRelatorio,resumo:r.resumo,totalRegistros:r.totalRegistros,registros:(r.registros||[]).slice(0,8),limitado:true};});}if(context.vehicleHistory)reduced.vehicleHistory=context.vehicleHistory;if(context.fleet)reduced.fleet={scope:context.fleet.scope,resumo:context.fleet.resumo,totalRegistros:context.fleet.totalRegistros,registros:(context.fleet.registros||[]).slice(0,12),limitado:true};if(context.cards)reduced.cards={scope:context.cards.scope,resumo:context.cards.resumo,totalRegistros:context.cards.totalRegistros,registros:(context.cards.registros||[]).slice(0,12),limitado:true};return reduced;
 }
 
 function aiCallGroq_(question,context,model){
@@ -298,6 +335,8 @@ function aiSystemPrompt_(){
   return [
     'Você é o Assistente de análise do SIGVTR — Sistema Integrado de Gestão de Viaturas do 20º BPM/PMPA.',
     'Sua função é somente consultiva: ler, analisar, cruzar, resumir, explicar e recomendar. Nunca execute ações nem afirme que alterou registros.',
+    'As consultas do Assistente usam as mesmas funções somente leitura do módulo Relatórios 2.x. Quando houver resumo ou registro explícito do relatório, trate-o como a fonte principal para aquela informação.',
+    'Para frota, preserve exatamente os status do SIGVTR (ATIVA, INDISPONIVEL, MANUTENCAO, RESERVA e BAIXADA) e a Data do Status quando fornecida. Não deduza status apenas por observações.',
     'Responda em português brasileiro, com linguagem profissional, objetiva e adequada à decisão administrativa.',
     'Use EXCLUSIVAMENTE os dados fornecidos entre as tags <SIGVTR_DADOS>. Não invente viaturas, datas, quilometragens, avarias, abastecimentos, estatísticas, pessoas ou fatos.',
     'Se os dados forem ausentes, insuficientes ou conflitantes, declare isso claramente. Não complete lacunas por suposição.',

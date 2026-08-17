@@ -1,5 +1,16 @@
 # Changelog
 
+## Relatórios 2.2 — Cartões vinculados e Assistente IA consultando Relatórios 2.x
+
+- Adiciona a coluna opcional **Cartões vinculados** aos relatórios de Checklists, Frota, Combustível e Quilometragem/Revisões.
+- Relaciona cartões às viaturas usando o vínculo real já existente em `CARTOES` (`ID_VTR` e, como compatibilidade, prefixo).
+- Mantém o relatório específico **Cartões** e as colunas de cartão do **Relatório Personalizado**.
+- O Assistente SIGVTR IA passa a consultar `getAdminReportsV2_()` conforme o assunto da pergunta, reutilizando a mesma fonte somente leitura do módulo Relatórios.
+- Adiciona classificação específica de perguntas sobre **Frota** e **Cartões**, evitando confundir “viatura reserva” ou “cartão reserva” com nível de combustível `RESERVA`.
+- O Assistente passa a receber status da frota, Data do Status, observações, cartões vinculados, revisões, checklists, combustível e avarias conforme a categoria solicitada.
+- Perguntas gerais recebem uma consolidação controlada dos principais relatórios, respeitando o limite de contexto da integração Groq.
+- Nenhuma operação de escrita foi adicionada ao Assistente; a IA permanece estritamente consultiva.
+
 ## Relatórios 2.1.1 — Status temporários no Resumo da Frota
 
 - O Resumo da Frota passa a exibir **Indisponíveis** e **Em manutenção**, além dos totais já existentes.

@@ -1,3 +1,58 @@
+# ATUALIZAÇÃO — Relatórios 2.2 / Assistente IA
+
+## Cartões relacionados às viaturas nos relatórios
+
+A coluna opcional **Cartões vinculados** foi adicionada aos relatórios:
+
+- Checklists / Relatório operacional;
+- Frota / Viaturas;
+- Combustível;
+- Quilometragem / Revisões.
+
+O vínculo utiliza os dados reais do módulo `CARTOES`, priorizando `ID_VTR` e usando o prefixo como compatibilidade. Quando houver mais de um cartão associado, eles aparecem no mesmo campo com número, tipo e situação.
+
+O relatório específico **Cartões** continua disponível e o **Relatório Personalizado** mantém suas colunas próprias de cartão.
+
+## Assistente SIGVTR IA
+
+O Assistente passa a reutilizar as consultas somente leitura do **Relatórios 2.x**. A categoria da pergunta determina a consulta usada:
+
+- Frota → `FROTA`;
+- Cartões → `CARTOES`;
+- Checklists → `CHECKLISTS`;
+- Combustível → `COMBUSTIVEL`;
+- Avarias → `AVARIAS`;
+- Quilometragem/manutenção → `QUILOMETRAGEM`.
+
+Perguntas gerais recebem uma consolidação limitada desses relatórios. Perguntas sobre uma viatura específica também podem combinar histórico, situação cadastral e cartões vinculados. A IA continua **somente leitura** e não altera nenhum registro do SIGVTR.
+
+### Arquivos alterados
+
+- `backend/Painel_Administrativo.gs`
+- `backend/Assistente_IA.gs`
+- `README.md`
+- `CHANGELOG.md`
+- `ATUALIZACAO.md`
+
+### Implantação
+
+No Google Apps Script, substituir **Painel_Administrativo.gs** e **Assistente_IA.gs** e publicar uma nova versão do Web App. No Git/Navegador, atualizar os arquivos do projeto e validar os testes abaixo antes do commit definitivo.
+
+### Testes recomendados
+
+1. Gerar Checklists marcando `Prefixo`, `Placa` e `Cartões vinculados`.
+2. Gerar Frota e conferir o cartão de uma VTR com cartão titular cadastrado.
+3. Gerar Combustível e Quilometragem/Revisões com a coluna `Cartões vinculados`.
+4. Perguntar ao Assistente: `Quantas viaturas estão indisponíveis?`.
+5. Perguntar: `Quais viaturas estão baixadas e quais possuem reserva?`.
+6. Perguntar: `Qual é a data do status da viatura 50-XXXX?` usando um prefixo real.
+7. Perguntar: `Qual cartão está vinculado à viatura 50-XXXX?`.
+8. Perguntar: `Quais cartões reserva estão cadastrados?`.
+9. Perguntar: `Quais viaturas estão com revisão vencida?`.
+10. Confirmar que o Assistente não altera status, cartões, avarias ou qualquer outro dado.
+
+---
+
 # ATUALIZAÇÃO — Relatórios 2.1.1
 
 ## Resumo da Frota — status temporários
