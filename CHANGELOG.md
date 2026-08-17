@@ -126,3 +126,10 @@
 - A resposta do backend informa `tipoChecklist` e `backendVersion` para diagnóstico.
 - A tela de Viaturas injeta os campos de revisão pelo JavaScript quando uma cópia HTML antiga estiver em cache.
 - Cache Fiscal e Administrativo atualizado para v1.19.6-RC1.
+
+
+## Relatórios 2.1 — Resumo da Frota e Data do Status
+- Adicionado resumo dinâmico da frota com totais de VTRs, ativas, baixadas, reservas e baixadas com/sem reserva disponibilizada.
+- Adicionado campo **Data do Status** à estrutura de VIATURAS, preenchido automaticamente quando o status é alterado.
+- Registros históricos sem data permanecem sem data informada; nenhuma data retroativa é inventada.
+- Data do Status disponível nos relatórios Frota e Personalizado.

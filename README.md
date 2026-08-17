@@ -55,3 +55,7 @@ O Checklist do Fiscal envia identificação explícita `FISCAL`, e o Painel poss
 
 ### Branch 02 — v1.19.6-RC1
 O Fiscal utiliza rota exclusiva no backend, garantindo classificação por formulário e não por militar. O cadastro de viaturas possui recuperação defensiva dos campos de revisão.
+
+
+### Relatórios 2.1
+O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da viatura. A data é registrada automaticamente nas novas mudanças de status.
