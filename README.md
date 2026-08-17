@@ -70,3 +70,7 @@ O **Assistente SIGVTR IA** passa a consultar as mesmas funções somente leitura
 
 ### Relatórios 2.1.1
 O relatório de Frota inclui resumo gerencial dinâmico e a Data do Status da viatura. A data é registrada automaticamente nas novas mudanças de status. O resumo contabiliza também os status **INDISPONIVEL** e **MANUTENCAO**, permitindo visualizar imediatamente viaturas temporariamente fora do serviço, como em viagens ou manutenções.
+
+
+### Relatórios 2.3.1
+As ações **Gerar relatório**, **Exportar CSV** e **Imprimir / Salvar PDF** ficam agrupadas no final do seletor de informações. Exportações só são habilitadas após a geração. A impressão ajusta automaticamente orientação e densidade conforme a quantidade de colunas selecionadas.

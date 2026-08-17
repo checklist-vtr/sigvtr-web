@@ -162,3 +162,12 @@
 - Adicionado campo **Data do Status** à estrutura de VIATURAS, preenchido automaticamente quando o status é alterado.
 - Registros históricos sem data permanecem sem data informada; nenhuma data retroativa é inventada.
 - Data do Status disponível nos relatórios Frota e Personalizado.
+
+
+## Relatórios 2.3.1 — Refinamento visual e fluxo de exportação
+- Reposiciona **Exportar CSV** e **Imprimir / Salvar PDF** junto ao botão **Gerar relatório**, acompanhando o fluxo natural de uso.
+- Mantém CSV e PDF desabilitados até existir um relatório gerado.
+- Reduz a dominância visual das ações de exportação no cabeçalho.
+- Compacta discretamente o bloco de Relatórios rápidos em telas amplas.
+- Adiciona impressão adaptativa: até 5 colunas usa A4 retrato e fonte maior; de 6 a 8 colunas usa A4 paisagem com densidade média; acima de 8 colunas usa A4 paisagem compacta.
+- Nenhuma API, regra de negócio ou backend foi alterado nesta etapa.

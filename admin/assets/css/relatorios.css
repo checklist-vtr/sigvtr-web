@@ -96,3 +96,23 @@ body.page-relatorios .badge{font-weight:700}
   body.page-relatorios .report-table thead th{position:static;background:#f3f3f3!important;font-size:7.5pt;padding:5px}
   body.page-relatorios .report-table td{padding:5px}
 }
+
+
+/* Relatorios 2.3.1 - fluxo de acoes e impressao adaptativa */
+body.page-relatorios .report-actions{padding-top:.25rem;border-top:1px solid color-mix(in srgb,var(--sigvtr-border) 70%,transparent)}
+body.page-relatorios .report-actions .btn{min-width:170px}
+body.page-relatorios .report-actions #reportGenerate{min-width:190px}
+body.page-relatorios .report-actions .btn:disabled{opacity:.5;cursor:not-allowed}
+body.page-relatorios #quickReports{row-gap:.55rem!important}
+@media(min-width:992px){body.page-relatorios .panel-card:has(#quickReports){padding-top:1.1rem!important;padding-bottom:1.1rem!important}}
+@media(max-width:767.98px){body.page-relatorios .report-actions .btn{width:100%;min-width:0}body.page-relatorios .report-actions{grid-template-columns:1fr}}
+@media print{
+ body.page-relatorios.print-few .report-table{font-size:10pt}
+ body.page-relatorios.print-few .report-table thead th{font-size:8.5pt;padding:6px}
+ body.page-relatorios.print-few .report-table td{padding:6px}
+ body.page-relatorios.print-medium .report-table{font-size:9pt}
+ body.page-relatorios.print-medium .report-table thead th{font-size:8pt}
+ body.page-relatorios.print-many .report-table{font-size:7.5pt}
+ body.page-relatorios.print-many .report-table thead th{font-size:6.8pt;padding:4px}
+ body.page-relatorios.print-many .report-table td{padding:4px}
+}
