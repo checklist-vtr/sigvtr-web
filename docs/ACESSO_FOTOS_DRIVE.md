@@ -28,3 +28,12 @@ A função é idempotente e pode ser executada novamente sem duplicar registros.
 A autenticação do Painel Administrativo continua protegendo a navegação e a descoberta normal das fotografias. Entretanto, um arquivo configurado como `ANYONE_WITH_LINK / VIEW` pode ser aberto por qualquer pessoa que obtenha diretamente o link daquele arquivo, mesmo sem autenticação no SIGVTR.
 
 Essa política é necessária para impedir que o Google Drive exija uma segunda autorização de conta ao visualizar as fotos pelo painel.
+
+---
+
+## Estado documental — Relatórios 2.3.2 (2026-08-18)
+
+Este documento integra a documentação vigente do SIGVTR. Na versão Relatórios 2.3.2, a impressão/PDF do módulo administrativo passou a adotar fonte mínima de 10 pt na tabela e no cabeçalho, quebra controlada de texto e distribuição semântica de largura das colunas. A mudança é exclusivamente de apresentação do relatório: não altera os dados, regras de negócio, CSV, backend ou Google Apps Script.
+
+Para implantação desta atualização, publicar os arquivos de frontend normalmente. O Service Worker administrativo foi versionado para renovar o cache; não é necessária nova implantação do Apps Script por causa desta correção de Relatórios.
+
