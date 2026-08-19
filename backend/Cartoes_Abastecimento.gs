@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Cartões de Abastecimento
  * Arquivo: Cartoes_Abastecimento.gs
- * Versão: 1.20.3-RC1
+ * Versão: 1.20.17-RC1
  *
  * Módulo administrativo para cadastro e consulta dos cartões de
  * abastecimento. Não contém doGet() nem doPost(); integra-se ao
@@ -41,12 +41,14 @@ function adminCardHeaderMap_(sh){const headers=sh.getRange(1,1,1,sh.getLastColum
 function adminCardObjects_(sh){if(!sh||sh.getLastRow()<2)return [];const hm=adminCardHeaderMap_(sh),values=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();return values.map(function(row,index){const o={_row:index+2};hm.headers.forEach(function(h,i){o[h]=row[i];});return o;});}
 function adminCardVehicleRows_(){const ss=getSpreadsheet_(),sh=ss.getSheetByName(SIGVTR.SHEETS.VEHICLES);if(!sh)return [];return readSheetObjects_(sh).filter(function(r){return String(r.Prefixo||'').trim();}).map(function(r){return {id:String(r['ID-VTR']||''),prefixo:String(r.Prefixo||''),placa:String(r.Placa||''),status:String(r.Status||'')};}).sort(function(a,b){return a.prefixo.localeCompare(b.prefixo,'pt-BR',{numeric:true});});}
 function adminCardFindVehicle_(id,prefix){const vehicles=adminCardVehicleRows_(),nid=String(id||''),np=adminCardNormalizePrefix_(prefix);for(let i=0;i<vehicles.length;i++){if((nid&&vehicles[i].id===nid)||(np&&adminCardNormalizePrefix_(vehicles[i].prefixo)===np))return vehicles[i];}return null;}
-function adminCardApiObject_(r){return {id:String(r.ID_CARTAO||''),numero:String(r.NUMERO_CARTAO||''),numeroFormatado:adminCardFormatNumber_(r.NUMERO_CARTAO),tipo:String(r.TIPO||'').toUpperCase(),idVtr:String(r.ID_VTR||''),prefixo:String(r.PREFIXO||''),placa:String(r.PLACA||''),ativo:String(r.ATIVO||'SIM').toUpperCase()!=='NAO',situacao:String(r.ATIVO||'SIM').toUpperCase()==='NAO'?'INATIVO':'ATIVO',observacao:String(r.OBSERVACAO||''),criadoEm:formatDateForApi_(r.CRIADO_EM),criadoPor:String(r.CRIADO_POR||''),alteradoEm:formatDateForApi_(r.ALTERADO_EM),alteradoPor:String(r.ALTERADO_POR||''),origem:String(r.ORIGEM||'')};}
+function adminCardApiObject_(r,identity){identity=identity||{};return {id:String(r.ID_CARTAO||''),numero:String(r.NUMERO_CARTAO||''),numeroFormatado:adminCardFormatNumber_(r.NUMERO_CARTAO),tipo:String(r.TIPO||'').toUpperCase(),idVtr:String(r.ID_VTR||''),prefixo:String(identity.prefixo!=null?identity.prefixo:r.PREFIXO||''),placa:String(identity.placa!=null?identity.placa:r.PLACA||''),ativo:String(r.ATIVO||'SIM').toUpperCase()!=='NAO',situacao:String(r.ATIVO||'SIM').toUpperCase()==='NAO'?'INATIVO':'ATIVO',observacao:String(r.OBSERVACAO||''),criadoEm:formatDateForApi_(r.CRIADO_EM),criadoPor:String(r.CRIADO_POR||''),alteradoEm:formatDateForApi_(r.ALTERADO_EM),alteradoPor:String(r.ALTERADO_POR||''),origem:String(r.ORIGEM||'')};}
+function adminCardVehicleIndexes_(vehicles){const byId={},byPlate={};(vehicles||[]).forEach(function(v){const id=String(v.id||''),plate=adminCardNormalizePlate_(v.placa);if(id)byId[id]=v;if(plate&&!byPlate[plate])byPlate[plate]=v;});return {byId:byId,byPlate:byPlate};}
+function adminCardResolveIdentity_(r,indexes){const id=String(r.ID_VTR||''),plate=adminCardNormalizePlate_(r.PLACA),vehicle=(id&&indexes.byId[id])||(plate&&indexes.byPlate[plate])||null;if(vehicle)return {prefixo:String(vehicle.prefixo||r.PREFIXO||''),placa:String(vehicle.placa||r.PLACA||'')};return {prefixo:String(r.PREFIXO||''),placa:String(r.PLACA||'')};}
 
 function getAdminCards_(){
-  const sh=ensureAdminCardSheet_(),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(adminCardApiObject_);
+  const sh=ensureAdminCardSheet_(),vehicles=adminCardVehicleRows_(),indexes=adminCardVehicleIndexes_(vehicles),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(function(r){return adminCardApiObject_(r,adminCardResolveIdentity_(r,indexes));});
   items.sort(function(a,b){return String(a.prefixo||'ZZZ').localeCompare(String(b.prefixo||'ZZZ'),'pt-BR',{numeric:true})||a.numero.localeCompare(b.numero);});
-  return {items:items,vehicles:adminCardVehicleRows_()};
+  return {items:items,vehicles:vehicles};
 }
 
 function saveAdminCard_(input,user){
@@ -78,6 +80,7 @@ function saveAdminCard_(input,user){
   const row=hm.headers.map(function(h){return Object.prototype.hasOwnProperty.call(record,h)?record[h]:(existing&&Object.prototype.hasOwnProperty.call(existing,h)?existing[h]:'');});
   sh.getRange(targetRow,1,1,row.length).setValues([row]);
   const numberCol=hm.map.NUMERO_CARTAO;if(numberCol!==undefined)sh.getRange(targetRow,numberCol+1).setNumberFormat('@').setValue(numero);
+  const prefixCol=hm.map.PREFIXO;if(prefixCol!==undefined)sh.getRange(targetRow,prefixCol+1).setNumberFormat('@').setValue(prefixo);
   adminLogSecurity_(existing?'CARTAO_ALTERADO':'CARTAO_CRIADO',user,'CARTOES','SUCESSO','ID '+record.ID_CARTAO+' | '+tipo+' | '+prefixo+' | '+(ativo==='SIM'?'ATIVO':'INATIVO'));
   return {success:true,item:adminCardApiObject_(record)};
 }
