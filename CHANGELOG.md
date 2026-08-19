@@ -241,3 +241,15 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 3. Crie uma nova versão/implantação do Web App usando a mesma URL operacional.
 4. Publique os arquivos web alterados no Git/Navegador.
 5. Valide edição individual, atualização em massa, posição histórica, CSV, impressão/PDF e Assistente IA.
+
+## 1.20.15-RC1 - Otimizacao backend baseada em medicao
+
+- Otimiza o Dashboard administrativo para ler cada aba necessaria uma unica vez por requisicao e reutilizar os dados em memoria durante o processamento.
+- Remove releituras internas de ALERTAS, RETIRADAS, AVARIAS e VIATURAS durante a composicao do Dashboard.
+- Torna a migracao legada de estado de notificacoes idempotente e executada uma unica vez por instalacao, evitando varredura completa de ALERTAS em consultas normais.
+- Evita reaplicar formatacao da coluna Prefixo durante simples consulta de viaturas.
+- Otimiza a montagem de viaturas com indices em memoria para avarias abertas, ultimo checklist e revisao ativa.
+- Otimiza o historico por viatura reutilizando leituras de RETIRADAS, AVARIAS, EVENTOS, ALERTAS, FOTOS e VIATURAS na mesma requisicao.
+- Reduz gravacoes individuais do consumo de notificacoes agrupando linhas contiguas em operacoes setValues, mantendo o LockService existente.
+- Otimiza o relatorio inicial de CHECKLISTS/COMBUSTIVEL para reutilizar contexto de leitura por requisicao, sem cache persistente de dados administrativos.
+- Mantem autenticacao, autorizacao, sessoes, perfis, LockService, dados e rotas da API inalterados.

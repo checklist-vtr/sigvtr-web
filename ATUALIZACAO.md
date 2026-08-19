@@ -1,159 +1,3 @@
-# ATUALIZAÇÃO — 1.20.15-RC1 — Segurança, Performance e UX
-
-## Objetivo
-Intervenção cirúrgica no Painel Administrativo do SIGVTR para corrigir os riscos confirmados de retorno pós-login e fallback GET, melhorar o feedback de logout, instrumentar chamadas ao Apps Script e alinhar o versionamento PWA, sem redesenhar o sistema e sem alterar backend, dados, perfis ou regras de negócio.
-
-## Diagnóstico e correções
-
-| Problema | Arquivo/função | Causa confirmada | Correção |
-| --- | --- | --- | --- |
-| `return`/`redirect` permissivo | `admin/assets/js/auth.js` | rejeição apenas de padrões simples de URL | allowlist de páginas administrativas e canonicalização local |
-| fallback GET do login | `admin/login.html` | formulário sem `method`, cujo padrão HTML é GET | `method="post"` e `action="login.html"` |
-| múltiplas submissões de login | `admin/assets/js/login.js` | proteção dependia principalmente do estado do botão | trava lógica `loginInProgress` |
-| logout sem resposta visual | `AuthService.logout()` | chamada ao Apps Script iniciava antes de qualquer feedback visual | overlay imediato e bloqueio dos botões |
-| logout potencialmente longo | `AuthService.logout()` / `ApiService.post()` | timeout global + retry podia prolongar a operação | timeout de 20 s e `retries: 0` somente no logout |
-| ausência de medição objetiva | `admin/assets/js/api.js` | chamadas não registravam duração | `console.debug('[SIGVTR API]', ação, ms, status)` |
-| URL de backend usada em `href`/foto | scripts de Pesquisa Global, Arquivamento, Histórico, Checklists e Avarias | escape HTML não valida protocolo/origin | allowlist de página interna e HTTPS restrito a hosts Google esperados |
-| brasão excessivamente pesado | `admin/assets/images/brasao-20bpm.webp` | 1600×1600 para exibição de até 112 px | nova cópia 192×192, mantendo o original |
-| versões PWA divergentes | HTML, `manifest.json`, `sw.js`, `admin.js`, `admin-layout.js`, `api.js` | cache-busters e caches de várias versões | versão administrativa oficial `1.20.15-RC1` |
-
-## Segurança
-- **Melhora:** retorno pós-login passa a aceitar somente páginas administrativas conhecidas.
-- **Melhora:** `javascript:`, `data:`, URL externa, `//`, caminho absoluto, `../`, barra invertida e páginas desconhecidas são rejeitados.
-- **Melhora:** credenciais não são mais serializadas na URL por submissão HTML nativa.
-- **Melhora:** links/fotos provenientes da API são validados antes do uso em `href` ou `src`.
-- **Mantém:** token continua em `sessionStorage`; não houve migração arquitetural para cookies.
-- **Mantém:** autorização server-side, validação de sessão e lógica do backend não foram removidas nem relaxadas.
-- **Logout:** se o backend não responder em 20 segundos, a sessão local é removida como já ocorria anteriormente e o login informa que a confirmação remota não foi obtida. Isso não é tratado como confirmação de revogação no servidor.
-
-## Performance
-### Recurso estático
-- Brasão administrativo anterior: aproximadamente **160.470 bytes**, 1600×1600.
-- Brasão novo: aproximadamente **7.458 bytes**, 192×192.
-- Redução aproximada do arquivo usado no painel/login: **95,4%**.
-
-### Chamadas Apps Script
-A versão agora mede chamadas de rede no console no formato:
-
-```text
-[SIGVTR API] adminDashboard 1840 ms ok
-[SIGVTR API] adminHistoricoViatura 3260 ms ok
-```
-
-A instrumentação não registra senha, token, CPF ou payload.
-
-**ANTES:** não existia medição centralizada confiável.
-
-**DEPOIS:** medição disponível por ação no navegador.
-
-Não foram inventados tempos de Dashboard, Alertas, Cartões, Prontuário, Checklists ou Viaturas, porque esta cópia não possui uma sessão autenticada de homologação para executar essas chamadas reais. Por esse motivo, nenhuma função do Apps Script foi otimizada nesta entrega.
-
-## Polling
-O polling de `adminConsumirNotificacoesNovas` foi analisado e mantido sem alteração. A chamada não é somente leitura: ela também marca notificações como visualizadas. A implementação já possui trava contra concorrência própria e intervalo diferenciado quando o documento está oculto. Sem medição comprovando competição relevante, alterar frequência ou paralelização nesta etapa seria especulativo.
-
-## PWA / cache
-- Versão oficial administrativa: `1.20.15-RC1`.
-- Service Worker: `sigvtr-admin-v12015rc1`.
-- Registro do SW: `sw.js?v=1.20.15-rc1`.
-- Manifest: `1.20.15-rc1`.
-- Cache do `ApiService`: `sigvtr_admin_api_v12015rc1:`.
-- Query strings dos assets administrativos foram sincronizadas em `v=1.20.15-rc1`.
-- A estratégia do Service Worker foi preservada; não houve conversão para SPA nem mudança da política network-first existente para HTML/JS/CSS.
-
-## Arquivos alterados
-
-### Segurança / UX / instrumentação
-- `admin/login.html`
-- `admin/assets/js/login.js`
-- `admin/assets/js/auth.js`
-- `admin/assets/js/api.js`
-- `admin/assets/css/admin.css`
-- `admin/assets/js/busca-global.js`
-- `admin/assets/js/arquivamento.js`
-- `admin/assets/js/historico-viatura.js`
-- `admin/assets/js/checklists-admin.js`
-- `admin/assets/js/avarias.js`
-
-### PWA / versionamento / recurso estático
-- `admin/sw.js`
-- `admin/manifest.json`
-- `admin/assets/js/admin.js`
-- `admin/assets/js/admin-layout.js`
-- `admin/assets/images/brasao-20bpm-192.webp`
-- páginas `admin/*.html` somente para sincronização das query strings de versão quando aplicável.
-
-### Documentação
-- `CHANGELOG.md`
-- `ATUALIZACAO.md`
-
-`README.md` permanece inalterado. Nenhum arquivo de `backend/*.gs` foi modificado.
-
-## Testes executados
-- [x] `node --check` nos JavaScripts alterados.
-- [x] `return=index.html` aceito.
-- [x] retorno com query string legítima aceito.
-- [x] retorno com hash legítimo aceito.
-- [x] URL externa rejeitada.
-- [x] `//host` rejeitado.
-- [x] `javascript:` rejeitado.
-- [x] `data:` rejeitado.
-- [x] caminho absoluto rejeitado.
-- [x] `../` rejeitado.
-- [x] página não cadastrada rejeitada.
-- [x] `login.html` rejeitado como destino de retorno.
-- [x] URL HTTPS do Google Drive aceita.
-- [x] URL HTTPS de `googleusercontent.com` aceita.
-- [x] HTTP do Drive rejeitado.
-- [x] host falso `drive.google.com.evil.example` rejeitado.
-- [x] 10 acionamentos simultâneos de logout resultam em uma única chamada.
-- [x] os dois botões de logout ficam bloqueados no primeiro acionamento.
-- [x] formulário de login validado estaticamente com `method=post`.
-- [x] todos os 39 recursos declarados no `admin/sw.js` existem.
-- [x] referências administrativas de versão convergem para `1.20.15-RC1`.
-- [ ] teste integrado com credencial real em GitHub Pages + Apps Script.
-- [ ] medição real antes/depois das páginas protegidas.
-- [ ] teste visual automatizado completo nas seis resoluções solicitadas; o Chromium headless do ambiente de revisão não concluiu a captura dentro do limite disponível.
-
-## Testes de homologação obrigatórios após publicação
-Login correto/incorreto, usuário inexistente, JavaScript desabilitado, Enter, clique repetido, retornos válidos/inválidos; logout normal, duplo clique, 10 cliques, rede lenta/offline, erro Apps Script, timeout, sessão expirada, voltar/recarregar página protegida; e responsividade em 360×800, 390×844, 412×915, 768×1024, 1366×768 e 1920×1080. Conferir também Console e Network para erros, chamadas duplicadas e os novos tempos `[SIGVTR API]`.
-
-## Observações não corrigidas nesta etapa
-- `admin/arquivamento.html` referencia `assets/css/arquivamento.css`, mas esse arquivo não existe na versão recebida. Como não está diretamente ligado às correções solicitadas e corrigir poderia alterar apresentação sem contexto, foi apenas registrado.
-- Bootstrap Icons continua carregado no login. A substituição por SVG local não foi feita porque é otimização secundária e não houve medição de impacto real que justificasse aumentar o escopo.
-- Cabeçalhos CSP/SRI não foram introduzidos nesta etapa; exigem homologação específica devido a GitHub Pages, CDN, scripts existentes e integração com Apps Script.
-
-## GitHub Desktop
-1. Substituir os arquivos desta entrega no repositório local.
-2. Conferir o diff e confirmar que **nenhum arquivo `backend/*.gs`** aparece alterado.
-3. Revisar especialmente `auth.js`, `login.js`, `api.js`, `admin.css`, `sw.js`, `manifest.json` e as mudanças de versão nos HTML.
-4. Criar o commit com o texto abaixo.
-5. Fazer push para a branch utilizada no projeto.
-6. Publicar no GitHub Pages e executar a homologação acima.
-
-## Apps Script
-**Nenhuma atualização é necessária nesta entrega.** Não copiar arquivos `.gs`, não criar nova implantação e não alterar a URL do Web App. Uma alteração de backend somente deverá ser feita depois que os logs de tempo identificarem uma função lenta específica.
-
-## Commit sugerido
-
-**Título:** `fix: reforça segurança, logout e instrumentação do painel administrativo`
-
-**Descrição:**
-
-```text
-- valida return/redirect com allowlist de páginas administrativas
-- impede fallback GET com credenciais no login
-- bloqueia submissões repetidas de login
-- adiciona feedback imediato e trava visual no logout
-- limita timeout do logout sem retry automático
-- instrumenta duração das chamadas ao Apps Script sem dados sensíveis
-- valida links internos e URLs de arquivos recebidas do backend
-- otimiza o brasão usado no login e na sidebar
-- uniformiza versão, cache e service worker em 1.20.15-RC1
-- mantém backend, autorização, dados, perfis e polling inalterados
-```
-
----
-
 ## Relatórios 2.3.2 — legibilidade de impressão/PDF (2026-08-18)
 
 A impressão dos Relatórios foi ajustada com prioridade explícita para legibilidade e acessibilidade. A tabela impressa passa a ter **10 pt como piso absoluto**, inclusive no cabeçalho. Relatórios com até 5 colunas usam corpo de 11 pt e cabeçalho de 10 pt; com 6 a 8 colunas, corpo de 10,5 pt e cabeçalho de 10 pt; com 9 ou mais, corpo e cabeçalho de 10 pt. A orientação continua automática: retrato até 5 colunas e paisagem a partir de 6.
@@ -488,3 +332,98 @@ Esta entrega é somente de frontend/PWA. Não exige nova implantação do Google
 3. Crie uma nova versão/implantação do Web App usando a mesma URL operacional.
 4. Publique os arquivos web alterados no Git/Navegador.
 5. Valide edição individual, atualização em massa, posição histórica, CSV, impressão/PDF e Assistente IA.
+
+---
+
+# Atualizacao - Performance backend baseada em medicao - 1.20.15-RC1
+
+## Diagnostico confirmado
+
+Medicoes antes desta intervencao mostraram aproximadamente:
+
+- adminDashboard: 16.457 a 16.845 ms
+- adminRelatorios: 20.818 ms
+- adminConsumirNotificacoesNovas: 9.437 ms
+- adminHistoricoViatura: 8.188 a 9.504 ms
+- adminAlertas: 7.040 ms
+- adminViaturas: 5.985 ms
+- adminCartoes: 5.322 ms
+- adminChecklists: 4.121 ms
+
+A analise do Apps Script confirmou releituras repetidas das mesmas abas dentro de uma unica requisicao, manutencao estrutural sendo executada no caminho de leitura e gravacoes unitarias no consumo de notificacoes.
+
+## Arquivo alterado
+
+- backend/Painel_Administrativo.gs
+
+Os demais arquivos .gs enviados foram preservados sem alteracao.
+
+## Alteracoes realizadas
+
+### Dashboard
+
+- Introduzido contexto de leitura valido somente durante a requisicao atual.
+- RETIRADAS, AVARIAS, ALERTAS, VIATURAS, REVISOES e EVENTOS sao lidas uma vez e reutilizadas para KPIs, alertas recentes, checklists recentes e timeline.
+- Indices de viaturas em memoria substituem buscas lineares repetidas.
+
+### Estrutura administrativa
+
+- A formatacao de cabecalho e congelamento de linha passam a ocorrer apenas quando a estrutura da aba realmente muda.
+- A migracao legada de Status Notificacao e executada uma unica vez e marcada em Script Properties pela chave SIGVTR_ADMIN_NOTIFICATION_MIGRATION_V1.
+- Novos alertas continuam recebendo Status Notificacao=NOVA normalmente.
+
+### Polling
+
+- LockService foi mantido.
+- A leitura e a regra de selecao de notificacoes permanecem iguais.
+- Gravacoes de Status Notificacao/Data Visualizacao Notificacao passam a ser agrupadas por linhas contiguas com setValues.
+
+### Viaturas
+
+- Consulta simples nao reaplica setNumberFormat sobre toda a coluna Prefixo.
+- Avarias abertas, ultimo checklist e revisao ativa sao indexados em uma passagem pelos dados, preservando o objeto retornado pela API.
+
+### Historico por viatura
+
+- As mesmas leituras sao reutilizadas durante a requisicao, evitando chamadas internas que voltavam ao Sheets.
+
+### Relatorios
+
+- CHECKLISTS e COMBUSTIVEL passam a compartilhar um contexto de leitura durante a mesma geracao.
+- Nao foi introduzido cache persistente para relatorios, sessoes, permissoes ou dados criticos.
+
+## Seguranca e integridade
+
+- Autenticacao_Admin.gs nao foi alterado.
+- Complemento_Mobile_v4.gs nao foi alterado.
+- Cartoes_Abastecimento.gs nao foi alterado.
+- Rotas administrativas continuam passando por adminAuthorize_.
+- LockService do fluxo de escrita permanece ativo.
+- Nenhuma validacao, sanitizacao, autorizacao ou log de seguranca foi removido.
+- Nenhuma planilha, coluna ou registro e apagado ou migrado por esta atualizacao, exceto a migracao legada de notificacoes que ja existia e agora e executada uma unica vez.
+
+## Testes locais executados
+
+- Verificacao sintatica JavaScript/V8 do Painel_Administrativo.gs: OK.
+- Equivalencia controlada da resposta de getAdminVehicles_: OK.
+- Teste controlado de leituras do Dashboard com dados simulados: 13 leituras antes e 6 depois.
+- Confirmacao por hash de que Autenticacao_Admin.gs, Complemento_Mobile_v4.gs e Cartoes_Abastecimento.gs permaneceram inalterados na copia de trabalho.
+
+## Medicao depois
+
+Ainda nao disponivel. O ganho real deve ser medido apos nova implantacao do Apps Script usando os mesmos logs [SIGVTR API]. Nao considerar o teste local de 13 -> 6 como tempo de producao.
+
+## Implantacao Apps Script
+
+1. Substituir somente Painel_Administrativo.gs pelo arquivo desta entrega.
+2. Salvar o projeto.
+3. Em Implantar > Gerenciar implantacoes, editar a implantacao atual ou criar nova versao da mesma implantacao Web App conforme o fluxo usado no SIGVTR.
+4. Manter a mesma URL do Web App quando a implantacao existente for atualizada; nao alterar a URL no frontend sem necessidade.
+5. Abrir o SIGVTR publicado e repetir as medicoes de adminDashboard, adminRelatorios, adminConsumirNotificacoesNovas, adminHistoricoViatura, adminViaturas e adminChecklists.
+6. Comparar os resultados com os tempos ANTES registrados acima.
+
+## Riscos e pendencias
+
+- A primeira requisicao apos esta versao pode executar a migracao legada de notificacoes uma ultima vez, caso a Script Property ainda nao exista.
+- Relatorios dos tipos FROTA, AVARIAS, QUILOMETRAGEM e PERSONALIZADO ainda possuem oportunidades de reutilizacao adicional; nao foram ampliadas nesta rodada para evitar refatoracao excessiva antes de nova medicao.
+- A resiliencia visual ja existente no frontend continua ativa; qualquer ampliacao de cache para paginas que hoje usam forceNetwork deve ser tratada separadamente e com indicacao explicita de dado desatualizado.
