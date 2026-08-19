@@ -427,3 +427,27 @@ Ainda nao disponivel. O ganho real deve ser medido apos nova implantacao do Apps
 - A primeira requisicao apos esta versao pode executar a migracao legada de notificacoes uma ultima vez, caso a Script Property ainda nao exista.
 - Relatorios dos tipos FROTA, AVARIAS, QUILOMETRAGEM e PERSONALIZADO ainda possuem oportunidades de reutilizacao adicional; nao foram ampliadas nesta rodada para evitar refatoracao excessiva antes de nova medicao.
 - A resiliencia visual ja existente no frontend continua ativa; qualquer ampliacao de cache para paginas que hoje usam forceNetwork deve ser tratada separadamente e com indicacao explicita de dado desatualizado.
+
+## Atualização 1.20.16-RC1 — Avarias, rede lenta e PWA
+
+### Alterações
+- `backend/Painel_Administrativo.gs`: `getAdminDamages_()` passou a ler AVARIAS uma única vez e a usar índices em memória para fotos/logs.
+- `admin/assets/js/api.js`: a revalidação em segundo plano agora pode informar sucesso ou falha à página chamadora; prefixo de cache atualizado.
+- `admin/assets/js/avarias.js`: distingue dados salvos, atualização em andamento e falha de atualização; não confunde falha de rede com zero avarias.
+- HTML administrativo, `admin/manifest.json`, `admin/sw.js`, `admin.js` e `admin-layout.js`: versionamento PWA/assets sincronizado em 1.20.16-RC1.
+
+### Segurança e integridade
+- Nenhuma alteração em autenticação, autorização, perfis, sessão ou estrutura de dados.
+- Nenhuma remoção de `LockService`.
+- A otimização de avarias é somente leitura e preserva os campos retornados pela API.
+
+### Testes recomendados após implantação
+- Abrir Avarias com Wi-Fi e dados móveis e confirmar retorno dos registros existentes.
+- Testar cache com rede offline após uma consulta válida e verificar o aviso de dados salvos.
+- Testar atualização forçada e confirmar que falha de rede não produz mensagem falsa de zero registros.
+- Conferir no DevTools que assets administrativos usam `v=1.20.16-rc1`.
+- Repetir a medição `[SIGVTR API] adminAvarias ... ms`.
+
+### Implantação
+- Atualizar `Painel_Administrativo.gs` no Apps Script e criar nova versão da implantação mantendo a URL existente.
+- Publicar os arquivos frontend alterados no GitHub Pages.

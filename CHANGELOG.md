@@ -253,3 +253,10 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Reduz gravacoes individuais do consumo de notificacoes agrupando linhas contiguas em operacoes setValues, mantendo o LockService existente.
 - Otimiza o relatorio inicial de CHECKLISTS/COMBUSTIVEL para reutilizar contexto de leitura por requisicao, sem cache persistente de dados administrativos.
 - Mantem autenticacao, autorizacao, sessoes, perfis, LockService, dados e rotas da API inalterados.
+
+## 1.20.16-RC1 — 2026-08-19
+- Corrige gargalo crítico da listagem de avarias, eliminando releituras da aba AVARIAS dentro do loop de registros.
+- Indexa contagens de fotos e histórico em memória durante a mesma requisição.
+- Diferencia cache de avarias de resultado confirmado e informa falha de revalidação em rede lenta.
+- Mantém o último resultado válido visível quando a atualização falha, sem apresentar cache vazio como confirmação atual.
+- Uniformiza referências de assets/PWA do painel administrativo em 1.20.16-RC1.

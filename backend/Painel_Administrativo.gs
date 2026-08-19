@@ -315,11 +315,12 @@ function getAdminChecklistDetail_(id){
 }
 
 function getAdminDamages_(params){
-  const ss=getSpreadsheet_(),vehicles=vehicleIndexAdmin_(ss),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),people={};
+  params=params||{};
+  const ss=getSpreadsheet_(),vehicles=vehicleIndexAdmin_(ss),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),damageRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),photoRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)),logRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.LOGS)),people={},photoCountByWithdrawal={},logCountByDamage={};
   withdrawals.forEach(function(r){people[String(r.ID_RETIRADA||"")]={condutor:joinRankName_(r["Posto/Graduação"],r.Motorista),protocolo:r.Protocolo||""};});
-  let rows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).map(function(r){const v=vehicles[String(r.ID_VTR)]||{},p=people[String(r.ID_RETIRADA_DETECCAO||"")]||{};return {id:r.ID_AVARIA||"",prefixo:v.prefixo||"",item:r.Item||"",descricao:r.Descrição||"",data:formatDateForApi_(r["Data Detecção"]),situacao:r.Situação||"",registradoPor:p.condutor||"",protocolo:p.protocolo||"",local:r["Posição/Local"]||r.Item||"",responsavel:r["Responsável Administração"]||"",observacaoAdministracao:r["Observação Administração"]||"",dataUltimaAtualizacao:formatDateForApi_(r["Data da Última Atualização"]),fotosCount:0,historicoCount:0};});
-  const photoRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.PHOTOS)),logRows=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.LOGS));
-  rows.forEach(function(item){const source=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)).find(function(d){return String(d.ID_AVARIA||"")===String(item.id);})||{};item.fotosCount=photoRows.filter(function(p){return String(p.ID_RETIRADA||"")===String(source.ID_RETIRADA_DETECCAO||"");}).length;item.historicoCount=logRows.filter(function(l){return String(l.ID_REFERENCIA||"")===String(item.id);}).length+1;});
+  photoRows.forEach(function(p){const id=String(p.ID_RETIRADA||"");if(id)photoCountByWithdrawal[id]=(photoCountByWithdrawal[id]||0)+1;});
+  logRows.forEach(function(l){const id=String(l.ID_REFERENCIA||"");if(id)logCountByDamage[id]=(logCountByDamage[id]||0)+1;});
+  let rows=damageRows.map(function(r){const id=String(r.ID_AVARIA||""),withdrawalId=String(r.ID_RETIRADA_DETECCAO||""),v=vehicles[String(r.ID_VTR)]||{},p=people[withdrawalId]||{};return {id:id,prefixo:v.prefixo||"",item:r.Item||"",descricao:r.Descrição||"",data:formatDateForApi_(r["Data Detecção"]),situacao:r.Situação||"",registradoPor:p.condutor||"",protocolo:p.protocolo||"",local:r["Posição/Local"]||r.Item||"",responsavel:r["Responsável Administração"]||"",observacaoAdministracao:r["Observação Administração"]||"",dataUltimaAtualizacao:formatDateForApi_(r["Data da Última Atualização"]),fotosCount:photoCountByWithdrawal[withdrawalId]||0,historicoCount:(logCountByDamage[id]||0)+1};});
   const prefix=normalizeAdminPrefixSearch_(params.prefixo||""),status=String(params.status||"").trim().toUpperCase(),search=String(params.busca||"").trim().toLowerCase();
   if(prefix)rows=rows.filter(function(r){return normalizeAdminPrefixSearch_(r.prefixo).indexOf(prefix)>=0;});
   if(status)rows=rows.filter(function(r){return String(r.situacao).toUpperCase()===status;});
