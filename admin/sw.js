@@ -1,4 +1,4 @@
-const CACHE='sigvtr-admin-v12014rc1';
+const CACHE='sigvtr-admin-v12015rc1';
 const APP=['./','./index.html','./alertas.html','./checklists.html','./avarias.html','./historico-viatura.html','./viaturas.html','./cartoes.html','./prontuario.html','./relatorios.html','./assistente.html','./busca-global.html','./usuarios.html','./trocar-senha.html','./assets/css/admin.css','./assets/css/dashboard.css','./assets/css/avarias.css','./assets/css/viaturas.css','./assets/css/cartoes.css','./assets/css/prontuario.css','./assets/css/relatorios.css','./assets/css/assistente.css','./assets/js/api.js','./assets/js/admin.js','./assets/js/alertas.js','./assets/js/checklists-admin.js','./assets/js/historico-viatura.js','./assets/js/avarias.js','./assets/js/viaturas.js','./assets/js/cartoes.js','./assets/js/prontuario.js','./assets/js/auth.js','./assets/js/menu.js','./assets/js/admin-layout.js','./assets/js/usuarios.js','./assets/js/trocar-senha.js','./assets/js/relatorios.js','./assets/js/assistente.js',
   "./assets/css/checklists.css"
 ];

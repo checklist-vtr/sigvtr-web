@@ -7,8 +7,8 @@
   const badge=t=>({CHECKLIST:'primary',AVARIA:'danger',EVENTO:'info',ALERTA:'warning'}[t]||'secondary');
   const parseDate=value=>{const s=String(value||'').trim(),m=s.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/);return m?new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0)):new Date(s)};
   const formatNumber=v=>new Intl.NumberFormat('pt-BR').format(Number(v)||0);
-  const photoSrc=x=>x.thumbnailUrl||x.previewUrl||x.url||x['Link Drive']||'';
-  const photoOpen=x=>x.viewUrl||x.url||x['Link Drive']||photoSrc(x);
+  const photoSrc=x=>AuthService.safeDriveUrl(x.thumbnailUrl||x.previewUrl||x.url||x['Link Drive']||'','');
+  const photoOpen=x=>AuthService.safeDriveUrl(x.viewUrl||x.url||x['Link Drive']||photoSrc(x),'');
   const photoName=x=>x.tipo||x['Tipo Foto']||x.nomeArquivo||x['Nome Arquivo']||'Fotografia';
   const empty=(title,text)=>`<div class="empty-panel"><i class="bi bi-inbox fs-2 d-block mb-2"></i><strong>${esc(title)}</strong><p class="mb-0">${esc(text)}</p></div>`;
   function within(dateValue){const d=parseDate(dateValue);if(Number.isNaN(d.getTime()))return true;const start=$('historyStart').value?new Date($('historyStart').value+'T00:00:00'):null,end=$('historyEnd').value?new Date($('historyEnd').value+'T23:59:59'):null;return(!start||d>=start)&&(!end||d<=end)}

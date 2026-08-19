@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.20.15-RC1 — segurança, logout, instrumentação e consistência PWA (2026-08-19)
+
+- Substitui a validação permissiva de `return`/`redirect` por allowlist das páginas administrativas reais do SIGVTR.
+- Bloqueia URLs externas, esquemas executáveis (`javascript:`, `data:`), caminhos absolutos/relativos inesperados e páginas administrativas desconhecidas no retorno pós-login.
+- Define o formulário de login como `POST`, impedindo que usuário e senha sejam serializados na URL caso o JavaScript não intercepte a submissão.
+- Adiciona trava lógica contra submissões repetidas no login e mantém o botão bloqueado durante o redirecionamento após autenticação bem-sucedida.
+- Mantém a trava de logout já existente e adiciona feedback visual imediato com overlay responsivo, bloqueando os botões de saída no primeiro clique.
+- O logout usa timeout específico de 20 segundos e sem retry automático; em falha de comunicação, preserva a limpeza local existente e informa no login que a confirmação remota não foi obtida.
+- Adiciona instrumentação centralizada no `ApiService` com `console.debug` contendo somente ação, duração e resultado, sem registrar token, senha ou payload.
+- Valida links internos retornados pela Pesquisa Global e URLs de arquivos/fotos recebidas da API, permitindo somente HTTPS em hosts esperados do Google Drive/Googleusercontent.
+- Reduz o brasão usado no painel de 1600×1600 (~157 KB) para 192×192 (~7,5 KB), mantendo o original no repositório.
+- Uniformiza o cache-busting dos arquivos administrativos, versão exibida, manifest, registro do Service Worker, cache PWA e prefixo de cache do `ApiService` em `1.20.15-RC1`.
+- Nenhum arquivo `.gs`, regra de negócio, autorização, perfil, planilha, dado ou integração Google Drive/Sheets foi alterado.
+- Polling e backend permanecem inalterados até existirem medições reais das chamadas em produção/homologação.
+
 ## Relatórios 2.3.2 — legibilidade de impressão/PDF (2026-08-18)
 
 A impressão dos Relatórios foi ajustada com prioridade explícita para legibilidade e acessibilidade. A tabela impressa passa a ter **10 pt como piso absoluto**, inclusive no cabeçalho. Relatórios com até 5 colunas usam corpo de 11 pt e cabeçalho de 10 pt; com 6 a 8 colunas, corpo de 10,5 pt e cabeçalho de 10 pt; com 9 ou mais, corpo e cabeçalho de 10 pt. A orientação continua automática: retrato até 5 colunas e paisagem a partir de 6.

@@ -410,3 +410,12 @@ body.dark-mode {
   .topbar-right{gap:.4rem}
   .icon-button,.ai-topbar-link{width:38px;height:38px;min-height:38px;border-radius:10px}
 }
+
+/* Encerramento seguro de sessão — v1.20.15-rc1 */
+.logout-overlay{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:1rem;background:rgba(8,47,107,.38);backdrop-filter:blur(2px)}
+.logout-overlay-card{width:min(92vw,390px);display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:1.6rem 1.4rem;border:1px solid var(--sigvtr-border);border-radius:18px;background:var(--sigvtr-surface);color:var(--sigvtr-text);box-shadow:0 20px 55px rgba(8,47,107,.24);text-align:center}
+.logout-overlay-card .spinner-border{width:2.4rem;height:2.4rem}
+.logout-overlay-card strong{font-size:1.08rem}
+.logout-overlay-card span:last-child{max-width:310px;color:var(--sigvtr-muted);font-size:.9rem;line-height:1.45}
+body.dark-mode .logout-overlay{background:rgba(0,0,0,.56)}
+@media(max-width:575.98px){.logout-overlay-card{padding:1.35rem 1rem;border-radius:16px}}
