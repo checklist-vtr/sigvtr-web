@@ -451,3 +451,33 @@ Ainda nao disponivel. O ganho real deve ser medido apos nova implantacao do Apps
 ### Implantação
 - Atualizar `Painel_Administrativo.gs` no Apps Script e criar nova versão da implantação mantendo a URL existente.
 - Publicar os arquivos frontend alterados no GitHub Pages.
+
+## Implantação - Otimização 02 (2026-08-20)
+### Backend / Apps Script
+Substituir e publicar nova versão do Web App:
+- `backend/Painel_Administrativo.gs`
+- `backend/Cartoes_Abastecimento.gs`
+
+### Frontend / GitHub Pages
+Publicar os arquivos alterados:
+- `admin/assets/js/admin.js`
+- `admin/assets/js/alertas.js`
+- `admin/assets/js/viaturas.js`
+- `admin/sw.js`
+- `admin/index.html`
+- `admin/alertas.html`
+- `admin/viaturas.html`
+- `admin/busca-global.html`
+- `admin/checklists.html`
+- `admin/historico-viatura.html`
+- `admin/relatorios.html`
+
+Os HTML adicionais acima mudam apenas o parâmetro de versão de `admin.js`, garantindo invalidação correta do cache do navegador.
+
+### Teste após publicação
+1. Fechar abas antigas do SIGVTR e abrir o login novamente.
+2. DevTools > Network: marcar Preserve log e Disable cache apenas para o teste.
+3. Executar: login > Dashboard > Alertas > Viaturas > Cartões > Dashboard > logout.
+4. Registrar no Console os tempos `[SIGVTR API]`.
+5. No Apps Script > Execuções, registrar os `[SIGVTR PERF]` de `adminDashboard`, `adminAlertas`, `adminViaturas` e `adminCartoes`.
+6. Confirmar que `adminConsumirNotificacoesNovas` não aparece repetidamente quando não existem notificações novas.

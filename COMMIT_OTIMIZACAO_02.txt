@@ -1,0 +1,10 @@
+perf(admin): reduzir polling pesado e verificacoes estruturais em leituras
+
+- evita migracoes/verificacoes completas de ALERTAS e REVISOES nas rotas de leitura
+- evita ensure/reformatacao de VIATURAS e CARTOES em consultas normais
+- adiciona metricas de desempenho para alertas e cartoes
+- usa consulta leve antes de consumir notificacoes do Dashboard
+- reduz polling ativo e bloqueia chamadas repetidas por foco
+- troca auto-refresh pesado da Central de Alertas por deteccao leve de mudancas
+- exibe cache de sessao de Viaturas enquanto revalida dados no backend
+- atualiza cache busting e Service Worker administrativo

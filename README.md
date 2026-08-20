@@ -123,3 +123,6 @@ O modal de cartões mantém o rodapé com **Salvar cartão** acessível em zoom 
 3. Crie uma nova versão/implantação do Web App usando a mesma URL operacional.
 4. Publique os arquivos web alterados no Git/Navegador.
 5. Valide edição individual, atualização em massa, posição histórica, CSV, impressão/PDF e Assistente IA.
+
+## Nota de desempenho - Otimização 02
+Esta versão reduz trabalho de manutenção estrutural durante rotas de leitura, diminui polling administrativo pesado e melhora o tempo percebido da página de Viaturas com cache de sessão + revalidação em segundo plano. O histórico operacional permanece intacto e continua sendo lido do backend; não houve remoção de dados nem alteração das regras de autenticação/permissão.

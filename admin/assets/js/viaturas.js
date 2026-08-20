@@ -141,18 +141,30 @@ const ViaturasPage = (() => {
     renderVehicles();
   }
 
-  async function load() {
+  function applyVehicleData(data) {
+    vehicles = (data.items || []).map(mapVehicle);
+    renderKpis();
+    applyFilters();
+  }
+
+  async function load(force = false) {
     try {
       $('vehicleResultCount').textContent = 'Carregando cadastro mestre...';
-      const data = await ApiService.get('adminViaturas', {}, { forceNetwork: true });
-      vehicles = (data.items || []).map(mapVehicle);
-      renderKpis();
-      applyFilters();
+      const cached = !force ? ApiService.readCache('adminViaturas', {}) : null;
+      if (cached) applyVehicleData(cached.data || {});
+      const options = force ? { forceNetwork: true } : cached ? {
+        staleWhileRevalidate: true,
+        onRevalidateSuccess: fresh => applyVehicleData(fresh)
+      } : {};
+      const data = await ApiService.get('adminViaturas', {}, options);
+      applyVehicleData(data);
     } catch (error) {
-      vehicles = [];
-      renderKpis();
-      applyFilters();
-      $('vehicleResultCount').textContent = `Não foi possível carregar as viaturas: ${error.message}`;
+      if (!vehicles.length) {
+        vehicles = [];
+        renderKpis();
+        applyFilters();
+      }
+      $('vehicleResultCount').textContent = `Não foi possível atualizar as viaturas: ${error.message}`;
     }
   }
 
@@ -247,7 +259,7 @@ const ViaturasPage = (() => {
     try {
       await ApiService.post('adminSalvarViatura', payload);
       bootstrap.Modal.getInstance($('vehicleModal')).hide();
-      await load();
+      await load(true);
     } catch (error) {
       alert(`Não foi possível salvar: ${error.message}`);
     } finally {
@@ -293,7 +305,7 @@ const ViaturasPage = (() => {
       });
       bootstrap.Modal.getInstance($('reviewModal')).hide();
       bootstrap.Modal.getInstance($('vehicleDetailModal'))?.hide();
-      await load();
+      await load(true);
       alert('Revisão registrada. O alerta anterior foi resolvido e o novo ciclo foi iniciado.');
     } catch (error) {
       alert(`Não foi possível registrar a revisão: ${error.message}`);
@@ -381,7 +393,7 @@ const ViaturasPage = (() => {
       });
       alert(`Atualização concluída. Atualizadas: ${result.atualizadas || 0}. Não localizadas: ${result.naoLocalizadas || 0}.`);
       bootstrap.Modal.getInstance($('bulkEditModal')).hide();
-      await load();
+      await load(true);
     } catch (error) {
       alert(`Não foi possível aplicar a atualização: ${error.message}`);
     } finally {
@@ -392,7 +404,7 @@ const ViaturasPage = (() => {
   function init() {
     if (!AdminLayout.init()) return;
     $('newVehicleButton').onclick = () => openForm();
-    $('refreshVehiclesButton').onclick = load;
+    $('refreshVehiclesButton').onclick = () => load(true);
     $('bulkEditButton').onclick = openBulkEdit;
     $('vehicleForm').onsubmit = save;
     $('bulkEditForm').onsubmit = applyBulkUpdate;

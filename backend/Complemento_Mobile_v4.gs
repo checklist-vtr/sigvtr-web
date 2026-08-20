@@ -23,8 +23,11 @@ function doPost(e){
     if(action==="adminEncerrarSessoes")return json_({success:true,data:adminEndUserSessions_(token,data)});
 
     // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
+    // A autorização é calculada uma única vez e reutilizada se a ação for de escrita.
+    let adminRequestCtx=null;
     if(action.indexOf("admin")===0){
-      const adminReadCtx=adminAuthorize_(token,action);
+      adminRequestCtx=adminAuthorize_(token,action);
+      const adminReadCtx=adminRequestCtx;
       if(action==="adminDashboard")return json_({success:true,data:getAdminDashboard_()});
       if(action==="adminAlertas")return json_({success:true,data:getAdminAlerts_(data)});
       if(action==="adminAlertasRecentes")return json_({success:true,data:getAdminRealtimeAlerts_(data)});
@@ -56,7 +59,7 @@ function doPost(e){
       if(action==="salvarRetirada")return json_(saveWithdrawal_(data));
 
       if(action.indexOf("admin")===0){
-        const adminWriteCtx=adminAuthorize_(token,action);
+        const adminWriteCtx=adminRequestCtx||adminAuthorize_(token,action);
         if(action==="adminAtualizarStatusAlerta")return json_({success:true,data:updateAdminAlertStatus_(data)});
         if(action==="adminConsumirNotificacoesNovas")return json_({success:true,data:consumeAdminNotifications_(data)});
         if(action==="adminSalvarViatura"){

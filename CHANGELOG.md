@@ -260,3 +260,13 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Diferencia cache de avarias de resultado confirmado e informa falha de revalidação em rede lenta.
 - Mantém o último resultado válido visível quando a atualização falha, sem apresentar cache vazio como confirmação atual.
 - Uniformiza referências de assets/PWA do painel administrativo em 1.20.16-RC1.
+
+## Otimização 02 - desempenho administrativo (2026-08-20)
+- Rotas de leitura de Dashboard/Alertas deixam de executar verificação/migração completa de estrutura quando as abas essenciais já existem.
+- `adminViaturas` deixa de validar/reformatar a estrutura da aba VIATURAS em toda consulta.
+- `adminCartoes` deixa de validar/regravar cabeçalhos da aba CARTOES em toda consulta e passa a registrar métricas `[SIGVTR PERF]`.
+- Dashboard passa a consultar `adminAlertasRecentes` antes de consumir notificações; `adminConsumirNotificacoesNovas` só é chamado quando há notificações novas.
+- Polling ativo de notificações passa de 10 s para 15 s e recebe proteção contra chamadas repetidas por foco/visibilidade.
+- Gestão de Viaturas reaproveita cache de sessão para exibição imediata e revalida em segundo plano; ações manuais e escritas continuam forçando atualização de rede.
+- Central de Alertas substitui recarga completa automática a cada 30 s por uma consulta leve de detecção de mudanças.
+- Cache do Service Worker administrativo atualizado para `sigvtr-admin-v12018rc1`.

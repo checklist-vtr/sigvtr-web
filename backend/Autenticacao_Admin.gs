@@ -160,6 +160,7 @@ function adminLogin_(data){
   }finally{lock.releaseLock();}
 }
 function adminValidateSession_(token,touch){
+  const perfStart=Date.now();
   token=String(token||'');if(!token)throw new Error('SESSION_REQUIRED');ensureAdminAuthStructure_();
   const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),hash=adminTokenHash_(token),row=adminFindRowExact_(sh,hm.map.TOKEN_HASH,hash,true),now=Date.now();
   if(!row)throw new Error('SESSION_INVALID');
@@ -173,11 +174,12 @@ function adminValidateSession_(token,touch){
   // Evita uma gravação no Sheets a cada chamada administrativa. O timeout continua
   // conservador: a atividade só é renovada quando o último toque tem >= 2 minutos.
   if(touch!==false&&last+ADMIN_AUTH.SESSION_TOUCH_MINUTES*60000<=now)sh.getRange(row,hm.map.ULTIMA_ATIVIDADE+1).setValue(new Date());
+  console.log('[SIGVTR PERF] adminValidateSession_ '+(Date.now()-perfStart)+' ms');
   return {user,sessionRow:row,sessionSheet:sh,sessionMap:hm.map};
 }
 function adminAuthorize_(token,action){const ctx=adminValidateSession_(token,true),role=adminNormalizeRole_(ctx.user.role),perms=ADMIN_AUTH.PERMISSIONS[role]||[];if(perms.indexOf('*')<0&&perms.indexOf(action)<0){adminLogSecurity_('ACESSO_NEGADO',ctx.user,action,'NEGADO','Permissão insuficiente.');throw new Error('FORBIDDEN');}return ctx;}
 function adminSessionInfo_(token){const ctx=adminValidateSession_(token,true);return {success:true,user:ctx.user};}
-function adminLogout_(token){try{const ctx=adminValidateSession_(token,false);ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA+1).setValue('SIM');ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA_EM+1).setValue(new Date());ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.MOTIVO_REVOGACAO+1).setValue('LOGOUT');adminLogSecurity_('LOGOUT',ctx.user,'AUTH','SUCESSO','Logout administrativo.');}catch(_){}return {success:true};}
+function adminLogout_(token){const perfStart=Date.now();try{const ctx=adminValidateSession_(token,false),now=new Date();ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA+1,1,3).setValues([['SIM',now,'LOGOUT']]);adminLogSecurity_('LOGOUT',ctx.user,'AUTH','SUCESSO','Logout administrativo.');}catch(_){}console.log('[SIGVTR PERF] adminLogout_ '+(Date.now()-perfStart)+' ms');return {success:true};}
 function adminRevokeAllSessions_(idUsuario,motivo){ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),data=sh.getDataRange().getValues();for(let r=1;r<data.length;r++)if(String(data[r][hm.map.ID_USUARIO]||'')===String(idUsuario)&&!adminIsYes_(data[r][hm.map.REVOGADA])){sh.getRange(r+1,hm.map.REVOGADA+1,1,3).setValues([['SIM',new Date(),motivo||'REVOGADA']]);}}
 function adminChangePassword_(token,data){
   const ctx=adminAuthorize_(token,'adminAlterarMinhaSenha'),rec=adminFindUserById_(ctx.user.id),old=String(data&&data.senhaAtual||''),next=String(data&&data.novaSenha||''),m=rec.hm.map,v=rec.values;

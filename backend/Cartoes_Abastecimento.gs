@@ -30,6 +30,12 @@ function ensureAdminCardSheet_(){
   return sh;
 }
 
+function getAdminCardSheetForRead_(){
+  const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_CARD_SHEET_);
+  // Consulta nao precisa validar/regravar cabecalhos a cada abertura da pagina.
+  return sh||ensureAdminCardSheet_();
+}
+
 function adminCardNormalizeNumber_(value){return String(value||'').replace(/\D/g,'');}
 function adminCardFormatNumber_(value){const digits=adminCardNormalizeNumber_(value);return digits.replace(/(.{4})/g,'$1 ').trim();}
 function adminCardNormalizePrefix_(value){return String(value||'').trim().toUpperCase().replace(/\s+/g,'').replace(/^(\d{2})-?(\d{4})$/,'$1-$2').slice(0,20);}
@@ -46,8 +52,10 @@ function adminCardVehicleIndexes_(vehicles){const byId={},byPlate={};(vehicles||
 function adminCardResolveIdentity_(r,indexes){const id=String(r.ID_VTR||''),plate=adminCardNormalizePlate_(r.PLACA),vehicle=(id&&indexes.byId[id])||(plate&&indexes.byPlate[plate])||null;if(vehicle)return {prefixo:String(vehicle.prefixo||r.PREFIXO||''),placa:String(vehicle.placa||r.PLACA||'')};return {prefixo:String(r.PREFIXO||''),placa:String(r.PLACA||'')};}
 
 function getAdminCards_(){
-  const sh=ensureAdminCardSheet_(),vehicles=adminCardVehicleRows_(),indexes=adminCardVehicleIndexes_(vehicles),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(function(r){return adminCardApiObject_(r,adminCardResolveIdentity_(r,indexes));});
+  const perfTotal=Date.now(),perfRead=Date.now(),sh=getAdminCardSheetForRead_(),vehicles=adminCardVehicleRows_(),indexes=adminCardVehicleIndexes_(vehicles),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(function(r){return adminCardApiObject_(r,adminCardResolveIdentity_(r,indexes));});
+  if(typeof adminPerfMark_==='function')adminPerfMark_('adminCartoes leituras Sheets',perfRead);
   items.sort(function(a,b){return String(a.prefixo||'ZZZ').localeCompare(String(b.prefixo||'ZZZ'),'pt-BR',{numeric:true})||a.numero.localeCompare(b.numero);});
+  if(typeof adminPerfMark_==='function')adminPerfMark_('adminCartoes TOTAL',perfTotal);
   return {items:items,vehicles:vehicles};
 }
 

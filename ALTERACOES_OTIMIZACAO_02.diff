@@ -1,0 +1,404 @@
+diff -ruN sigvtr_web_current/sigvtr-web-main/ATUALIZACAO.md SIGVTR_otimizacao_02/ATUALIZACAO.md
+--- sigvtr_web_current/sigvtr-web-main/ATUALIZACAO.md	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/ATUALIZACAO.md	2026-08-20 16:29:46.497573289 +0000
+@@ -451,3 +451,33 @@
+ ### Implantação
+ - Atualizar `Painel_Administrativo.gs` no Apps Script e criar nova versão da implantação mantendo a URL existente.
+ - Publicar os arquivos frontend alterados no GitHub Pages.
++
++## Implantação - Otimização 02 (2026-08-20)
++### Backend / Apps Script
++Substituir e publicar nova versão do Web App:
++- `backend/Painel_Administrativo.gs`
++- `backend/Cartoes_Abastecimento.gs`
++
++### Frontend / GitHub Pages
++Publicar os arquivos alterados:
++- `admin/assets/js/admin.js`
++- `admin/assets/js/alertas.js`
++- `admin/assets/js/viaturas.js`
++- `admin/sw.js`
++- `admin/index.html`
++- `admin/alertas.html`
++- `admin/viaturas.html`
++- `admin/busca-global.html`
++- `admin/checklists.html`
++- `admin/historico-viatura.html`
++- `admin/relatorios.html`
++
++Os HTML adicionais acima mudam apenas o parâmetro de versão de `admin.js`, garantindo invalidação correta do cache do navegador.
++
++### Teste após publicação
++1. Fechar abas antigas do SIGVTR e abrir o login novamente.
++2. DevTools > Network: marcar Preserve log e Disable cache apenas para o teste.
++3. Executar: login > Dashboard > Alertas > Viaturas > Cartões > Dashboard > logout.
++4. Registrar no Console os tempos `[SIGVTR API]`.
++5. No Apps Script > Execuções, registrar os `[SIGVTR PERF]` de `adminDashboard`, `adminAlertas`, `adminViaturas` e `adminCartoes`.
++6. Confirmar que `adminConsumirNotificacoesNovas` não aparece repetidamente quando não existem notificações novas.
+diff -ruN sigvtr_web_current/sigvtr-web-main/CHANGELOG.md SIGVTR_otimizacao_02/CHANGELOG.md
+--- sigvtr_web_current/sigvtr-web-main/CHANGELOG.md	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/CHANGELOG.md	2026-08-20 16:29:46.497573289 +0000
+@@ -260,3 +260,13 @@
+ - Diferencia cache de avarias de resultado confirmado e informa falha de revalidação em rede lenta.
+ - Mantém o último resultado válido visível quando a atualização falha, sem apresentar cache vazio como confirmação atual.
+ - Uniformiza referências de assets/PWA do painel administrativo em 1.20.16-RC1.
++
++## Otimização 02 - desempenho administrativo (2026-08-20)
++- Rotas de leitura de Dashboard/Alertas deixam de executar verificação/migração completa de estrutura quando as abas essenciais já existem.
++- `adminViaturas` deixa de validar/reformatar a estrutura da aba VIATURAS em toda consulta.
++- `adminCartoes` deixa de validar/regravar cabeçalhos da aba CARTOES em toda consulta e passa a registrar métricas `[SIGVTR PERF]`.
++- Dashboard passa a consultar `adminAlertasRecentes` antes de consumir notificações; `adminConsumirNotificacoesNovas` só é chamado quando há notificações novas.
++- Polling ativo de notificações passa de 10 s para 15 s e recebe proteção contra chamadas repetidas por foco/visibilidade.
++- Gestão de Viaturas reaproveita cache de sessão para exibição imediata e revalida em segundo plano; ações manuais e escritas continuam forçando atualização de rede.
++- Central de Alertas substitui recarga completa automática a cada 30 s por uma consulta leve de detecção de mudanças.
++- Cache do Service Worker administrativo atualizado para `sigvtr-admin-v12018rc1`.
+diff -ruN sigvtr_web_current/sigvtr-web-main/COMMIT_OTIMIZACAO_02.txt SIGVTR_otimizacao_02/COMMIT_OTIMIZACAO_02.txt
+--- sigvtr_web_current/sigvtr-web-main/COMMIT_OTIMIZACAO_02.txt	1970-01-01 00:00:00.000000000 +0000
++++ SIGVTR_otimizacao_02/COMMIT_OTIMIZACAO_02.txt	2026-08-20 16:29:46.501860497 +0000
+@@ -0,0 +1,10 @@
++perf(admin): reduzir polling pesado e verificacoes estruturais em leituras
++
++- evita migracoes/verificacoes completas de ALERTAS e REVISOES nas rotas de leitura
++- evita ensure/reformatacao de VIATURAS e CARTOES em consultas normais
++- adiciona metricas de desempenho para alertas e cartoes
++- usa consulta leve antes de consumir notificacoes do Dashboard
++- reduz polling ativo e bloqueia chamadas repetidas por foco
++- troca auto-refresh pesado da Central de Alertas por deteccao leve de mudancas
++- exibe cache de sessao de Viaturas enquanto revalida dados no backend
++- atualiza cache busting e Service Worker administrativo
+diff -ruN sigvtr_web_current/sigvtr-web-main/README.md SIGVTR_otimizacao_02/README.md
+--- sigvtr_web_current/sigvtr-web-main/README.md	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/README.md	2026-08-20 16:29:46.497573289 +0000
+@@ -123,3 +123,6 @@
+ 3. Crie uma nova versão/implantação do Web App usando a mesma URL operacional.
+ 4. Publique os arquivos web alterados no Git/Navegador.
+ 5. Valide edição individual, atualização em massa, posição histórica, CSV, impressão/PDF e Assistente IA.
++
++## Nota de desempenho - Otimização 02
++Esta versão reduz trabalho de manutenção estrutural durante rotas de leitura, diminui polling administrativo pesado e melhora o tempo percebido da página de Viaturas com cache de sessão + revalidação em segundo plano. O histórico operacional permanece intacto e continua sendo lido do backend; não houve remoção de dados nem alteração das regras de autenticação/permissão.
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/alertas.html SIGVTR_otimizacao_02/admin/alertas.html
+--- sigvtr_web_current/sigvtr-web-main/admin/alertas.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/alertas.html	2026-08-20 16:29:24.507161733 +0000
+@@ -1 +1 @@
+-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Alertas</title><link rel="icon" href="assets/icons/favicon.ico?v=1.20.16-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.20.16-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.20.16-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.20.16-rc1"><link rel="manifest" href="manifest.json?v=1.20.16-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css?v=1.20.16-rc1"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"><div><p class="eyebrow mb-1">Central operacional</p><h1 class="h3 mb-1">Alertas</h1><p class="text-secondary mb-0">Checklists, avarias e revisões preventivas.</p></div><button id="refreshAlerts" class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise"></i> Atualizar</button></div><article class="panel-card p-3 mb-4"><div class="row g-3"><div class="col-md-3"><select id="filterType" class="form-select"><option value="">Todos os tipos</option><option>CHECKLIST</option><option>AVARIA</option><option>REVISAO</option></select></div><div class="col-md-3"><select id="filterStatus" class="form-select"><option value="">Todos os status</option><option>NOVO</option><option>VISUALIZADO</option><option>ENCAMINHADO</option><option>RESOLVIDO</option><option>ARQUIVADO</option></select></div><div class="col-md-4"><input id="filterPrefix" class="form-control" placeholder="Prefixo da viatura"></div><div class="col-md-2"><button id="applyFilters" class="btn btn-primary w-100">Filtrar</button></div></div></article><div id="alertsState"></div><section id="alertsList" class="row g-3"></section></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.16-rc1"></script><script src="assets/js/alertas.js?v=1.20.16-rc1"></script></body></html>
++<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Alertas</title><link rel="icon" href="assets/icons/favicon.ico?v=1.20.16-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.20.16-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.20.16-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.20.16-rc1"><link rel="manifest" href="manifest.json?v=1.20.16-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css?v=1.20.16-rc1"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"><div><p class="eyebrow mb-1">Central operacional</p><h1 class="h3 mb-1">Alertas</h1><p class="text-secondary mb-0">Checklists, avarias e revisões preventivas.</p></div><button id="refreshAlerts" class="btn btn-outline-primary"><i class="bi bi-arrow-clockwise"></i> Atualizar</button></div><article class="panel-card p-3 mb-4"><div class="row g-3"><div class="col-md-3"><select id="filterType" class="form-select"><option value="">Todos os tipos</option><option>CHECKLIST</option><option>AVARIA</option><option>REVISAO</option></select></div><div class="col-md-3"><select id="filterStatus" class="form-select"><option value="">Todos os status</option><option>NOVO</option><option>VISUALIZADO</option><option>ENCAMINHADO</option><option>RESOLVIDO</option><option>ARQUIVADO</option></select></div><div class="col-md-4"><input id="filterPrefix" class="form-control" placeholder="Prefixo da viatura"></div><div class="col-md-2"><button id="applyFilters" class="btn btn-primary w-100">Filtrar</button></div></div></article><div id="alertsState"></div><section id="alertsList" class="row g-3"></section></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.18-rc1"></script><script src="assets/js/alertas.js?v=1.20.18-rc1"></script></body></html>
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/assets/js/admin.js SIGVTR_otimizacao_02/admin/assets/js/admin.js
+--- sigvtr_web_current/sigvtr-web-main/admin/assets/js/admin.js	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/assets/js/admin.js	2026-08-20 16:28:59.817033143 +0000
+@@ -1,6 +1,6 @@
+ const AdminApp=(()=>{
+-  const ACTIVE_POLL_MS=10000, HIDDEN_POLL_MS=60000;
+-  let pollTimer=null,alertPollBusy=false,alertModalQueue=[],alertModalVisible=false,lastKpis={},audioContext=null,soundState=localStorage.getItem('sigvtr_alert_sound')==='1'?'pending':'off';
++  const ACTIVE_POLL_MS=15000, HIDDEN_POLL_MS=60000, ALERT_POLL_COOLDOWN_MS=5000;
++  let pollTimer=null,alertPollBusy=false,lastAlertPollAt=0,alertModalQueue=[],alertModalVisible=false,lastKpis={},audioContext=null,soundState=localStorage.getItem('sigvtr_alert_sound')==='1'?'pending':'off';
+   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+   const menu=`<div class="sidebar-brand"><div class="sidebar-brand-icon"><img src="assets/images/brasao-20bpm-192.webp" alt="Brasão do 20º BPM"></div><div><strong>SIGVTR</strong><span>20º BPM · Gestão de Viaturas</span></div></div><nav class="sidebar-nav"><p class="sidebar-section-label">Principal</p>${[['index.html','bi-grid-1x2-fill','Dashboard'],['busca-global.html','bi-search','Pesquisa Global'],['alertas.html','bi-bell-fill','Alertas'],['historico-viatura.html','bi-clock-history','Histórico por Viatura'],['viaturas.html','bi-truck-front-fill','Viaturas'],['checklists.html','bi-clipboard2-check-fill','Checklists'],['avarias.html','bi-tools','Avarias'],['usuarios.html','bi-people-fill','Usuários'],['relatorios.html','bi-bar-chart-fill','Relatórios'],['arquivamento.html','bi-device-hdd-fill','Arquivamento'],['configuracoes.html','bi-gear-fill','Configurações']].map(x=>`<a class="sidebar-link" href="${x[0]}"><i class="bi ${x[1]}"></i><span>${x[2]}</span></a>`).join('')}</nav><div class="sidebar-footer"><button id="logoutButton" class="sidebar-link border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right"></i><span>Sair</span></button></div>`;
+   function ensureRuntimeUi(){if(!document.getElementById('connectionState'))document.body.insertAdjacentHTML('beforeend','<div id="connectionState" class="position-fixed bottom-0 start-50 translate-middle-x mb-3 px-3 py-2 rounded shadow-sm bg-warning-subtle text-warning-emphasis d-none" style="z-index:1090"></div>');if(!document.getElementById('adminRealtimeAlertModal'))document.body.insertAdjacentHTML('beforeend',`<div class="modal fade" id="adminRealtimeAlertModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content realtime-alert-modal"><div class="modal-header realtime-alert-header"><div class="d-flex align-items-center gap-3"><span id="adminRealtimeAlertIcon" class="realtime-alert-icon"><i class="bi bi-bell-fill"></i></span><div><div id="adminRealtimeAlertType" class="realtime-alert-type">SIGVTR</div><h2 id="adminRealtimeAlertTitle" class="modal-title h5 mb-0">Novo alerta</h2></div></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><p id="adminRealtimeAlertMessage" class="mb-3"></p><div id="adminRealtimeAlertPrefix" class="realtime-alert-prefix"></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button><a class="btn btn-primary" href="alertas.html"><i class="bi bi-bell me-2"></i>Abrir Central de Alertas</a></div></div></div></div>`);}
+@@ -10,7 +10,7 @@
+   function playAlertSound(force=false){if(!force&&soundState!=='on')return false;try{if(!audioContext||audioContext.state!=='running')return false;const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sine';osc.frequency.setValueAtTime(740,now);osc.frequency.setValueAtTime(920,now+.13);gain.gain.setValueAtTime(.07,now);gain.gain.exponentialRampToValueAtTime(.001,now+.38);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+.4);return true;}catch(_){soundState='blocked';return false;}}
+   function showNextRealtimeAlert(){if(alertModalVisible||!alertModalQueue.length)return;const data=alertModalQueue.shift(),modalEl=document.getElementById('adminRealtimeAlertModal');if(!modalEl)return;const theme=alertTheme(data.kind);modalEl.querySelector('.realtime-alert-modal').className='modal-content realtime-alert-modal theme-'+theme.theme;adminRealtimeAlertIcon.innerHTML=`<i class="bi ${theme.icon}"></i>`;adminRealtimeAlertType.textContent=theme.label+' · SIGVTR';adminRealtimeAlertTitle.textContent=data.title||'Novo alerta';adminRealtimeAlertMessage.textContent=data.message||'';adminRealtimeAlertPrefix.textContent=data.prefix?`Viatura: ${data.prefix}`:'';adminRealtimeAlertPrefix.hidden=!data.prefix;const modal=bootstrap.Modal.getOrCreateInstance(modalEl,{backdrop:'static'});alertModalVisible=true;playAlertSound();modalEl.addEventListener('hidden.bs.modal',()=>{alertModalVisible=false;setTimeout(showNextRealtimeAlert,180)},{once:true});modal.show();}
+   function toast(title,message,kind='CHECKLIST',prefix=''){alertModalQueue.push({title,message,kind,prefix});showNextRealtimeAlert();}
+-  function shell(){document.getElementById('sidebar').innerHTML=menu;document.getElementById('navbar').innerHTML=`<div class="topbar"><div class="topbar-left"><button id="sidebarToggle" class="icon-button d-lg-none"><i class="bi bi-list fs-4"></i></button><div><div class="topbar-title">Painel Administrativo</div><div id="currentDate" class="topbar-date"></div></div></div><div class="topbar-center"><a class="ai-topbar-link" href="assistente.html" title="Abrir Assistente SIGVTR"><i class="bi bi-robot"></i><span>Assistente SIGVTR</span><span class="ai-topbar-badge">IA</span></a></div><div class="topbar-right"><a class="icon-button" href="busca-global.html" title="Pesquisa global"><i class="bi bi-search"></i></a><button id="themeToggle" class="icon-button"><i class="bi bi-moon-stars"></i></button><div class="user-chip"><div class="user-avatar">AD</div><div><strong id="userName" class="d-block small">Administrador</strong><span class="text-secondary" style="font-size:.74rem">Administrador</span></div></div><button id="topbarLogoutButton" class="btn btn-outline-secondary btn-sm d-none d-md-inline-flex align-items-center gap-2" type="button" title="Encerrar sessão"><i class="bi bi-box-arrow-right"></i><span>Sair</span></button></div></div>`;document.getElementById('footer').innerHTML='<div class="app-footer"><div>SIGVTR · Painel Administrativo 1.20.17-RC1 · 20º BPM/PMPA</div><div>Sugestões e melhorias: <a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a></div></div>';ensureRuntimeUi();const s=AuthService.requireAuthentication();if(!s)return false;userName.textContent=s.user.name;if(String(s.user.role||'').toUpperCase()!=='DEV'){document.querySelectorAll('#sidebar a[href="usuarios.html"],#sidebar a[href="arquivamento.html"]').forEach(el=>el.remove());document.querySelectorAll('a[href="arquivamento.html"]').forEach(el=>el.remove());if(window.capacitySummary)capacitySummary.classList.add('d-none');}logoutButton.onclick=AuthService.logout;const topLogout=document.getElementById('topbarLogoutButton');if(topLogout)topLogout.onclick=AuthService.logout;currentDate.textContent=new Intl.DateTimeFormat('pt-BR',{dateStyle:'full'}).format(new Date());themeToggle.onclick=()=>document.body.classList.toggle('dark-mode');MenuController.init();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js?v=1.20.17-rc1').catch(()=>{});return true;}
++  function shell(){document.getElementById('sidebar').innerHTML=menu;document.getElementById('navbar').innerHTML=`<div class="topbar"><div class="topbar-left"><button id="sidebarToggle" class="icon-button d-lg-none"><i class="bi bi-list fs-4"></i></button><div><div class="topbar-title">Painel Administrativo</div><div id="currentDate" class="topbar-date"></div></div></div><div class="topbar-center"><a class="ai-topbar-link" href="assistente.html" title="Abrir Assistente SIGVTR"><i class="bi bi-robot"></i><span>Assistente SIGVTR</span><span class="ai-topbar-badge">IA</span></a></div><div class="topbar-right"><a class="icon-button" href="busca-global.html" title="Pesquisa global"><i class="bi bi-search"></i></a><button id="themeToggle" class="icon-button"><i class="bi bi-moon-stars"></i></button><div class="user-chip"><div class="user-avatar">AD</div><div><strong id="userName" class="d-block small">Administrador</strong><span class="text-secondary" style="font-size:.74rem">Administrador</span></div></div><button id="topbarLogoutButton" class="btn btn-outline-secondary btn-sm d-none d-md-inline-flex align-items-center gap-2" type="button" title="Encerrar sessão"><i class="bi bi-box-arrow-right"></i><span>Sair</span></button></div></div>`;document.getElementById('footer').innerHTML='<div class="app-footer"><div>SIGVTR · Painel Administrativo 1.20.17-RC1 · 20º BPM/PMPA</div><div>Sugestões e melhorias: <a href="mailto:checklist.viaturas.oficial@gmail.com">checklist.viaturas.oficial@gmail.com</a></div></div>';ensureRuntimeUi();const s=AuthService.requireAuthentication();if(!s)return false;userName.textContent=s.user.name;if(String(s.user.role||'').toUpperCase()!=='DEV'){document.querySelectorAll('#sidebar a[href="usuarios.html"],#sidebar a[href="arquivamento.html"]').forEach(el=>el.remove());document.querySelectorAll('a[href="arquivamento.html"]').forEach(el=>el.remove());if(window.capacitySummary)capacitySummary.classList.add('d-none');}logoutButton.onclick=AuthService.logout;const topLogout=document.getElementById('topbarLogoutButton');if(topLogout)topLogout.onclick=AuthService.logout;currentDate.textContent=new Intl.DateTimeFormat('pt-BR',{dateStyle:'full'}).format(new Date());themeToggle.onclick=()=>document.body.classList.toggle('dark-mode');MenuController.init();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js?v=1.20.18-rc1').catch(()=>{});return true;}
+   const timelineIcon=t=>({CHECKLIST:'bi-clipboard2-check-fill',AVARIA:'bi-exclamation-triangle-fill',EVENTO:'bi-activity',ALERTA:'bi-bell-fill'}[t]||'bi-circle-fill');
+   function renderOperationalPillars(data){
+     const el=document.getElementById('operationalPillars');if(!el)return;
+@@ -36,7 +36,7 @@
+   }
+   async function refreshDashboard(silent=false){if(!silent&&!kpiContainer.dataset.loaded){const c=ApiService.readCache('adminDashboard',{});if(c){renderDashboard({...c.data,_cache:{offline:true,savedAt:c.savedAt}});kpiContainer.dataset.loaded='1';}else kpiContainer.innerHTML='<div class="p-4 text-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Atualizando painel...</div>';}try{const d=await ApiService.get('adminDashboard',{},silent?{forceNetwork:true}:{});renderDashboard(d);kpiContainer.dataset.loaded='1';showConnection(d._cache);if(window.liveState)liveState.textContent=d._cache&&d._cache.offline?'Dados salvos':'Ao vivo';loadCapacitySummary();}catch(e){showConnection({offline:true,savedAt:Date.now()});if(!kpiContainer.dataset.loaded)kpiContainer.innerHTML='<div class="alert alert-warning">Não foi possível atualizar agora. Tentaremos novamente automaticamente.</div>';}}
+   async function loadCapacitySummary(){if(!window.capacitySummary||String((AuthService.getSession()||{}).user?.role||'').toUpperCase()!=='DEV')return;try{const d=await ApiService.get('adminCapacidade',{}, {staleWhileRevalidate:true});const b=d.banco||{};capacitySummary.innerHTML=`<div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><div><strong>Capacidade do sistema</strong><div class="small text-secondary">${esc(b.mensagem||'Monitoramento disponível em Arquivamento.')}</div></div><div class="d-flex align-items-center gap-2"><span class="badge text-bg-${b.nivel==='CRITICO'?'danger':b.nivel==='PREPARAR'?'warning':b.nivel==='ATENCAO'?'info':'success'}">${esc(b.nivel||'NORMAL')} · ${esc(b.percentual||0)}%</span><a class="btn btn-sm btn-outline-primary" href="arquivamento.html">Detalhes</a></div></div>`;}catch(_){capacitySummary.innerHTML='<div class="small text-secondary">Capacidade disponível na página de Arquivamento.</div>';}}
+-  async function pollRealtimeAlerts(){if(alertPollBusy)return 0;alertPollBusy=true;try{const d=await ApiService.post('adminConsumirNotificacoesNovas',{limit:20,admin:'ADMIN'});const found=processRealtimeAlerts(d.items||[]);if(found>0)refreshDashboard(true);return found;}catch(error){console.warn('SIGVTR: falha no monitoramento de notificações.',error);return 0;}finally{alertPollBusy=false;}}
++  async function pollRealtimeAlerts(force=false){const now=Date.now();if(alertPollBusy||(!force&&now-lastAlertPollAt<ALERT_POLL_COOLDOWN_MS))return 0;alertPollBusy=true;lastAlertPollAt=now;try{const peek=await ApiService.get('adminAlertasRecentes',{limit:20,statusNotificacao:'NOVA'},{forceNetwork:true});if(!(peek.items||[]).length)return 0;const d=await ApiService.post('adminConsumirNotificacoesNovas',{limit:20,admin:'ADMIN'});const found=processRealtimeAlerts(d.items||[]);if(found>0)refreshDashboard(true);return found;}catch(error){console.warn('SIGVTR: falha no monitoramento de notificações.',error);return 0;}finally{alertPollBusy=false;}}
+   function schedulePoll(){clearTimeout(pollTimer);pollTimer=setTimeout(async()=>{await pollRealtimeAlerts();schedulePoll()},document.hidden?HIDDEN_POLL_MS:ACTIVE_POLL_MS);}
+   async function dashboard(){if(!shell())return;if(globalSearchForm)globalSearchForm.onsubmit=e=>{e.preventDefault();const q=globalSearchInput.value.trim();if(q.length>=2)location.href='busca-global.html?q='+encodeURIComponent(q)};if(soundToggle){const paint=()=>{const states={off:['bi-volume-mute','Som desativado','btn-outline-secondary'],pending:['bi-volume-up','Ativar som','btn-warning'],on:['bi-volume-up-fill','Som ativado','btn-success'],blocked:['bi-volume-mute-fill','Som bloqueado','btn-danger']},x=states[soundState]||states.off;soundToggle.innerHTML=`<i class="bi ${x[0]}"></i> ${x[1]}`;soundToggle.className=`btn btn-sm ${x[2]}`;soundToggle.title=soundState==='blocked'?'Clique novamente para liberar o áudio no navegador':'Clique para alterar o som dos alertas';};paint();soundToggle.onclick=async()=>{if(soundState==='on'){soundState='off';localStorage.setItem('sigvtr_alert_sound','0');paint();return;}soundState='pending';localStorage.setItem('sigvtr_alert_sound','1');paint();await unlockAlertSound(true);paint();};document.addEventListener('pointerdown',()=>{if(soundState==='pending'||soundState==='blocked')unlockAlertSound(false).then(paint)},{once:true});}await refreshDashboard(false);await pollRealtimeAlerts();schedulePoll();document.addEventListener('visibilitychange',async()=>{clearTimeout(pollTimer);if(!document.hidden){await pollRealtimeAlerts();refreshDashboard(true);}schedulePoll()});window.addEventListener('focus',pollRealtimeAlerts);}
+   function init(){if(document.getElementById('kpiContainer'))dashboard();}
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/assets/js/alertas.js SIGVTR_otimizacao_02/admin/assets/js/alertas.js
+--- sigvtr_web_current/sigvtr-web-main/admin/assets/js/alertas.js	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/assets/js/alertas.js	2026-08-20 16:29:30.269442164 +0000
+@@ -2,7 +2,7 @@
+   const byId=id=>document.getElementById(id);
+   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+   const whatsappUrl=msg=>`https://web.whatsapp.com/send?text=${encodeURIComponent(msg||'')}`;
+-  let loading=false;
++  let loading=false,lastRealtimeSignature="";
+   async function load(force=false){
+     if(loading)return; loading=true;
+     const state=byId('alertsState'),list=byId('alertsList'),refresh=byId('refreshAlerts');
+@@ -12,6 +12,7 @@
+       const d=await ApiService.get('adminAlertas',{tipo:byId('filterType').value,status:byId('filterStatus').value,prefixo:byId('filterPrefix').value},force?{forceNetwork:true}:{});
+       AdminApp.showConnection(d._cache);
+       const items=Array.isArray(d.items)?d.items:[],total=Number(d.total??items.length??0);
++      lastRealtimeSignature=items.slice(0,5).map(a=>[a.ID_ALERTA,a.Status,a.Data||'',a.Hora||''].join(':')).join('|');
+       state.innerHTML=total?`<p class="text-secondary mb-3">${total} alerta${total===1?'':'s'}, mais recentes primeiro.</p>`:'<div class="empty-state"><i class="bi bi-bell-slash"></i><div><strong>Nenhum alerta encontrado.</strong><div class="small">Novos checklists, avarias e revisões aparecerão aqui.</div></div></div>';
+       list.innerHTML=items.map(a=>`<div class="col-12"><article class="panel-card p-3"><div class="d-flex justify-content-between gap-3 flex-wrap"><div><div class="d-flex gap-2 align-items-center mb-2"><span class="badge text-bg-primary">${esc(a.Tipo)}</span><span class="badge text-bg-light">${esc(a.Status)}</span></div><h2 class="h5 mb-1">${esc(a.Título)}</h2><p class="mb-1"><strong>${esc(a.Prefixo)}</strong> · ${esc([a['Posto/Graduação'],a.Condutor].filter(Boolean).join(' '))} · ${esc(a.KM)} km</p><p class="text-secondary mb-1">${esc(a.Descrição)}</p><small>${esc(a.Data)} ${esc(a.Hora)}</small></div><div class="d-flex flex-column gap-2"><button class="btn btn-success share" data-id="${esc(a.ID_ALERTA)}" data-msg="${encodeURIComponent(a['Mensagem WhatsApp']||'')}"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</button><select class="form-select status" data-id="${esc(a.ID_ALERTA)}">${['NOVO','VISUALIZADO','ENCAMINHADO','RESOLVIDO','ARQUIVADO'].map(s=>`<option ${s===String(a.Status).toUpperCase()?'selected':''}>${s}</option>`).join('')}</select></div></div></article></div>`).join('');
+       document.querySelectorAll('.status').forEach(el=>el.onchange=async()=>{try{await ApiService.post('adminAtualizarStatusAlerta',{idAlerta:el.dataset.id,status:el.value,admin:'ADMIN'});load(true);}catch(e){AdminApp.toast('Falha ao atualizar',e.message,'AVARIA');}});
+@@ -19,5 +20,6 @@
+     }catch(e){list.innerHTML='';state.innerHTML=`<div class="alert alert-danger"><strong>Não foi possível carregar os alertas.</strong><div class="small mt-1">${esc(e.message)}</div></div>`;}
+     finally{loading=false;if(refresh)refresh.disabled=false;}
+   }
+-  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;byId('refreshAlerts').onclick=()=>load(true);byId('applyFilters').onclick=()=>load(true);load();setInterval(()=>{if(!document.hidden)load(true)},30000);});
++  async function pollAlertChanges(){if(document.hidden||loading)return;try{const d=await ApiService.get('adminAlertasRecentes',{limit:5},{forceNetwork:true});const signature=(d.items||[]).map(a=>[a.ID_ALERTA,a.Status,a.Data||'',a.Hora||''].join(':')).join('|');if(lastRealtimeSignature&&signature&&signature!==lastRealtimeSignature)await load(true);else if(signature)lastRealtimeSignature=signature;}catch(_){}}
++  document.addEventListener('DOMContentLoaded',()=>{if(!AdminApp.shell())return;byId('refreshAlerts').onclick=()=>load(true);byId('applyFilters').onclick=()=>load(true);load();setInterval(pollAlertChanges,30000);});
+ })();
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/assets/js/viaturas.js SIGVTR_otimizacao_02/admin/assets/js/viaturas.js
+--- sigvtr_web_current/sigvtr-web-main/admin/assets/js/viaturas.js	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/assets/js/viaturas.js	2026-08-20 16:28:59.817141499 +0000
+@@ -141,18 +141,30 @@
+     renderVehicles();
+   }
+ 
+-  async function load() {
++  function applyVehicleData(data) {
++    vehicles = (data.items || []).map(mapVehicle);
++    renderKpis();
++    applyFilters();
++  }
++
++  async function load(force = false) {
+     try {
+       $('vehicleResultCount').textContent = 'Carregando cadastro mestre...';
+-      const data = await ApiService.get('adminViaturas', {}, { forceNetwork: true });
+-      vehicles = (data.items || []).map(mapVehicle);
+-      renderKpis();
+-      applyFilters();
++      const cached = !force ? ApiService.readCache('adminViaturas', {}) : null;
++      if (cached) applyVehicleData(cached.data || {});
++      const options = force ? { forceNetwork: true } : cached ? {
++        staleWhileRevalidate: true,
++        onRevalidateSuccess: fresh => applyVehicleData(fresh)
++      } : {};
++      const data = await ApiService.get('adminViaturas', {}, options);
++      applyVehicleData(data);
+     } catch (error) {
+-      vehicles = [];
+-      renderKpis();
+-      applyFilters();
+-      $('vehicleResultCount').textContent = `Não foi possível carregar as viaturas: ${error.message}`;
++      if (!vehicles.length) {
++        vehicles = [];
++        renderKpis();
++        applyFilters();
++      }
++      $('vehicleResultCount').textContent = `Não foi possível atualizar as viaturas: ${error.message}`;
+     }
+   }
+ 
+@@ -247,7 +259,7 @@
+     try {
+       await ApiService.post('adminSalvarViatura', payload);
+       bootstrap.Modal.getInstance($('vehicleModal')).hide();
+-      await load();
++      await load(true);
+     } catch (error) {
+       alert(`Não foi possível salvar: ${error.message}`);
+     } finally {
+@@ -293,7 +305,7 @@
+       });
+       bootstrap.Modal.getInstance($('reviewModal')).hide();
+       bootstrap.Modal.getInstance($('vehicleDetailModal'))?.hide();
+-      await load();
++      await load(true);
+       alert('Revisão registrada. O alerta anterior foi resolvido e o novo ciclo foi iniciado.');
+     } catch (error) {
+       alert(`Não foi possível registrar a revisão: ${error.message}`);
+@@ -381,7 +393,7 @@
+       });
+       alert(`Atualização concluída. Atualizadas: ${result.atualizadas || 0}. Não localizadas: ${result.naoLocalizadas || 0}.`);
+       bootstrap.Modal.getInstance($('bulkEditModal')).hide();
+-      await load();
++      await load(true);
+     } catch (error) {
+       alert(`Não foi possível aplicar a atualização: ${error.message}`);
+     } finally {
+@@ -392,7 +404,7 @@
+   function init() {
+     if (!AdminLayout.init()) return;
+     $('newVehicleButton').onclick = () => openForm();
+-    $('refreshVehiclesButton').onclick = load;
++    $('refreshVehiclesButton').onclick = () => load(true);
+     $('bulkEditButton').onclick = openBulkEdit;
+     $('vehicleForm').onsubmit = save;
+     $('bulkEditForm').onsubmit = applyBulkUpdate;
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/busca-global.html SIGVTR_otimizacao_02/admin/busca-global.html
+--- sigvtr_web_current/sigvtr-web-main/admin/busca-global.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/busca-global.html	2026-08-20 16:29:24.508088988 +0000
+@@ -1 +1 @@
+-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Pesquisa Global</title><link rel="icon" href="assets/icons/favicon.ico?v=1.20.16-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.20.16-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.20.16-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.20.16-rc1"><link rel="manifest" href="manifest.json?v=1.20.16-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css?v=1.20.16-rc1"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><p class="eyebrow mb-1">Consulta integrada</p><h1 class="h3 mb-1">Pesquisa Global</h1><p class="text-secondary">Localize viaturas, checklists, avarias, alertas, condutores, RGs e protocolos.</p><form id="searchForm" class="panel-card p-3 mb-4"><div class="input-group input-group-lg"><span class="input-group-text"><i class="bi bi-search"></i></span><input id="searchInput" class="form-control" minlength="2" maxlength="100" required placeholder="Digite ao menos 2 caracteres"><button class="btn btn-primary px-4">Pesquisar</button></div></form><div id="searchState"></div><div id="searchResults" class="row g-3"></div></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.16-rc1"></script><script src="assets/js/busca-global.js?v=1.20.16-rc1"></script></body></html>
+\ No newline at end of file
++<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d47a1"><title>SIGVTR • Pesquisa Global</title><link rel="icon" href="assets/icons/favicon.ico?v=1.20.16-rc1" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png?v=1.20.16-rc1"><link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png?v=1.20.16-rc1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=1.20.16-rc1"><link rel="manifest" href="manifest.json?v=1.20.16-rc1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="assets/css/admin.css?v=1.20.16-rc1"></head><body><div class="admin-shell"><aside id="sidebar" class="sidebar"></aside><div class="admin-main"><header id="navbar"></header><main class="content-wrapper"><div class="container-fluid px-3 px-lg-4 py-4"><p class="eyebrow mb-1">Consulta integrada</p><h1 class="h3 mb-1">Pesquisa Global</h1><p class="text-secondary">Localize viaturas, checklists, avarias, alertas, condutores, RGs e protocolos.</p><form id="searchForm" class="panel-card p-3 mb-4"><div class="input-group input-group-lg"><span class="input-group-text"><i class="bi bi-search"></i></span><input id="searchInput" class="form-control" minlength="2" maxlength="100" required placeholder="Digite ao menos 2 caracteres"><button class="btn btn-primary px-4">Pesquisar</button></div></form><div id="searchState"></div><div id="searchResults" class="row g-3"></div></div></main><footer id="footer"></footer></div></div><div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.18-rc1"></script><script src="assets/js/busca-global.js?v=1.20.16-rc1"></script></body></html>
+\ No newline at end of file
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/checklists.html SIGVTR_otimizacao_02/admin/checklists.html
+--- sigvtr_web_current/sigvtr-web-main/admin/checklists.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/checklists.html	2026-08-20 16:29:24.507778511 +0000
+@@ -131,6 +131,6 @@
+ <script src="assets/js/api.js?v=1.20.16-rc1"></script>
+ <script src="assets/js/auth.js?v=1.20.16-rc1"></script>
+ <script src="assets/js/menu.js?v=1.20.16-rc1"></script>
+-<script src="assets/js/admin.js?v=1.20.16-rc1"></script>
++<script src="assets/js/admin.js?v=1.20.18-rc1"></script>
+ <script src="assets/js/checklists-admin.js?v=1.20.16-rc1"></script>
+ </body></html>
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/historico-viatura.html SIGVTR_otimizacao_02/admin/historico-viatura.html
+--- sigvtr_web_current/sigvtr-web-main/admin/historico-viatura.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/historico-viatura.html	2026-08-20 16:29:24.507813399 +0000
+@@ -43,5 +43,5 @@
+ <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+ <div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title h5">Detalhamento</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div><div id="recordModalBody" class="modal-body"></div></div></div></div>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+-<script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.16-rc1"></script><script src="assets/js/historico-viatura.js?v=1.20.16-rc1"></script>
++<script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.18-rc1"></script><script src="assets/js/historico-viatura.js?v=1.20.16-rc1"></script>
+ </body></html>
+\ No newline at end of file
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/index.html SIGVTR_otimizacao_02/admin/index.html
+--- sigvtr_web_current/sigvtr-web-main/admin/index.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/index.html	2026-08-20 16:29:24.507322241 +0000
+@@ -90,6 +90,6 @@
+   <script src="assets/js/auth.js?v=1.20.16-rc1"></script>
+   <script>AuthService.requireAuthentication();</script>
+   <script src="assets/js/menu.js?v=1.20.16-rc1"></script>
+-  <script src="assets/js/admin.js?v=1.20.16-rc1"></script>
++  <script src="assets/js/admin.js?v=1.20.18-rc1"></script>
+ </body>
+ </html>
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/relatorios.html SIGVTR_otimizacao_02/admin/relatorios.html
+--- sigvtr_web_current/sigvtr-web-main/admin/relatorios.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/relatorios.html	2026-08-20 16:29:24.508224866 +0000
+@@ -76,5 +76,5 @@
+ </div>
+ <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+-<script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script>AuthService.requireAuthentication();</script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.16-rc1"></script><script src="assets/js/relatorios.js?v=1.20.16-rc1"></script>
++<script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script>AuthService.requireAuthentication();</script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin.js?v=1.20.18-rc1"></script><script src="assets/js/relatorios.js?v=1.20.16-rc1"></script>
+ </body></html>
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/sw.js SIGVTR_otimizacao_02/admin/sw.js
+--- sigvtr_web_current/sigvtr-web-main/admin/sw.js	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/sw.js	2026-08-20 16:28:59.817283790 +0000
+@@ -1,4 +1,4 @@
+-const CACHE='sigvtr-admin-v12017rc1';
++const CACHE='sigvtr-admin-v12018rc1';
+ const APP=['./','./index.html','./alertas.html','./checklists.html','./avarias.html','./historico-viatura.html','./viaturas.html','./cartoes.html','./prontuario.html','./relatorios.html','./assistente.html','./busca-global.html','./usuarios.html','./trocar-senha.html','./assets/css/admin.css','./assets/css/dashboard.css','./assets/css/avarias.css','./assets/css/viaturas.css','./assets/css/cartoes.css','./assets/css/prontuario.css','./assets/css/relatorios.css','./assets/css/assistente.css','./assets/js/api.js','./assets/js/admin.js','./assets/js/alertas.js','./assets/js/checklists-admin.js','./assets/js/historico-viatura.js','./assets/js/avarias.js','./assets/js/viaturas.js','./assets/js/cartoes.js','./assets/js/prontuario.js','./assets/js/auth.js','./assets/js/menu.js','./assets/js/admin-layout.js','./assets/js/usuarios.js','./assets/js/trocar-senha.js','./assets/js/relatorios.js','./assets/js/assistente.js',
+   "./assets/css/checklists.css"
+ ];
+diff -ruN sigvtr_web_current/sigvtr-web-main/admin/viaturas.html SIGVTR_otimizacao_02/admin/viaturas.html
+--- sigvtr_web_current/sigvtr-web-main/admin/viaturas.html	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/admin/viaturas.html	2026-08-20 16:29:24.507555708 +0000
+@@ -23,4 +23,4 @@
+ <div class="modal fade" id="vehicleDetailModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><p class="eyebrow mb-1">Prontuário cadastral</p><h2 id="vehicleDetailTitle" class="modal-title fs-5">Viatura</h2></div><button class="btn-close" data-bs-dismiss="modal"></button></div><div id="vehicleDetailBody" class="modal-body"></div><div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button><button id="registerReviewButton" class="btn btn-outline-success"><i class="bi bi-wrench-adjustable me-2"></i>Registrar revisão realizada</button><button id="editFromDetailButton" class="btn btn-primary"><i class="bi bi-pencil me-2"></i>Editar cadastro</button></div></div></div></div>
+ 
+ <div class="modal fade" id="reviewModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><form id="reviewForm" novalidate><div class="modal-header"><div><p class="eyebrow mb-1">Manutenção preventiva</p><h2 class="modal-title fs-5">Registrar revisão realizada</h2></div><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="reviewVehicleId" type="hidden"><div class="row g-3"><div class="col-12 col-md-4"><label class="form-label">Viatura</label><input id="reviewVehiclePrefix" class="form-control" readonly></div><div class="col-12 col-md-4"><label class="form-label">Data da revisão *</label><input id="reviewDate" class="form-control" type="date" required></div><div class="col-12 col-md-4"><label class="form-label">KM da revisão *</label><input id="reviewKm" class="form-control" type="number" min="1" step="1" required></div><div class="col-12 col-md-6"><label class="form-label">Próxima revisão (km) *</label><input id="reviewNextKm" class="form-control" type="number" min="1" step="1" required></div><div class="col-12 col-md-6"><label class="form-label">Alerta antecipado (km) *</label><input id="reviewAdvanceKm" class="form-control" type="number" min="0" step="1" value="200" required></div><div class="col-12"><label class="form-label">Observações</label><textarea id="reviewNotes" class="form-control" rows="3" maxlength="500"></textarea></div></div><div class="alert alert-info mt-4 mb-0"><i class="bi bi-info-circle me-2"></i>Ao salvar, os alertas da revisão anterior serão resolvidos e um novo ciclo será iniciado.</div></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button id="saveReviewButton" class="btn btn-success" type="submit"><i class="bi bi-check-lg me-2"></i>Confirmar revisão</button></div></form></div></div></div>
+-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin-layout.js?v=1.20.16-rc1"></script><script src="assets/js/viaturas.js?v=1.20.16-rc1"></script></body></html>
+\ No newline at end of file
++<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="assets/js/api.js?v=1.20.16-rc1"></script><script src="assets/js/auth.js?v=1.20.16-rc1"></script><script src="assets/js/menu.js?v=1.20.16-rc1"></script><script src="assets/js/admin-layout.js?v=1.20.16-rc1"></script><script src="assets/js/viaturas.js?v=1.20.18-rc1"></script></body></html>
+\ No newline at end of file
+diff -ruN sigvtr_web_current/sigvtr-web-main/backend/Cartoes_Abastecimento.gs SIGVTR_otimizacao_02/backend/Cartoes_Abastecimento.gs
+--- sigvtr_web_current/sigvtr-web-main/backend/Cartoes_Abastecimento.gs	2026-08-19 19:07:36.000000000 +0000
++++ SIGVTR_otimizacao_02/backend/Cartoes_Abastecimento.gs	2026-08-20 16:28:59.816921966 +0000
+@@ -30,6 +30,12 @@
+   return sh;
+ }
+ 
++function getAdminCardSheetForRead_(){
++  const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_CARD_SHEET_);
++  // Consulta nao precisa validar/regravar cabecalhos a cada abertura da pagina.
++  return sh||ensureAdminCardSheet_();
++}
++
+ function adminCardNormalizeNumber_(value){return String(value||'').replace(/\D/g,'');}
+ function adminCardFormatNumber_(value){const digits=adminCardNormalizeNumber_(value);return digits.replace(/(.{4})/g,'$1 ').trim();}
+ function adminCardNormalizePrefix_(value){return String(value||'').trim().toUpperCase().replace(/\s+/g,'').replace(/^(\d{2})-?(\d{4})$/,'$1-$2').slice(0,20);}
+@@ -46,8 +52,10 @@
+ function adminCardResolveIdentity_(r,indexes){const id=String(r.ID_VTR||''),plate=adminCardNormalizePlate_(r.PLACA),vehicle=(id&&indexes.byId[id])||(plate&&indexes.byPlate[plate])||null;if(vehicle)return {prefixo:String(vehicle.prefixo||r.PREFIXO||''),placa:String(vehicle.placa||r.PLACA||'')};return {prefixo:String(r.PREFIXO||''),placa:String(r.PLACA||'')};}
+ 
+ function getAdminCards_(){
+-  const sh=ensureAdminCardSheet_(),vehicles=adminCardVehicleRows_(),indexes=adminCardVehicleIndexes_(vehicles),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(function(r){return adminCardApiObject_(r,adminCardResolveIdentity_(r,indexes));});
++  const perfTotal=Date.now(),perfRead=Date.now(),sh=getAdminCardSheetForRead_(),vehicles=adminCardVehicleRows_(),indexes=adminCardVehicleIndexes_(vehicles),items=adminCardObjects_(sh).filter(function(r){return String(r.ID_CARTAO||'').trim();}).map(function(r){return adminCardApiObject_(r,adminCardResolveIdentity_(r,indexes));});
++  if(typeof adminPerfMark_==='function')adminPerfMark_('adminCartoes leituras Sheets',perfRead);
+   items.sort(function(a,b){return String(a.prefixo||'ZZZ').localeCompare(String(b.prefixo||'ZZZ'),'pt-BR',{numeric:true})||a.numero.localeCompare(b.numero);});
++  if(typeof adminPerfMark_==='function')adminPerfMark_('adminCartoes TOTAL',perfTotal);
+   return {items:items,vehicles:vehicles};
+ }
+ 
+diff -ruN sigvtr_web_current/sigvtr-web-main/backend/Painel_Administrativo.gs SIGVTR_otimizacao_02/backend/Painel_Administrativo.gs
+--- sigvtr_web_current/sigvtr-web-main/backend/Painel_Administrativo.gs	2026-08-20 13:04:14.000000000 +0000
++++ SIGVTR_otimizacao_02/backend/Painel_Administrativo.gs	2026-08-20 16:28:59.816639300 +0000
+@@ -31,10 +31,13 @@
+  * alterando a versão quando a estrutura administrativa mudar.
+  */
+ function ensureAdminSheetsForRead_(){
+-  const cache=CacheService.getScriptCache(),key="SIGVTR_ADMIN_SCHEMA_READY_V1";
+-  try{if(cache.get(key)==="1")return;}catch(_){}
++  const ss=getSpreadsheet_();
++  // Rotas de leitura nao devem executar migracoes/verificacoes de cabecalho
++  // em toda inicializacao fria. Se as abas essenciais ja existem, apenas usa-as.
++  // A rotina completa permanece nas rotas de escrita e como fallback de seguranca.
++  if(ss.getSheetByName("ALERTAS")&&ss.getSheetByName("REVISOES"))return ss;
+   ensureAdminSheets_();
+-  try{cache.put(key,"1",300);}catch(_){}
++  return ss;
+ }
+ function adminPerfMark_(label,start){
+   const elapsed=Date.now()-start;
+@@ -142,8 +145,8 @@
+ }
+ function getAdminDashboard_(){
+   const perfTotal=Date.now();
+-  ensureAdminSheetsForRead_();
+-  const perfRead=Date.now(),ss=getSpreadsheet_(),ctx=createAdminReadContext_(ss);
++  const ss=ensureAdminSheetsForRead_();
++  const perfRead=Date.now(),ctx=createAdminReadContext_(ss);
+   const withdrawals=ctx.rows(SIGVTR.SHEETS.WITHDRAWALS),damages=ctx.rows(SIGVTR.SHEETS.DAMAGES),alerts=ctx.rows("ALERTAS"),vehicles=ctx.rows(SIGVTR.SHEETS.VEHICLES),reviews=ctx.rows("REVISOES"),events=ctx.rows(SIGVTR.SHEETS.EVENTS);
+   adminPerfMark_('adminDashboard leituras Sheets',perfRead);
+   const perfBuild=Date.now();
+@@ -203,8 +206,8 @@
+ 
+ /** Consulta leve para o monitoramento em tempo real do Dashboard. */
+ function getAdminRealtimeAlerts_(params){
+-  ensureAdminSheetsForRead_();
+-  const sh=requireSheet_(getSpreadsheet_(),"ALERTAS");
++  const ss=ensureAdminSheetsForRead_();
++  const sh=requireSheet_(ss,"ALERTAS");
+   if(sh.getLastRow()<2)return {items:[],total:0};
+   const headers=getHeaders_(sh).map(function(h){return String(h).trim();});
+   const requested=Math.min(Math.max(Number((params||{}).limit)||20,1),50);
+@@ -224,8 +227,8 @@
+ }
+ function consumeAdminNotifications_(data){
+   const perfTotal=Date.now();
+-  ensureAdminSheetsForRead_();
+-  const sh=requireSheet_(getSpreadsheet_(),"ALERTAS");
++  const ss=ensureAdminSheetsForRead_();
++  const sh=requireSheet_(ss,"ALERTAS");
+   if(sh.getLastRow()<2){adminPerfMark_('adminConsumirNotificacoesNovas TOTAL',perfTotal);return {items:[],total:0};}
+   const heads=getHeaders_(sh),idI=heads.indexOf("ID_ALERTA"),statusI=heads.indexOf("Status Notificação"),viewI=heads.indexOf("Data Visualização Notificação"),dateI=heads.indexOf("Data/Hora Registro");
+   if(idI<0||statusI<0)throw new Error("Estrutura de notificações do painel indisponível.");
+@@ -305,7 +308,12 @@
+   return {items:rows.slice(0,Number(params.limit)||200),total:rows.length};
+ }
+ function getAdminAlerts_(params){
+-  ensureAdminSheets_();return buildAdminAlertsFromRows_(readSheetObjects_(getSpreadsheet_().getSheetByName("ALERTAS")),params);
++  const perfTotal=Date.now(),ss=ensureAdminSheetsForRead_(),perfRead=Date.now();
++  const rows=readSheetObjects_(ss.getSheetByName("ALERTAS"));
++  adminPerfMark_('adminAlertas leitura ALERTAS',perfRead);
++  const result=buildAdminAlertsFromRows_(rows,params);
++  adminPerfMark_('adminAlertas TOTAL',perfTotal);
++  return result;
+ }
+ function updateAdminAlertStatus_(data){
+   ensureAdminSheets_();const allowed=["NOVO","VISUALIZADO","ENCAMINHADO","RESOLVIDO","ARQUIVADO"],id=String(data.idAlerta||"").trim(),status=String(data.status||"").trim().toUpperCase();if(!/^[A-Za-z0-9-]{1,100}$/.test(id)||allowed.indexOf(status)<0)throw new Error("Dados do alerta inválidos.");
+@@ -530,6 +538,7 @@
+ const OFFICIAL_FLEET_20BPM=[
+ ["50-2001","SZX0G91","9BG148DK0RC417163","LWNF232191102","1377719461"],["50-2002","SZF6I21","9BG148DK0RC424825","LWNF233251071","1377179289"],["50-2003","QER1B71","9BG148DK0RC415135","LWNF232001098","1376601327"],["50-2004","SZE1J91","9BG148DK0RC416238","LWNF232191009","1376605004"],["50-2005","QEQ8J61","9BG148DK0RC418395","LWNF232341103","1376607228"],["50-2006","SZL7J32","9BG148DK0RC42625","LWNF233401080","1386871700"],["50-2007","SZE3H61","9BG148DK0RC414511","LWNF232001145","1376598598"],["50-2008","SZF0B61","98G148DK0RC424639","LWNF233251072","1377179807"],["50-2009","SZB4H01","9BG148DK0RC419494","LWNF232401080","1376653327"],["50-2010","SZA4C21","9BG148DK0RC419823","LWNF232411151","1376602994"],["50-2011","QVG9D91","9BG148DK0RC419612","LWNF232341117","1376669312"],["50-2012","SZD9D11","9BG148DK0RC416136","LWNF232191008","1376607740"],["50-2013","SZE5J61","9BG148DK0RC419616","LWNF232411162","1376670850"],["50-2014","SZC9F10","9BG148DK0RC415850","LWNF232131132","1373865315"],["50-2015","SZI2E81","9BG148DK0RC420324","LWNF232481155","1380360584"],["50-2016","SZI4C31","9BG148DK0RC416134","LWNF232171127","1380496451"],["50-2017","QED2J01","9BG148DK0RC416894","LWNF232271097","1374165406"],["50-2018","SZA8A90","9BG148DK0RC415315","LWNF232061015","1371854448"],["50-2019","SZD8G29","9BG148DK0RC416847","LWNF232191178","1374180022"],["50-2020","SZC2G58","9BG148DK0RC416968","LWNF232131163","1373020617"],["50-2021","SZI4B71","93YHJD207RJ738115","H4MK7430055707","1355573081"]];
+ function ensureAdminVehicleSheet_(formatPrefixColumn){const ss=getSpreadsheet_(),sh=ensureSheetWithHeaders_(ss,SIGVTR.SHEETS.VEHICLES,ADMIN_VEHICLE_HEADERS);if(formatPrefixColumn!==false){const prefixCol=Math.max(1,getHeaders_(sh).indexOf("Prefixo")+1),rowCount=Math.max(1,sh.getMaxRows()-1);sh.getRange(2,prefixCol,rowCount,1).setNumberFormat("@");}return sh;}
++function getAdminVehicleSheetForRead_(ss){const spreadsheet=ss||getSpreadsheet_(),sh=spreadsheet.getSheetByName(SIGVTR.SHEETS.VEHICLES);return sh||ensureAdminVehicleSheet_(false);}
+ function buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews){
+   const openByVehicle={},lastByVehicle={},reviewByVehicle={};
+   (damages||[]).forEach(function(d){const id=String(d.ID_VTR||"");if(id&&["PENDENTE","EM MANUTENÇÃO"].indexOf(String(d["Situação"]||"").toUpperCase())>=0)openByVehicle[id]=(openByVehicle[id]||0)+1;});
+@@ -537,7 +546,7 @@
+   (reviews||[]).forEach(function(rv){const id=String(rv.ID_VTR||""),status=String(rv.Status||"").toUpperCase();if(!id||["REALIZADA","CANCELADA"].indexOf(status)>=0)return;const t=dateValue_(rv["Última Atualização"]);if(!reviewByVehicle[id]||t>reviewByVehicle[id].time)reviewByVehicle[id]={time:t,row:rv};});
+   return (rows||[]).filter(function(r){return String(r.Prefixo||"").trim();}).map(function(r){const id=String(r["ID-VTR"]||""),prefix=String(r.Prefixo||""),active=(reviewByVehicle[id]||{}).row||{},last=lastByVehicle[id]||null;return {id:id,prefixo:prefix,placa:r.Placa||"",chassi:r.Chassi||"",motor:r["Nº do Motor"]||"",renavam:r.RENAVAM||"",marca:r.Marca||"",modelo:r.Modelo||"",ano:r.Ano||"",combustivel:r.Combustível||"",tipoCombustivel:r["Tipo Combustível"]||"",tipo:r.Tipo||"",lotacao:r.Lotação||"",kmInicial:Number(r["KM Inicial"]||0),kmAtual:Number(r["KM Atual"]||0),proximaRevisao:Number(active["Próxima Revisão KM"]||r["Próxima Revisão KM"]||0),antecedenciaAlerta:Number(active["Antecedência Alerta KM"]||r["Antecedência Alerta KM"]||200),statusRevisao:String(active.Status||"NAO_CONFIGURADA").toUpperCase(),idRevisao:active.ID_REVISAO||"",status:r.Status||"ATIVA",dataStatus:formatDateForApi_(r["Data do Status"]),cadastro:r.Cadastro||vehicleRegistrationStatus_(r),observacoes:r.Observações||"",ultimaAtualizacao:formatDateForApi_(r["Última Atualização"]),avariasAbertas:openByVehicle[id]||0,ultimoChecklist:last};});
+ }
+-function getAdminVehicles_(){const perfTotal=Date.now(),ss=getSpreadsheet_(),sh=ensureAdminVehicleSheet_(false),perfRead=Date.now(),rows=readSheetObjects_(sh),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),reviews=readSheetObjects_(ss.getSheetByName("REVISOES"));adminPerfMark_('adminViaturas leituras Sheets',perfRead);const perfBuild=Date.now(),result={items:buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews)};adminPerfMark_('adminViaturas processamento',perfBuild);adminPerfMark_('adminViaturas TOTAL',perfTotal);return result;}
++function getAdminVehicles_(){const perfTotal=Date.now(),ss=getSpreadsheet_(),sh=getAdminVehicleSheetForRead_(ss),perfRead=Date.now(),rows=readSheetObjects_(sh),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),reviews=readSheetObjects_(ss.getSheetByName("REVISOES"));adminPerfMark_('adminViaturas leituras Sheets',perfRead);const perfBuild=Date.now(),result={items:buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews)};adminPerfMark_('adminViaturas processamento',perfBuild);adminPerfMark_('adminViaturas TOTAL',perfTotal);return result;}
+ function getAdminVehicleDetail_(id,prefixo){const data=getAdminVehicles_().items;const p=normalizeVehiclePrefix_(prefixo);const vehicle=data.find(function(v){return (id&&String(v.id)===String(id))||(p&&normalizeVehiclePrefix_(v.prefixo)===p);});if(!vehicle)throw new Error("Viatura não encontrada.");return vehicle;}
+ function saveAdminVehicle_(p){const sh=ensureAdminVehicleSheet_(),headers=getHeaders_(sh),rows=sh.getDataRange().getValues(),prefix=normalizeVehiclePrefix_(p.prefixo);if(!prefix)throw new Error("Informe o prefixo.");let rowIndex=-1;const idCol=headers.indexOf("ID-VTR"),preCol=headers.indexOf("Prefixo");for(let i=1;i<rows.length;i++){if((p.id&&String(rows[i][idCol])===String(p.id))||normalizeVehiclePrefix_(rows[i][preCol])===prefix){rowIndex=i+1;break;}}const now=new Date(),id=rowIndex>0?String(sh.getRange(rowIndex,idCol+1).getValue()||""):"VTR-"+Utilities.getUuid(),oldStatus=rowIndex>0?String(sh.getRange(rowIndex,headers.indexOf("Status")+1).getValue()||"ATIVA").trim().toUpperCase():"",newStatus=String(p.status||"ATIVA").trim().toUpperCase(),next=Math.max(0,Number(p.proximaRevisao||0)),advance=Math.max(0,Number(p.antecedenciaAlerta===""||p.antecedenciaAlerta==null?200:p.antecedenciaAlerta));const statusChanged=rowIndex>0&&oldStatus!==newStatus;if(statusChanged)ensureAdminVehicleStatusHistoryInitialized_();const values={"ID-VTR":id,"Prefixo":prefix,"Placa":String(p.placa||"").toUpperCase(),"Chassi":String(p.chassi||"").toUpperCase(),"Nº do Motor":String(p.motor||"").toUpperCase(),"RENAVAM":String(p.renavam||""),"Marca":p.marca||"","Modelo":p.modelo||"","Ano":p.ano||"","Tipo Combustível":p.tipoCombustivel||"","Tipo":p.tipo||"","Lotação":p.lotacao||"20º BPM","KM Inicial":Number(p.kmInicial||0),"KM Atual":Number(p.kmAtual||0),"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Status":newStatus,"Data do Status":(!rowIndex||rowIndex<0||oldStatus!==newStatus)?now:(rowIndex>0&&headers.indexOf("Data do Status")>=0?sh.getRange(rowIndex,headers.indexOf("Data do Status")+1).getValue():""),"Observações":p.observacoes||"","Última Atualização":now,"Atualizado Por":p.admin||"Administrador"};values.Cadastro=vehicleRegistrationStatus_(values);if(rowIndex<0){values["Data Cadastro"]=now;appendByHeaders_(sh,headers,values);rowIndex=sh.getLastRow();}else{headers.forEach(function(h,i){if(Object.prototype.hasOwnProperty.call(values,h))sh.getRange(rowIndex,i+1).setValue(values[h]);});}sh.getRange(rowIndex,preCol+1).setNumberFormat("@").setValue(prefix);
+   if(statusChanged)appendVehicleStatusHistory_({idVtr:id,prefixo:prefix,placa:values.Placa,statusAnterior:oldStatus,novoStatus:newStatus,dataHora:now,idUsuario:p.adminId||"",responsavel:p.admin||"Administrador",perfil:p.adminPerfil||"",observacao:values.Observações,origem:p.origemStatus||"EDICAO_INDIVIDUAL"});
