@@ -1,3 +1,58 @@
+# ATUALIZAÇÃO — Otimização 04 — autenticação administrativa
+
+## Objetivo
+Reduzir o custo-base de todas as rotas administrativas sem retirar validação de sessão, permissões ou expiração.
+
+## Arquivo funcional alterado
+- `backend/Autenticacao_Admin.gs`
+
+## O que mudou
+- sessão já validada pode ser reutilizada por até 60 segundos via `CacheService`;
+- o login pré-aquece esse cache após persistir a sessão no Sheets;
+- cada cache contém usuário, expiração absoluta, última atividade e versão de segurança do usuário;
+- cada cache hit verifica a versão de segurança em `PropertiesService`;
+- logout não usa cache e remove o cache do token;
+- troca/redefinição de senha, mudança de perfil/status e encerramento de sessões invalidam caches por usuário;
+- a cada expiração do cache a validação volta ao Sheets, preservando renovação da atividade e timeout ocioso.
+
+## Segurança preservada
+- `SESSOES_ADMIN` e `USUARIOS` continuam sendo a fonte oficial;
+- timeout ocioso: 30 minutos;
+- expiração absoluta: 8 horas;
+- permissões CMD/SUBCMD/FISCAL/DEV permanecem iguais;
+- operações de logout/revogação continuam persistidas no Sheets;
+- alterações manuais diretamente na planilha, fora do SIGVTR, podem levar no máximo o TTL curto do cache para refletir em uma chamada já aquecida.
+
+## Logs esperados
+Após a primeira validação completa, chamadas próximas devem registrar:
+
+```text
+[SIGVTR PERF] adminValidateSession_ CACHE HIT ... ms
+```
+
+Quando o cache expirar ou estiver ausente:
+
+```text
+[SIGVTR PERF] adminValidateSession_ SHEETS ... ms
+```
+
+## Implantação
+1. Substituir somente `Autenticacao_Admin.gs` no Google Apps Script.
+2. Salvar o projeto.
+3. Criar uma nova versão da implantação do Web App mantendo as mesmas permissões.
+4. Não é necessário alterar GitHub Pages/frontend nesta etapa.
+
+## Teste recomendado
+1. Login.
+2. Dashboard.
+3. Permanecer no Dashboard por 30–45 s observando `adminAlertasRecentes`.
+4. Abrir Viaturas e Cartões.
+5. Retornar ao Dashboard.
+6. Fazer logout.
+7. Confirmar no Apps Script os logs `CACHE HIT` e `SHEETS`.
+
+---
+
 ## Relatórios 2.3.2 — legibilidade de impressão/PDF (2026-08-18)
 
 A impressão dos Relatórios foi ajustada com prioridade explícita para legibilidade e acessibilidade. A tabela impressa passa a ter **10 pt como piso absoluto**, inclusive no cabeçalho. Relatórios com até 5 colunas usam corpo de 11 pt e cabeçalho de 10 pt; com 6 a 8 colunas, corpo de 10,5 pt e cabeçalho de 10 pt; com 9 ou mais, corpo e cabeçalho de 10 pt. A orientação continua automática: retrato até 5 colunas e paisagem a partir de 6.

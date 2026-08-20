@@ -85,3 +85,11 @@ Este documento integra a documentação vigente do SIGVTR. Na versão Relatório
 
 Para implantação desta atualização, publicar os arquivos de frontend normalmente. O Service Worker administrativo foi versionado para renovar o cache; não é necessária nova implantação do Apps Script por causa desta correção de Relatórios.
 
+## Cache curto de validação — v1.20.20-RC1
+
+Para reduzir leituras repetidas de `SESSOES_ADMIN` e `USUARIOS`, uma sessão já validada pode ser mantida no `CacheService` por até 60 segundos. O cache é uma otimização transitória e nunca substitui as abas como fonte oficial. O conteúdo inclui somente os dados necessários do usuário, expiração, última atividade e a versão de segurança do usuário.
+
+A validação completa volta ao Sheets quando o cache expira, é removido ou a versão de segurança muda. `adminLogout_` sempre força validação oficial e remove o cache do token. `adminRevokeAllSessions_` altera a versão de segurança do usuário antes de revogar as sessões, fazendo com que caches aquecidos deixem de ser aceitos após troca/redefinição de senha, alteração de perfil, desativação ou encerramento de sessões.
+
+Os logs distinguem explicitamente `adminValidateSession_ CACHE HIT` e `adminValidateSession_ SHEETS`, permitindo medir o ganho sem registrar tokens ou senhas.
+

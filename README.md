@@ -130,3 +130,8 @@ Esta versão reduz trabalho de manutenção estrutural durante rotas de leitura,
 ## Otimização 03 - desempenho administrativo
 
 A versão 1.20.19-RC1 introduz um marcador de versão de alertas em `PropertiesService` para que o polling não precise consultar a planilha quando nada mudou. Também adiciona caches operacionais de leitura com TTL de 30 segundos para Dashboard e Viaturas, sempre com Google Sheets como fonte oficial e com invalidação nas alterações relevantes. O logout cancela o polling antes de revogar a sessão.
+
+## Otimização 04 - cache curto de autenticação administrativa
+
+A versão 1.20.20-RC1 reduz o custo de `adminValidateSession_` usando `CacheService` por até 60 segundos somente após uma validação completa da sessão. O cache não substitui `SESSOES_ADMIN`/`USUARIOS`, respeita expiração absoluta e ociosa e é invalidado em logout e nas revogações de sessão associadas a senha, perfil, status do usuário ou ação do DEV. Não há alteração de frontend nesta entrega.
+

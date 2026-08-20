@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.20.20-RC1 — cache curto de autenticação administrativa (2026-08-20)
+
+- Adiciona cache de sessão administrativa já validada por até 60 segundos em `CacheService`.
+- Mantém `Google Sheets` como fonte oficial das sessões e usuários; cache é apenas aceleração temporária.
+- Pré-aquece a sessão no login para evitar releitura imediata de `SESSOES_ADMIN` e `USUARIOS` na primeira chamada administrativa.
+- `adminValidateSession_` registra `CACHE HIT` ou `SHEETS` nos logs de desempenho.
+- Logout sempre ignora o cache, valida a sessão na fonte oficial e remove o cache do token ao revogar a sessão.
+- Revogação de todas as sessões incrementa uma versão por usuário em `PropertiesService`, invalidando caches após troca/redefinição de senha, alteração de perfil, desativação e encerramento de sessões.
+- Mantidos timeout ocioso de 30 minutos, expiração absoluta de 8 horas, renovação de atividade e permissões por perfil.
+- Não há mudança de frontend nesta entrega.
+
 ## 1.20.15-RC1 — segurança, logout, instrumentação e consistência PWA (2026-08-19)
 
 - Substitui a validação permissiva de `return`/`redirect` por allowlist das páginas administrativas reais do SIGVTR.
