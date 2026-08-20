@@ -56,6 +56,7 @@ const AuthService=(()=>{
   async function logout(){
     if(logoutInProgress)return;
     logoutInProgress=true;
+    try{window.dispatchEvent(new CustomEvent('sigvtr:logout-start'));}catch(_){}
     showLogoutOverlay();
     let remoteConfirmed=false;
     try{

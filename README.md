@@ -126,3 +126,7 @@ O modal de cartões mantém o rodapé com **Salvar cartão** acessível em zoom 
 
 ## Nota de desempenho - Otimização 02
 Esta versão reduz trabalho de manutenção estrutural durante rotas de leitura, diminui polling administrativo pesado e melhora o tempo percebido da página de Viaturas com cache de sessão + revalidação em segundo plano. O histórico operacional permanece intacto e continua sendo lido do backend; não houve remoção de dados nem alteração das regras de autenticação/permissão.
+
+## Otimização 03 - desempenho administrativo
+
+A versão 1.20.19-RC1 introduz um marcador de versão de alertas em `PropertiesService` para que o polling não precise consultar a planilha quando nada mudou. Também adiciona caches operacionais de leitura com TTL de 30 segundos para Dashboard e Viaturas, sempre com Google Sheets como fonte oficial e com invalidação nas alterações relevantes. O logout cancela o polling antes de revogar a sessão.

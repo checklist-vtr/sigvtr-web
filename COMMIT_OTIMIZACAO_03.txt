@@ -1,0 +1,11 @@
+perf(admin): reduzir polling de alertas e reaproveitar leituras operacionais
+
+- usa marcador de versão em PropertiesService no adminAlertasRecentes
+- evita abrir ALERTAS quando não houve mudança desde o último polling
+- invalida versão e caches após alterações relevantes
+- adiciona cache backend curto de 30s para Dashboard e Viaturas
+- pré-aquece Viaturas com as leituras já feitas pelo Dashboard
+- permite atualização manual de Viaturas com fresh=1
+- interrompe polling imediatamente ao iniciar logout
+- atualiza cache busting e Service Worker administrativo
+- preserva histórico, autenticação, permissões e Google Sheets como fonte oficial

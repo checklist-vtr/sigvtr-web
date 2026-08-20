@@ -156,7 +156,7 @@ const ViaturasPage = (() => {
         staleWhileRevalidate: true,
         onRevalidateSuccess: fresh => applyVehicleData(fresh)
       } : {};
-      const data = await ApiService.get('adminViaturas', {}, options);
+      const data = await ApiService.get('adminViaturas', force ? {fresh:'1'} : {}, options);
       applyVehicleData(data);
     } catch (error) {
       if (!vehicles.length) {

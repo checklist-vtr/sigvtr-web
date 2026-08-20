@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Painel Administrativo, Alertas e Histórico por Viatura
- * Versão: 1.20.15-RC1
+ * Versão: 1.20.19-RC1
  ******************************************************************/
 const ADMIN_ALERT_HEADERS = [
   "ID_ALERTA","Tipo","Tipo Checklist","ID_REFERENCIA","ID_VTR","Prefixo","Condutor",
@@ -17,6 +17,23 @@ const ADMIN_REVIEW_HEADERS = [
 ];
 
 const ADMIN_NOTIFICATION_MIGRATION_PROPERTY_="SIGVTR_ADMIN_NOTIFICATION_MIGRATION_V1";
+const ADMIN_ALERT_VERSION_PROPERTY_="SIGVTR_ADMIN_ALERT_VERSION_V1";
+const ADMIN_DASHBOARD_CACHE_KEY_="SIGVTR_ADMIN_DASHBOARD_V3";
+const ADMIN_VEHICLES_CACHE_KEY_="SIGVTR_ADMIN_VEHICLES_V3";
+
+function getAdminAlertVersion_(){
+  try{return PropertiesService.getScriptProperties().getProperty(ADMIN_ALERT_VERSION_PROPERTY_)||"";}catch(_){return "";}
+}
+function touchAdminAlertVersion_(){
+  const version=String(Date.now())+"-"+Utilities.getUuid().slice(0,8);
+  try{PropertiesService.getScriptProperties().setProperty(ADMIN_ALERT_VERSION_PROPERTY_,version);}catch(_){}
+  return version;
+}
+function ensureAdminAlertVersion_(){return getAdminAlertVersion_()||touchAdminAlertVersion_();}
+function adminCacheGetJson_(key){try{const raw=CacheService.getScriptCache().get(key);return raw?JSON.parse(raw):null;}catch(_){return null;}}
+function adminCachePutJson_(key,value,seconds){try{const raw=JSON.stringify(value);if(raw.length<95000)CacheService.getScriptCache().put(key,raw,seconds);}catch(_){}}
+function invalidateAdminOperationalCache_(){try{CacheService.getScriptCache().removeAll([ADMIN_DASHBOARD_CACHE_KEY_,ADMIN_VEHICLES_CACHE_KEY_]);}catch(_){}}
+
 
 function ensureAdminSheets_(){
   const ss=getSpreadsheet_();
@@ -92,7 +109,7 @@ function createAdminAlert_(payload){
     "Status Notificação":"NOVA","Data Visualização Notificação":"",
     "ID_ADMIN_ULTIMA_ACAO":"","Última Atualização":now
   };
-  appendByHeaders_(sh,headers,values);return values["ID_ALERTA"];
+  appendByHeaders_(sh,headers,values);touchAdminAlertVersion_();invalidateAdminOperationalCache_();return values["ID_ALERTA"];
 }
 function findAdminAlertId_(sh,type,reference){
   if(sh.getLastRow()<2)return "";const values=sh.getDataRange().getValues(),heads=values.shift().map(String),ii=heads.indexOf("ID_ALERTA"),ti=heads.indexOf("Tipo"),ri=heads.indexOf("ID_REFERENCIA");
@@ -130,7 +147,7 @@ function upsertReviewAlert_(payload){
   ensureAdminSheets_();const sh=requireSheet_(getSpreadsheet_(),"ALERTAS"),id=findAdminAlertId_(sh,"REVISAO",payload.idReferencia);
   if(!id)return createAdminAlert_(payload);
   const heads=getHeaders_(sh),rows=sh.getDataRange().getValues(),idI=heads.indexOf("ID_ALERTA");
-  for(let i=1;i<rows.length;i++)if(String(rows[i][idI]||"")===String(id)){const values={"KM":Number(payload.km)||0,"Título":payload.titulo||"Revisão preventiva","Descrição":payload.descricao||"","Mensagem WhatsApp":buildAdminWhatsAppMessage_(payload,Utilities.formatDate(payload.now||new Date(),SIGVTR.TIMEZONE,"dd/MM/yyyy"),Utilities.formatDate(payload.now||new Date(),SIGVTR.TIMEZONE,"HH:mm:ss")),"Última Atualização":payload.now||new Date()};heads.forEach(function(h,j){if(Object.prototype.hasOwnProperty.call(values,h))sh.getRange(i+1,j+1).setValue(values[h]);});return id;}
+  for(let i=1;i<rows.length;i++)if(String(rows[i][idI]||"")===String(id)){const values={"KM":Number(payload.km)||0,"Título":payload.titulo||"Revisão preventiva","Descrição":payload.descricao||"","Mensagem WhatsApp":buildAdminWhatsAppMessage_(payload,Utilities.formatDate(payload.now||new Date(),SIGVTR.TIMEZONE,"dd/MM/yyyy"),Utilities.formatDate(payload.now||new Date(),SIGVTR.TIMEZONE,"HH:mm:ss")),"Última Atualização":payload.now||new Date()};heads.forEach(function(h,j){if(Object.prototype.hasOwnProperty.call(values,h))sh.getRange(i+1,j+1).setValue(values[h]);});touchAdminAlertVersion_();invalidateAdminOperationalCache_();return id;}
   return id;
 }
 function checkPreventiveReviewForVehicle_(idVtr,prefixo,kmAtual,now){
@@ -143,8 +160,9 @@ function checkPreventiveReviewForVehicle_(idVtr,prefixo,kmAtual,now){
   if(status==="ATINGIDA"||status==="VENCIDA")upsertReviewAlert_({tipo:"REVISAO",idReferencia:"REVISAO_LIMITE:"+review.ID_REVISAO,idVtr:idVtr,prefixo:prefixo,km:kmAtual,proximaRevisao:next,titulo:status==="VENCIDA"?"Revisão preventiva vencida":"Revisão programada atingida",descricao:status==="VENCIDA"?"A revisão permanece pendente e vencida até o registro administrativo de realização.":"A viatura atingiu a quilometragem programada para revisão.",now:now});
   return {status:status,proximaRevisao:next,antecedencia:advance};
 }
-function getAdminDashboard_(){
-  const perfTotal=Date.now();
+function getAdminDashboard_(params){
+  const perfTotal=Date.now(),forceFresh=String((params||{}).fresh||"")==="1";
+  if(!forceFresh){const cached=adminCacheGetJson_(ADMIN_DASHBOARD_CACHE_KEY_);if(cached){adminPerfMark_('adminDashboard CACHE HIT',perfTotal);cached.backendCache=true;return cached;}}
   const ss=ensureAdminSheetsForRead_();
   const perfRead=Date.now(),ctx=createAdminReadContext_(ss);
   const withdrawals=ctx.rows(SIGVTR.SHEETS.WITHDRAWALS),damages=ctx.rows(SIGVTR.SHEETS.DAMAGES),alerts=ctx.rows("ALERTAS"),vehicles=ctx.rows(SIGVTR.SHEETS.VEHICLES),reviews=ctx.rows("REVISOES"),events=ctx.rows(SIGVTR.SHEETS.EVENTS);
@@ -197,30 +215,40 @@ function getAdminDashboard_(){
       frota:{total:vehicles.length,ativas:activeVehicles}
     },
     recentes:recentes,ultimosAlertas:recentAlerts,timeline:timeline,
+    alertVersion:ensureAdminAlertVersion_(),
+    notificacoesNovas:alerts.filter(function(r){return String(r["Status Notificação"]||"").trim().toUpperCase()==="NOVA";}).length,
     atualizadoEm:Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,"dd/MM/yyyy HH:mm:ss")
   };
+  adminCachePutJson_(ADMIN_DASHBOARD_CACHE_KEY_,response,30);
+  // O Dashboard já possui as quatro fontes necessárias para os cards de Viaturas.
+  // Reaproveita a leitura para que a navegação Dashboard -> Viaturas não releia históricos.
+  adminCachePutJson_(ADMIN_VEHICLES_CACHE_KEY_,{items:buildAdminVehiclesFromRows_(vehicles,damages,withdrawals,reviews)},30);
   adminPerfMark_('adminDashboard processamento',perfBuild);
   adminPerfMark_('adminDashboard TOTAL',perfTotal);
   return response;
 }
 
-/** Consulta leve para o monitoramento em tempo real do Dashboard. */
+/** Consulta leve para o monitoramento em tempo real do Dashboard.
+ * A versão é mantida em PropertiesService. Quando o cliente já possui a mesma
+ * versão, a resposta não abre o Google Sheets.
+ */
 function getAdminRealtimeAlerts_(params){
-  const ss=ensureAdminSheetsForRead_();
-  const sh=requireSheet_(ss,"ALERTAS");
-  if(sh.getLastRow()<2)return {items:[],total:0};
+  const perfTotal=Date.now(),p=params||{},since=String(p.sinceVersion||"").trim(),current=getAdminAlertVersion_();
+  if(since&&current&&since===current){adminPerfMark_('adminAlertasRecentes VERSION HIT',perfTotal);return {items:[],total:0,version:current,unchanged:true};}
+  const ss=ensureAdminSheetsForRead_(),sh=requireSheet_(ss,"ALERTAS");
+  if(sh.getLastRow()<2){const emptyVersion=current||touchAdminAlertVersion_();adminPerfMark_('adminAlertasRecentes EMPTY',perfTotal);return {items:[],total:0,version:emptyVersion,unchanged:false};}
   const headers=getHeaders_(sh).map(function(h){return String(h).trim();});
-  const requested=Math.min(Math.max(Number((params||{}).limit)||20,1),50);
-  const scan=Math.min(Math.max(requested*5,100),500,sh.getLastRow()-1);
-  const start=Math.max(2,sh.getLastRow()-scan+1);
-  const values=sh.getRange(start,1,sh.getLastRow()-start+1,headers.length).getValues();
+  const requested=Math.min(Math.max(Number(p.limit)||20,1),50),lastRow=sh.getLastRow();
+  const scan=Math.min(Math.max(requested*5,100),500,lastRow-1),start=Math.max(2,lastRow-scan+1);
+  const values=sh.getRange(start,1,lastRow-start+1,headers.length).getValues();
   let rows=values.map(function(row){const o={};headers.forEach(function(h,i){o[h]=row[i];});return o;});
-  const notificationStatus=String((params||{}).statusNotificacao||"").trim().toUpperCase();
+  const notificationStatus=String(p.statusNotificacao||"").trim().toUpperCase();
   if(notificationStatus)rows=rows.filter(function(r){return String(r["Status Notificação"]||"").trim().toUpperCase()===notificationStatus;});
   rows.sort(function(a,b){return dateValue_(b["Data/Hora Registro"])-dateValue_(a["Data/Hora Registro"]);});
-  const total=rows.length;
+  const total=rows.length,version=current||touchAdminAlertVersion_();
   rows=rows.slice(0,requested).map(adminRealtimeAlertDto_);
-  return {items:rows,total:total};
+  adminPerfMark_('adminAlertasRecentes SHEET FALLBACK',perfTotal);
+  return {items:rows,total:total,version:version,unchanged:false};
 }
 function adminRealtimeAlertDto_(r){
   return {ID_ALERTA:r.ID_ALERTA||"",Tipo:r.Tipo||"",Título:r.Título||"",Descrição:r.Descrição||"",Prefixo:r.Prefixo||"",Status:r.Status||"",statusNotificacao:r["Status Notificação"]||"",Data:formatDateOnlyAdmin_(r.Data||r["Data/Hora Registro"]),Hora:formatTimeOnlyAdmin_(r.Hora||r["Data/Hora Registro"])};
@@ -240,6 +268,7 @@ function consumeAdminNotifications_(data){
   selected.forEach(function(item){item.row[statusI]="VISUALIZADA";if(viewI>=0)item.row[viewI]=now;});
   const perfWrite=Date.now();
   writeAdminNotificationSelection_(sh,selected,statusI,viewI,now);
+  if(selected.length){touchAdminAlertVersion_();invalidateAdminOperationalCache_();}
   adminPerfMark_('adminConsumirNotificacoesNovas escrita',perfWrite);
   const items=selected.map(function(item){const o={};heads.forEach(function(h,i){o[h]=item.row[i];});return adminRealtimeAlertDto_(o);});
   adminPerfMark_('adminConsumirNotificacoesNovas TOTAL',perfTotal);
@@ -312,13 +341,14 @@ function getAdminAlerts_(params){
   const rows=readSheetObjects_(ss.getSheetByName("ALERTAS"));
   adminPerfMark_('adminAlertas leitura ALERTAS',perfRead);
   const result=buildAdminAlertsFromRows_(rows,params);
+  result.version=ensureAdminAlertVersion_();
   adminPerfMark_('adminAlertas TOTAL',perfTotal);
   return result;
 }
 function updateAdminAlertStatus_(data){
   ensureAdminSheets_();const allowed=["NOVO","VISUALIZADO","ENCAMINHADO","RESOLVIDO","ARQUIVADO"],id=String(data.idAlerta||"").trim(),status=String(data.status||"").trim().toUpperCase();if(!/^[A-Za-z0-9-]{1,100}$/.test(id)||allowed.indexOf(status)<0)throw new Error("Dados do alerta inválidos.");
   const sh=requireSheet_(getSpreadsheet_(),"ALERTAS"),values=sh.getDataRange().getValues(),heads=values[0].map(String),idI=heads.indexOf("ID_ALERTA"),stI=heads.indexOf("Status"),upI=heads.indexOf("Última Atualização"),adminI=heads.indexOf("ID_ADMIN_ULTIMA_ACAO"),map={VISUALIZADO:"Data Visualização",ENCAMINHADO:"Data Encaminhamento",RESOLVIDO:"Data Resolução",ARQUIVADO:"Data Arquivamento"},now=new Date();
-  for(let i=1;i<values.length;i++){if(String(values[i][idI])===id){sh.getRange(i+1,stI+1).setValue(status);if(upI>=0)sh.getRange(i+1,upI+1).setValue(now);if(adminI>=0)sh.getRange(i+1,adminI+1).setValue(String(data.admin||"ADMIN").slice(0,80));const hi=heads.indexOf(map[status]);if(hi>=0)sh.getRange(i+1,hi+1).setValue(now);appendLog_(getSpreadsheet_(),{idUsuario:String(data.admin||"ADMIN"),action:"STATUS DE ALERTA",referenceId:id,description:"Status alterado para "+status,device:{},result:"SUCESSO",now:now});invalidateAdminSearchCache_();return {success:true};}}
+  for(let i=1;i<values.length;i++){if(String(values[i][idI])===id){sh.getRange(i+1,stI+1).setValue(status);if(upI>=0)sh.getRange(i+1,upI+1).setValue(now);if(adminI>=0)sh.getRange(i+1,adminI+1).setValue(String(data.admin||"ADMIN").slice(0,80));const hi=heads.indexOf(map[status]);if(hi>=0)sh.getRange(i+1,hi+1).setValue(now);appendLog_(getSpreadsheet_(),{idUsuario:String(data.admin||"ADMIN"),action:"STATUS DE ALERTA",referenceId:id,description:"Status alterado para "+status,device:{},result:"SUCESSO",now:now});invalidateAdminSearchCache_();touchAdminAlertVersion_();invalidateAdminOperationalCache_();return {success:true};}}
   throw new Error("Alerta não encontrado.");
 }
 function buildAdminChecklistsFromRows_(sourceRows,vehicles,params){
@@ -546,12 +576,12 @@ function buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews){
   (reviews||[]).forEach(function(rv){const id=String(rv.ID_VTR||""),status=String(rv.Status||"").toUpperCase();if(!id||["REALIZADA","CANCELADA"].indexOf(status)>=0)return;const t=dateValue_(rv["Última Atualização"]);if(!reviewByVehicle[id]||t>reviewByVehicle[id].time)reviewByVehicle[id]={time:t,row:rv};});
   return (rows||[]).filter(function(r){return String(r.Prefixo||"").trim();}).map(function(r){const id=String(r["ID-VTR"]||""),prefix=String(r.Prefixo||""),active=(reviewByVehicle[id]||{}).row||{},last=lastByVehicle[id]||null;return {id:id,prefixo:prefix,placa:r.Placa||"",chassi:r.Chassi||"",motor:r["Nº do Motor"]||"",renavam:r.RENAVAM||"",marca:r.Marca||"",modelo:r.Modelo||"",ano:r.Ano||"",combustivel:r.Combustível||"",tipoCombustivel:r["Tipo Combustível"]||"",tipo:r.Tipo||"",lotacao:r.Lotação||"",kmInicial:Number(r["KM Inicial"]||0),kmAtual:Number(r["KM Atual"]||0),proximaRevisao:Number(active["Próxima Revisão KM"]||r["Próxima Revisão KM"]||0),antecedenciaAlerta:Number(active["Antecedência Alerta KM"]||r["Antecedência Alerta KM"]||200),statusRevisao:String(active.Status||"NAO_CONFIGURADA").toUpperCase(),idRevisao:active.ID_REVISAO||"",status:r.Status||"ATIVA",dataStatus:formatDateForApi_(r["Data do Status"]),cadastro:r.Cadastro||vehicleRegistrationStatus_(r),observacoes:r.Observações||"",ultimaAtualizacao:formatDateForApi_(r["Última Atualização"]),avariasAbertas:openByVehicle[id]||0,ultimoChecklist:last};});
 }
-function getAdminVehicles_(){const perfTotal=Date.now(),ss=getSpreadsheet_(),sh=getAdminVehicleSheetForRead_(ss),perfRead=Date.now(),rows=readSheetObjects_(sh),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),reviews=readSheetObjects_(ss.getSheetByName("REVISOES"));adminPerfMark_('adminViaturas leituras Sheets',perfRead);const perfBuild=Date.now(),result={items:buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews)};adminPerfMark_('adminViaturas processamento',perfBuild);adminPerfMark_('adminViaturas TOTAL',perfTotal);return result;}
+function getAdminVehicles_(params){const perfTotal=Date.now(),forceFresh=String((params||{}).fresh||"")==="1";if(!forceFresh){const cached=adminCacheGetJson_(ADMIN_VEHICLES_CACHE_KEY_);if(cached){adminPerfMark_('adminViaturas CACHE HIT',perfTotal);cached.backendCache=true;return cached;}}const ss=getSpreadsheet_(),sh=getAdminVehicleSheetForRead_(ss),perfRead=Date.now(),rows=readSheetObjects_(sh),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),reviews=readSheetObjects_(ss.getSheetByName("REVISOES"));adminPerfMark_('adminViaturas leituras Sheets',perfRead);const perfBuild=Date.now(),result={items:buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews)};adminCachePutJson_(ADMIN_VEHICLES_CACHE_KEY_,result,30);adminPerfMark_('adminViaturas processamento',perfBuild);adminPerfMark_('adminViaturas TOTAL',perfTotal);return result;}
 function getAdminVehicleDetail_(id,prefixo){const data=getAdminVehicles_().items;const p=normalizeVehiclePrefix_(prefixo);const vehicle=data.find(function(v){return (id&&String(v.id)===String(id))||(p&&normalizeVehiclePrefix_(v.prefixo)===p);});if(!vehicle)throw new Error("Viatura não encontrada.");return vehicle;}
 function saveAdminVehicle_(p){const sh=ensureAdminVehicleSheet_(),headers=getHeaders_(sh),rows=sh.getDataRange().getValues(),prefix=normalizeVehiclePrefix_(p.prefixo);if(!prefix)throw new Error("Informe o prefixo.");let rowIndex=-1;const idCol=headers.indexOf("ID-VTR"),preCol=headers.indexOf("Prefixo");for(let i=1;i<rows.length;i++){if((p.id&&String(rows[i][idCol])===String(p.id))||normalizeVehiclePrefix_(rows[i][preCol])===prefix){rowIndex=i+1;break;}}const now=new Date(),id=rowIndex>0?String(sh.getRange(rowIndex,idCol+1).getValue()||""):"VTR-"+Utilities.getUuid(),oldStatus=rowIndex>0?String(sh.getRange(rowIndex,headers.indexOf("Status")+1).getValue()||"ATIVA").trim().toUpperCase():"",newStatus=String(p.status||"ATIVA").trim().toUpperCase(),next=Math.max(0,Number(p.proximaRevisao||0)),advance=Math.max(0,Number(p.antecedenciaAlerta===""||p.antecedenciaAlerta==null?200:p.antecedenciaAlerta));const statusChanged=rowIndex>0&&oldStatus!==newStatus;if(statusChanged)ensureAdminVehicleStatusHistoryInitialized_();const values={"ID-VTR":id,"Prefixo":prefix,"Placa":String(p.placa||"").toUpperCase(),"Chassi":String(p.chassi||"").toUpperCase(),"Nº do Motor":String(p.motor||"").toUpperCase(),"RENAVAM":String(p.renavam||""),"Marca":p.marca||"","Modelo":p.modelo||"","Ano":p.ano||"","Tipo Combustível":p.tipoCombustivel||"","Tipo":p.tipo||"","Lotação":p.lotacao||"20º BPM","KM Inicial":Number(p.kmInicial||0),"KM Atual":Number(p.kmAtual||0),"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Status":newStatus,"Data do Status":(!rowIndex||rowIndex<0||oldStatus!==newStatus)?now:(rowIndex>0&&headers.indexOf("Data do Status")>=0?sh.getRange(rowIndex,headers.indexOf("Data do Status")+1).getValue():""),"Observações":p.observacoes||"","Última Atualização":now,"Atualizado Por":p.admin||"Administrador"};values.Cadastro=vehicleRegistrationStatus_(values);if(rowIndex<0){values["Data Cadastro"]=now;appendByHeaders_(sh,headers,values);rowIndex=sh.getLastRow();}else{headers.forEach(function(h,i){if(Object.prototype.hasOwnProperty.call(values,h))sh.getRange(rowIndex,i+1).setValue(values[h]);});}sh.getRange(rowIndex,preCol+1).setNumberFormat("@").setValue(prefix);
   if(statusChanged)appendVehicleStatusHistory_({idVtr:id,prefixo:prefix,placa:values.Placa,statusAnterior:oldStatus,novoStatus:newStatus,dataHora:now,idUsuario:p.adminId||"",responsavel:p.admin||"Administrador",perfil:p.adminPerfil||"",observacao:values.Observações,origem:p.origemStatus||"EDICAO_INDIVIDUAL"});
   if(next>0){ensureAdminSheets_();let review=getActiveReviewForVehicle_(id);if(review)updateReviewRow_(review.ID_REVISAO,{"Prefixo":prefix,"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Status":"PROGRAMADA","Última Atualização":now});else appendByHeaders_(requireSheet_(getSpreadsheet_(),"REVISOES"),requireHeaders_(requireSheet_(getSpreadsheet_(),"REVISOES"),ADMIN_REVIEW_HEADERS),{"ID_REVISAO":"REV-"+Utilities.getUuid(),"ID_VTR":id,"Prefixo":prefix,"KM Última Revisão":0,"Intervalo KM":0,"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Data Última Revisão":"","Status":"PROGRAMADA","Observação":"Programação inicial cadastrada pela Administração.","Última Atualização":now});checkPreventiveReviewForVehicle_(id,prefix,Number(p.kmAtual||0),now);}
-  appendLog_(getSpreadsheet_(),{idUsuario:p.admin||"ADMIN",action:"CADASTRO DE VIATURA",referenceId:id,description:"Cadastro atualizado - "+prefix,device:{},result:"SUCESSO",now:now});return {id:id,prefixo:prefix,cadastro:values.Cadastro};}
+  appendLog_(getSpreadsheet_(),{idUsuario:p.admin||"ADMIN",action:"CADASTRO DE VIATURA",referenceId:id,description:"Cadastro atualizado - "+prefix,device:{},result:"SUCESSO",now:now});invalidateAdminOperationalCache_();return {id:id,prefixo:prefix,cadastro:values.Cadastro};}
 
 function registerAdminVehicleReview_(p){
   const id=String(p.id||"").trim(),prefix=normalizeVehiclePrefix_(p.prefixo),review=getActiveReviewForVehicle_(id);if(!id||!review)throw new Error("Revisão ativa não encontrada para a viatura.");
@@ -559,7 +589,7 @@ function registerAdminVehicleReview_(p){
   const now=new Date(),admin=String(p.admin||"Administrador");updateReviewRow_(review.ID_REVISAO,{"Status":"REALIZADA","Data Realização":p.dataRealizacao?new Date(String(p.dataRealizacao)+"T12:00:00"):now,"KM Realização":km,"Realizada Por":admin,"Observação":String(p.observacao||""),"Última Atualização":now});
   const alertSh=requireSheet_(getSpreadsheet_(),"ALERTAS"),heads=getHeaders_(alertSh),rows=alertSh.getDataRange().getValues(),refI=heads.indexOf("ID_REFERENCIA"),stI=heads.indexOf("Status"),resI=heads.indexOf("Data Resolução"),upI=heads.indexOf("Última Atualização"),adminI=heads.indexOf("ID_ADMIN_ULTIMA_ACAO");for(let i=1;i<rows.length;i++){const ref=String(rows[i][refI]||"");if(ref==="REVISAO_PREVIA:"+review.ID_REVISAO||ref==="REVISAO_LIMITE:"+review.ID_REVISAO){alertSh.getRange(i+1,stI+1).setValue("RESOLVIDO");if(resI>=0)alertSh.getRange(i+1,resI+1).setValue(now);if(upI>=0)alertSh.getRange(i+1,upI+1).setValue(now);if(adminI>=0)alertSh.getRange(i+1,adminI+1).setValue(admin);}}
   const sh=requireSheet_(getSpreadsheet_(),"REVISOES"),headers=requireHeaders_(sh,ADMIN_REVIEW_HEADERS),newId="REV-"+Utilities.getUuid();appendByHeaders_(sh,headers,{"ID_REVISAO":newId,"ID_VTR":id,"Prefixo":prefix,"KM Última Revisão":km,"Intervalo KM":next-km,"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Data Última Revisão":p.dataRealizacao?new Date(String(p.dataRealizacao)+"T12:00:00"):now,"Status":"PROGRAMADA","Observação":"Novo ciclo iniciado após revisão realizada.","Última Atualização":now});
-  appendLog_(getSpreadsheet_(),{idUsuario:admin,action:"REVISÃO REALIZADA",referenceId:id,description:"Revisão registrada em "+km+" km. Próxima: "+next+" km.",device:{},result:"SUCESSO",now:now});invalidateAdminSearchCache_();return {success:true,idRevisao:newId,status:"PROGRAMADA",proximaRevisao:next};
+  appendLog_(getSpreadsheet_(),{idUsuario:admin,action:"REVISÃO REALIZADA",referenceId:id,description:"Revisão registrada em "+km+" km. Próxima: "+next+" km.",device:{},result:"SUCESSO",now:now});invalidateAdminSearchCache_();touchAdminAlertVersion_();invalidateAdminOperationalCache_();return {success:true,idRevisao:newId,status:"PROGRAMADA",proximaRevisao:next};
 }
 function importOfficialFleet_(p){let criadas=0,atualizadas=0;OFFICIAL_FLEET_20BPM.forEach(function(v){const existing=getAdminVehicles_().items.find(function(x){return normalizeVehiclePrefix_(x.prefixo)===normalizeVehiclePrefix_(v[0]);});saveAdminVehicle_({id:existing?existing.id:"",prefixo:v[0],placa:v[1],chassi:v[2],motor:v[3],renavam:v[4],status:existing?existing.status:"ATIVA",marca:existing?existing.marca:"",modelo:existing?existing.modelo:"",ano:existing?existing.ano:"",tipoCombustivel:existing?existing.tipoCombustivel:"",tipo:existing?existing.tipo:"",lotacao:"20º BPM",kmInicial:existing?existing.kmInicial:0,kmAtual:existing?existing.kmAtual:0,observacoes:existing?existing.observacoes:"Importado da relação oficial da frota do 20º BPM.",admin:p.admin||"Administrador",adminId:p.adminId||"",adminPerfil:p.adminPerfil||"",origemStatus:p.origemStatus||"IMPORTACAO_FROTA_OFICIAL"});existing?atualizadas++:criadas++;});return {criadas:criadas,atualizadas:atualizadas,total:OFFICIAL_FLEET_20BPM.length};}
 
@@ -593,6 +623,7 @@ function updateAdminVehiclesBulk_(input){
   if(field==="status"&&rows.some(function(row){const id=String(row[idCol]||"").trim();return wanted[id]&&String(row[targetCol]||"").trim().toUpperCase()!==String(value).trim().toUpperCase();}))ensureAdminVehicleStatusHistoryInitialized_();
   let updated=0;const found={};const now=new Date(),prefixCol=headers.indexOf("Prefixo"),plateCol=headers.indexOf("Placa"),obsCol=headers.indexOf("Observações");
   rows.forEach(function(row,index){const id=String(row[idCol]||"").trim();if(!wanted[id])return;found[id]=true;const oldValue=String(row[targetCol]||"").trim(),statusChanged=field==="status"&&oldValue.toUpperCase()!==String(value).trim().toUpperCase();sh.getRange(index+2,targetCol+1).setValue(value);if(statusChanged){const dsCol=headers.indexOf("Data do Status");if(dsCol>=0)sh.getRange(index+2,dsCol+1).setValue(now);appendVehicleStatusHistory_({idVtr:id,prefixo:prefixCol>=0?row[prefixCol]:"",placa:plateCol>=0?row[plateCol]:"",statusAnterior:oldValue.toUpperCase(),novoStatus:String(value).toUpperCase(),dataHora:now,idUsuario:adminId,responsavel:admin,perfil:adminPerfil,observacao:obsCol>=0?row[obsCol]:"",origem:"ATUALIZACAO_MASSA"});}const updCol=headers.indexOf("Última Atualização"),userCol=headers.indexOf("Atualizado Por");if(updCol>=0)sh.getRange(index+2,updCol+1).setValue(now);if(userCol>=0)sh.getRange(index+2,userCol+1).setValue(admin);updated++;appendLog_(getSpreadsheet_(),{idUsuario:admin,action:"ATUALIZAÇÃO EM MASSA DE VIATURA",referenceId:id,description:"Campo: "+header+" | Novo valor: "+String(value),device:{},result:"SUCESSO",now:now});});
+  invalidateAdminOperationalCache_();
   return {atualizadas:updated,naoLocalizadas:ids.filter(function(id){return !found[id];}).length,campo:header,valor:value};
 }
 

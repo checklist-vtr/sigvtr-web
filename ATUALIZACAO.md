@@ -481,3 +481,52 @@ Os HTML adicionais acima mudam apenas o parâmetro de versão de `admin.js`, gar
 4. Registrar no Console os tempos `[SIGVTR API]`.
 5. No Apps Script > Execuções, registrar os `[SIGVTR PERF]` de `adminDashboard`, `adminAlertas`, `adminViaturas` e `adminCartoes`.
 6. Confirmar que `adminConsumirNotificacoesNovas` não aparece repetidamente quando não existem notificações novas.
+
+# Atualização 1.20.19-RC1 - Otimização 03
+
+Data: 20/08/2026
+
+## Objetivo
+Reduzir o custo do monitoramento de alertas, impedir polling durante o logout e diminuir leituras repetidas no caminho Dashboard -> Viaturas.
+
+## Backend alterado
+- `backend/Painel_Administrativo.gs`
+- `backend/Complemento_Mobile_v4.gs`
+
+## Frontend alterado funcionalmente
+- `admin/assets/js/admin.js`
+- `admin/assets/js/alertas.js`
+- `admin/assets/js/auth.js`
+- `admin/assets/js/viaturas.js`
+- `admin/sw.js`
+
+Os HTML administrativos receberam apenas atualização de versão de `auth.js`/`admin.js`/scripts específicos para evitar execução de cache antigo.
+
+## Implantação Apps Script
+1. Fazer backup/exportação da versão publicada.
+2. Substituir `Painel_Administrativo.gs` e `Complemento_Mobile_v4.gs` pelos arquivos desta entrega.
+3. Salvar.
+4. Criar nova versão da implantação Web App, preservando executor e permissões atuais.
+
+## Implantação GitHub Pages
+1. Copiar os arquivos da pasta `admin/` desta entrega sobre os equivalentes do repositório atual.
+2. Confirmar principalmente os quatro JS alterados e `admin/sw.js`.
+3. Fazer commit e push.
+4. Reabrir o SIGVTR e fazer recarregamento forte (`Ctrl+Shift+R`) uma vez.
+
+## Teste de desempenho recomendado
+Executar: Login -> Dashboard -> aguardar 30-45 s -> Alertas -> aguardar 30-45 s -> Viaturas -> Atualizar manualmente -> Dashboard -> Logout.
+
+No Console/Network observar:
+- `adminAlertasRecentes`: após a primeira sincronização, deve registrar `[SIGVTR PERF] adminAlertasRecentes VERSION HIT` e não abrir `ALERTAS`.
+- `adminViaturas`: ao entrar logo após Dashboard, deve poder registrar `[SIGVTR PERF] adminViaturas CACHE HIT`.
+- Ao clicar em Atualizar em Viaturas, deve ocorrer leitura real (`fresh=1`).
+- Após clicar em Sair, não devem surgir novas chamadas `adminAlertasRecentes` iniciadas pelo polling.
+- `adminDashboard` pode registrar `CACHE HIT` em reaberturas dentro de 30 segundos.
+
+## Critérios de aceite
+- Nenhuma regressão funcional no Dashboard, Alertas, Viaturas ou logout.
+- Novos alertas continuam aparecendo no Dashboard.
+- Mudança de status na Central de Alertas é detectada.
+- Atualização manual de Viaturas busca dados atuais do backend.
+- Nenhuma chamada periódica de alertas é iniciada após o clique em logout.

@@ -270,3 +270,23 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Gestão de Viaturas reaproveita cache de sessão para exibição imediata e revalida em segundo plano; ações manuais e escritas continuam forçando atualização de rede.
 - Central de Alertas substitui recarga completa automática a cada 30 s por uma consulta leve de detecção de mudanças.
 - Cache do Service Worker administrativo atualizado para `sigvtr-admin-v12018rc1`.
+
+## 1.20.19-RC1 - Otimização 03 (20/08/2026)
+
+### Desempenho
+- `adminAlertasRecentes` passa a usar um marcador de versão em `PropertiesService`; quando o cliente já conhece a versão atual, a consulta retorna sem abrir a aba `ALERTAS`.
+- O marcador de alertas é atualizado em criação, consumo e alteração de status de alertas, preservando a detecção de mudanças.
+- O Dashboard mantém cache operacional curto de 30 segundos no backend e reaproveita sua própria leitura para pré-aquecer a resposta de `adminViaturas`.
+- `adminViaturas` usa cache operacional curto de 30 segundos; atualização manual envia `fresh=1` e força nova leitura do backend.
+- Alterações de viaturas e alertas invalidam os caches operacionais relacionados.
+
+### Frontend
+- O polling do Dashboard envia `sinceVersion` e evita leitura do Sheets quando não houve alteração de alertas.
+- A Central de Alertas usa o mesmo marcador de versão para detectar mudanças.
+- O polling é interrompido imediatamente no evento de logout, evitando chamadas após a revogação da sessão.
+- Service Worker administrativo atualizado para `sigvtr-admin-v12019rc1`.
+
+### Segurança e dados
+- Nenhum registro histórico é removido ou sobrescrito por cache.
+- Cache é somente uma camada temporária de leitura (30 s) e nunca substitui Google Sheets como fonte oficial.
+- Regras de autenticação, perfis, LockService e contratos das rotas foram preservados.
