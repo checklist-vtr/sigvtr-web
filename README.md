@@ -135,3 +135,13 @@ A versão 1.20.19-RC1 introduz um marcador de versão de alertas em `PropertiesS
 
 A versão 1.20.20-RC1 reduz o custo de `adminValidateSession_` usando `CacheService` por até 60 segundos somente após uma validação completa da sessão. O cache não substitui `SESSOES_ADMIN`/`USUARIOS`, respeita expiração absoluta e ociosa e é invalidado em logout e nas revogações de sessão associadas a senha, perfil, status do usuário ou ação do DEV. Não há alteração de frontend nesta entrega.
 
+
+
+## Sessão visual por inatividade — v1.20.22-RC1
+- contador regressivo de 30 minutos no cabeçalho administrativo;
+- destaque visual nos últimos 5 minutos e modal obrigatório nos últimos 2 minutos;
+- botão **Continuar conectado** renova a sessão no backend e preserva o formulário atual;
+- logout automático ao zerar o contador;
+- limite absoluto de 8 horas permanece obrigatório;
+- polling de alertas valida a sessão de forma passiva e não renova a inatividade;
+- movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.

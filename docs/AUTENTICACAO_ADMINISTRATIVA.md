@@ -93,3 +93,7 @@ A validação completa volta ao Sheets quando o cache expira, é removido ou a v
 
 Os logs distinguem explicitamente `adminValidateSession_ CACHE HIT` e `adminValidateSession_ SHEETS`, permitindo medir o ganho sem registrar tokens ou senhas.
 
+
+
+## Sessão visual por inatividade — v1.20.22-RC1
+O painel exibe o tempo restante da janela de inatividade de 30 minutos. Aos 5 minutos o indicador entra em atenção; aos 2 minutos abre um modal com contagem regressiva. **Continuar conectado** executa validação autenticada e renova `ULTIMA_ATIVIDADE` quando aplicável. Polling de `adminAlertasRecentes` e consumo automático de notificações usam validação passiva: confirmam a sessão, mas não renovam a inatividade. O limite absoluto de 8 horas continua prevalecendo e não oferece extensão.

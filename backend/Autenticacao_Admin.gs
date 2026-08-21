@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Autenticação e autorização administrativa
- * Versão: 1.20.20-RC1
+ * Versão: 1.20.22-RC1
  *
  * Observação criptográfica:
  * Google Apps Script não possui bcrypt/Argon2/PBKDF2 nativos. Para não
@@ -194,15 +194,17 @@ function adminSessionCachePut_(hash,user,absolute,lastActivity){
     CacheService.getScriptCache().put(adminSessionCacheKeyFromHash_(hash),JSON.stringify(item),ADMIN_AUTH.SESSION_CACHE_SECONDS);
   }catch(_){}
 }
-function adminValidateSession_(token,touch){
+function adminValidateSession_(token,touch,useCache){
   const perfStart=Date.now();
   token=String(token||'');if(!token)throw new Error('SESSION_REQUIRED');
   const hash=adminTokenHash_(token),now=Date.now();
-  // Chamadas administrativas comuns reutilizam por até 60 s uma sessão que já foi
-  // validada integralmente. Logout (touch=false) sempre consulta a fonte oficial.
-  if(touch!==false){
+  // Chamadas administrativas comuns reutilizam por até 60 s uma sessão já validada.
+  // useCache permite validação passiva (polling) sem renovar ULTIMA_ATIVIDADE.
+  // Logout continua usando touch=false e useCache=false para consultar a fonte oficial.
+  if(useCache===undefined)useCache=(touch!==false);
+  if(useCache){
     const cached=adminSessionCacheGet_(hash,now);
-    if(cached){console.log('[SIGVTR PERF] adminValidateSession_ CACHE HIT '+(Date.now()-perfStart)+' ms');return {user:cached.user,fromCache:true};}
+    if(cached){console.log('[SIGVTR PERF] adminValidateSession_ CACHE HIT '+(Date.now()-perfStart)+' ms');return {user:cached.user,fromCache:true,absolute:Number(cached.absolute)||0,lastActivity:Number(cached.lastActivity)||0};}
   }
   ensureAdminAuthStructure_();
   const ss=getSpreadsheet_(),sh=ss.getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),row=adminFindRowExact_(sh,hm.map.TOKEN_HASH,hash,true);
@@ -218,12 +220,12 @@ function adminValidateSession_(token,touch){
   // Evita uma gravação no Sheets a cada chamada administrativa. O timeout continua
   // conservador: a atividade só é renovada quando o último toque tem >= 2 minutos.
   if(touch!==false&&last+ADMIN_AUTH.SESSION_TOUCH_MINUTES*60000<=now){sh.getRange(row,hm.map.ULTIMA_ATIVIDADE+1).setValue(new Date());effectiveLast=now;}
-  if(touch!==false)adminSessionCachePut_(hash,user,absolute,effectiveLast);
+  if(useCache)adminSessionCachePut_(hash,user,absolute,effectiveLast);
   console.log('[SIGVTR PERF] adminValidateSession_ SHEETS '+(Date.now()-perfStart)+' ms');
-  return {user,sessionRow:row,sessionSheet:sh,sessionMap:hm.map,fromCache:false};
+  return {user,sessionRow:row,sessionSheet:sh,sessionMap:hm.map,fromCache:false,absolute:absolute,lastActivity:effectiveLast};
 }
-function adminAuthorize_(token,action){const ctx=adminValidateSession_(token,true),role=adminNormalizeRole_(ctx.user.role),perms=ADMIN_AUTH.PERMISSIONS[role]||[];if(perms.indexOf('*')<0&&perms.indexOf(action)<0){adminLogSecurity_('ACESSO_NEGADO',ctx.user,action,'NEGADO','Permissão insuficiente.');throw new Error('FORBIDDEN');}return ctx;}
-function adminSessionInfo_(token){const ctx=adminValidateSession_(token,true);return {success:true,user:ctx.user};}
+function adminAuthorize_(token,action,touch,useCache){const ctx=adminValidateSession_(token,touch===undefined?true:touch,useCache),role=adminNormalizeRole_(ctx.user.role),perms=ADMIN_AUTH.PERMISSIONS[role]||[];if(perms.indexOf('*')<0&&perms.indexOf(action)<0){adminLogSecurity_('ACESSO_NEGADO',ctx.user,action,'NEGADO','Permissão insuficiente.');throw new Error('FORBIDDEN');}return ctx;}
+function adminSessionInfo_(token){const ctx=adminValidateSession_(token,true,false),absolute=Number(ctx.absolute)||0,last=Number(ctx.lastActivity)||Date.now();return {success:true,user:ctx.user,idleMinutes:ADMIN_AUTH.SESSION_IDLE_MINUTES,absoluteExpiresAt:absolute?new Date(absolute).toISOString():'',absoluteExpiresAtMs:absolute,lastActivityAt:new Date(last).toISOString(),idleExpiresAtMs:last+ADMIN_AUTH.SESSION_IDLE_MINUTES*60000};}
 function adminLogout_(token){const perfStart=Date.now();try{const ctx=adminValidateSession_(token,false),now=new Date();ctx.sessionSheet.getRange(ctx.sessionRow,ctx.sessionMap.REVOGADA+1,1,3).setValues([['SIM',now,'LOGOUT']]);adminSessionCacheDelete_(token);adminLogSecurity_('LOGOUT',ctx.user,'AUTH','SUCESSO','Logout administrativo.');}catch(_){adminSessionCacheDelete_(token);}console.log('[SIGVTR PERF] adminLogout_ '+(Date.now()-perfStart)+' ms');return {success:true};}
 function adminRevokeAllSessions_(idUsuario,motivo){adminBumpAuthUserVersion_(idUsuario);ensureAdminAuthStructure_();const sh=getSpreadsheet_().getSheetByName(ADMIN_AUTH.SESSION_SHEET),hm=adminHeaderMap_(sh),data=sh.getDataRange().getValues();for(let r=1;r<data.length;r++)if(String(data[r][hm.map.ID_USUARIO]||'')===String(idUsuario)&&!adminIsYes_(data[r][hm.map.REVOGADA])){sh.getRange(r+1,hm.map.REVOGADA+1,1,3).setValues([['SIM',new Date(),motivo||'REVOGADA']]);}}
 function adminChangePassword_(token,data){

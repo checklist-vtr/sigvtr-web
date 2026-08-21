@@ -5,7 +5,7 @@ const LoginPage=(()=>{
   function showAlert(message,type='danger'){elements.alert.className=`alert alert-${type}`;elements.alert.textContent=message}
   function hideAlert(){elements.alert.className='alert d-none';elements.alert.textContent=''}
   function setLoading(v){elements.button.disabled=v;elements.label.classList.toggle('d-none',v);elements.loading.classList.toggle('d-none',!v)}
-  function showLogoutResult(){const state=new URLSearchParams(location.search).get('logout');if(state==='local')showAlert('Sessão encerrada neste dispositivo. A confirmação de encerramento no servidor não pôde ser concluída.','warning')}
+  function showLogoutResult(){const params=new URLSearchParams(location.search),state=params.get('logout'),reason=params.get('reason');if(reason==='idle')showAlert('Sessão encerrada após 30 minutos de inatividade. Faça login novamente para continuar.','warning');else if(reason==='absolute')showAlert('A sessão atingiu o limite máximo de 8 horas. Faça login novamente para continuar.','warning');else if(reason==='expired')showAlert('Sua sessão expirou. Faça login novamente para continuar.','warning');else if(state==='local')showAlert('Sessão encerrada neste dispositivo. A confirmação de encerramento no servidor não pôde ser concluída.','warning')}
   async function handleSubmit(event){
     event.preventDefault();
     if(loginInProgress)return;

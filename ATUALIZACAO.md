@@ -585,3 +585,13 @@ No Console/Network observar:
 - Mudança de status na Central de Alertas é detectada.
 - Atualização manual de Viaturas busca dados atuais do backend.
 - Nenhuma chamada periódica de alertas é iniciada após o clique em logout.
+
+
+## Sessão visual por inatividade — v1.20.22-RC1
+- contador regressivo de 30 minutos no cabeçalho administrativo;
+- destaque visual nos últimos 5 minutos e modal obrigatório nos últimos 2 minutos;
+- botão **Continuar conectado** renova a sessão no backend e preserva o formulário atual;
+- logout automático ao zerar o contador;
+- limite absoluto de 8 horas permanece obrigatório;
+- polling de alertas valida a sessão de forma passiva e não renova a inatividade;
+- movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.

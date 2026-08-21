@@ -301,3 +301,13 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Nenhum registro histórico é removido ou sobrescrito por cache.
 - Cache é somente uma camada temporária de leitura (30 s) e nunca substitui Google Sheets como fonte oficial.
 - Regras de autenticação, perfis, LockService e contratos das rotas foram preservados.
+
+
+## Sessão visual por inatividade — v1.20.22-RC1
+- contador regressivo de 30 minutos no cabeçalho administrativo;
+- destaque visual nos últimos 5 minutos e modal obrigatório nos últimos 2 minutos;
+- botão **Continuar conectado** renova a sessão no backend e preserva o formulário atual;
+- logout automático ao zerar o contador;
+- limite absoluto de 8 horas permanece obrigatório;
+- polling de alertas valida a sessão de forma passiva e não renova a inatividade;
+- movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.

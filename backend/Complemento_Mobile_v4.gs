@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.19-RC1
+ * Versão do pacote: 1.20.22-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -26,7 +26,8 @@ function doPost(e){
     // A autorização é calculada uma única vez e reutilizada se a ação for de escrita.
     let adminRequestCtx=null;
     if(action.indexOf("admin")===0){
-      adminRequestCtx=adminAuthorize_(token,action);
+      const passiveAdminAction=(action==='adminAlertasRecentes'||action==='adminConsumirNotificacoesNovas'||data.passive===true||String(data.passive||'')==='1');
+      adminRequestCtx=passiveAdminAction?adminAuthorize_(token,action,false,true):adminAuthorize_(token,action);
       const adminReadCtx=adminRequestCtx;
       if(action==="adminDashboard")return json_({success:true,data:getAdminDashboard_(data)});
       if(action==="adminAlertas")return json_({success:true,data:getAdminAlerts_(data)});
