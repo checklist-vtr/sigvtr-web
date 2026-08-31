@@ -311,3 +311,13 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - limite absoluto de 8 horas permanece obrigatório;
 - polling de alertas valida a sessão de forma passiva e não renova a inatividade;
 - movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.
+## Controle da Guarda — Etapa 1 (módulo 0.1.0)
+
+- Adicionada fundação de dados isolada em `backend/Controle_Guarda.gs`.
+- Preparadas as abas `MILITARES_GUARDA`, `TURNOS_GUARDA`, `MOVIMENTACOES_GUARDA` e `TOKENS_GUARDA`.
+- Incluída importação idempotente da base inicial de 148 militares do Relatório de Viagem.
+- CPF, RG e Prefixo são tratados como texto para preservar zeros à esquerda.
+- Consulta de viaturas do Controle da Guarda não aplica bloqueio por status.
+- Preparado snapshot para VTR `OUTROS` com Prefixo e Placa, sem cadastro automático em `VIATURAS`.
+- Nenhuma alteração no fluxo dos checklists Condutor/Fiscal.
+

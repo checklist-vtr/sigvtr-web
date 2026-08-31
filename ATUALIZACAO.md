@@ -595,3 +595,7 @@ No Console/Network observar:
 - limite absoluto de 8 horas permanece obrigatório;
 - polling de alertas valida a sessão de forma passiva e não renova a inatividade;
 - movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.
+## Controle da Guarda — Etapa 1
+
+Foi preparada a fundação do novo módulo, sem ativar ainda a interface operacional. A instalação exige adicionar `Controle_Guarda.gs`, atualizar `Código.gs` e executar `configurarControleGuardaEtapa1()`. Consulte `docs/CONTROLE_DA_GUARDA.md`.
+

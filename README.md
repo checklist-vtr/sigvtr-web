@@ -145,3 +145,8 @@ A versão 1.20.20-RC1 reduz o custo de `adminValidateSession_` usando `CacheServ
 - limite absoluto de 8 horas permanece obrigatório;
 - polling de alertas valida a sessão de forma passiva e não renova a inatividade;
 - movimento do mouse não renova a sessão; interações reais em controles/formulários podem renovar com throttle de 2 minutos.
+
+### Controle da Guarda (em implementação)
+
+A fundação de dados do módulo Controle da Guarda está disponível a partir da versão interna `0.1.0`. O fluxo operacional e a rota `/controle-da-guarda/` serão adicionados nas próximas etapas. Veja `docs/CONTROLE_DA_GUARDA.md`.
+

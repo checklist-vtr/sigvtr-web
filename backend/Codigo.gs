@@ -10,7 +10,7 @@
  *
  * Compatível com as abas:
  * CONFIG, USUARIOS, VIATURAS, RETIRADAS, EVENTOS, AVARIAS,
- * FOTOS, LOGS e CHECKLIST_ITENS.
+ * FOTOS, LOGS, CHECKLIST_ITENS e estruturas próprias do Controle da Guarda.
  ******************************************************************/
 
 const SIGVTR = {
@@ -30,7 +30,11 @@ const SIGVTR = {
     LOGS: "LOGS",
     ITEMS: "CHECKLIST_ITENS",
     CARDS: "CARTOES",
-    STATUS_HISTORY: "HISTORICO_STATUS_VTR"
+    STATUS_HISTORY: "HISTORICO_STATUS_VTR",
+    GUARD_MILITARY: "MILITARES_GUARDA",
+    GUARD_SHIFTS: "TURNOS_GUARDA",
+    GUARD_MOVEMENTS: "MOVIMENTACOES_GUARDA",
+    GUARD_TOKENS: "TOKENS_GUARDA"
   }
 };
 
