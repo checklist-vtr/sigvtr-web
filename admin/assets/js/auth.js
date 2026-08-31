@@ -65,8 +65,9 @@ const AuthService=(()=>{
   }
 
   function getReturnUrl(){const params=new URLSearchParams(location.search);return safeAdminUrl(params.get('return')||params.get('redirect'),'index.html')}
+  function roleHome_(user){return user&&String(user.role||'').toUpperCase()==='GUARDA'?'../controle-da-guarda/':''}
   function redirectToLogin(){const current=`${location.pathname.split('/').pop()||'index.html'}${location.search}`;location.replace(`login.html?return=${encodeURIComponent(safeAdminUrl(current,'index.html'))}`)}
-  async function login(login,password){try{const result=await ApiService.publicPost('adminLogin',{login,password});if(!result.success)return result;saveSession(result);return {...result,redirectUrl:result.user&&result.user.mustChangePassword?'trocar-senha.html':getReturnUrl()}}catch(error){return {success:false,code:error.code||'ERROR',message:error.message||'Não foi possível concluir o login.'}}}
+  async function login(login,password){try{const result=await ApiService.publicPost('adminLogin',{login,password});if(!result.success)return result;saveSession(result);return {...result,redirectUrl:roleHome_(result.user)||(result.user&&result.user.mustChangePassword?'trocar-senha.html':getReturnUrl())}}catch(error){return {success:false,code:error.code||'ERROR',message:error.message||'Não foi possível concluir o login.'}}}
   function getSession(){
     const s=readSession();let t='';try{t=sessionStorage.getItem(TOKEN_KEY)||''}catch(_){}
     if(!s||!s.authenticated||!s.user||!t)return null;
@@ -91,7 +92,7 @@ const AuthService=(()=>{
   function requireAuthentication(){
     const s=getSession();if(!s){redirectToLogin();return null}
     const page=location.pathname.split('/').pop()||'index.html';
-    if(s.user.mustChangePassword&&page!=='trocar-senha.html'){location.replace('trocar-senha.html');return null}
+    const roleHome=roleHome_(s.user);if(roleHome){location.replace(roleHome);return null}if(s.user.mustChangePassword&&page!=='trocar-senha.html'){location.replace('trocar-senha.html');return null}
     if(['usuarios.html','arquivamento.html'].includes(page)&&String(s.user.role||'').toUpperCase()!=='DEV'){location.replace('acesso-negado.html');return null}
     if(!getIdleDeadline())setIdleDeadline(Math.min(Date.now()+IDLE_MS,s.expiresAt?new Date(s.expiresAt).getTime():Infinity));
     setTimeout(startIdleTimer,0);
@@ -211,7 +212,7 @@ const AuthService=(()=>{
 
   function rememberEmail(email,shouldRemember){if(shouldRemember)localStorage.setItem(REMEMBERED_EMAIL_KEY,String(email||'').trim().toLowerCase());else localStorage.removeItem(REMEMBERED_EMAIL_KEY)}
   function getRememberedEmail(){return localStorage.getItem(REMEMBERED_EMAIL_KEY)||''}
-  function redirectAuthenticatedUser(){const s=getSession();if(!s)return false;location.replace(s.user&&s.user.mustChangePassword?'trocar-senha.html':getReturnUrl());return true}
+  function redirectAuthenticatedUser(){const s=getSession();if(!s)return false;location.replace(roleHome_(s.user)||(s.user&&s.user.mustChangePassword?'trocar-senha.html':getReturnUrl()));return true}
   function getLockRemainingMs(){return 0}
   async function changePassword(currentPassword,newPassword){const data=await ApiService.post('adminAlterarMinhaSenha',{senhaAtual:currentPassword,novaSenha:newPassword});clearSession();saveSession(data);return data}
   return{login,logout,getSession,validateSession,requireAuthentication,rememberEmail,getRememberedEmail,redirectAuthenticatedUser,getLockRemainingMs,changePassword,clearSession,safeAdminUrl,safeDriveUrl,getReturnUrl,startIdleTimer,renewSession};

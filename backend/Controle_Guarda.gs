@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 2 - Painel operacional e abertura do turno
- * Versão do módulo: 0.2.0
+ * Etapa: 3.1 - correções operacionais pós-teste
+ * Versão do módulo: 0.3.1
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,8 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.2.0',
+  MODULE_VERSION: '0.3.1',
+  TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',FECHADO:'FECHADO'}),
   STATUS_MOV: Object.freeze({
     AGUARDANDO_RETIRADA:'AGUARDANDO_CONFIRMACAO_RETIRADA',
@@ -562,8 +563,11 @@ function prepareGuardWithdrawal_(data) {
 function guardRequireOperator_(token) {
   const ctx=adminValidateSession_(token,true,true);
   if(ctx.user&&ctx.user.mustChangePassword)throw new Error('PASSWORD_CHANGE_REQUIRED');
+  const role=guardUpper_(ctx.user&&ctx.user.role,30);
+  if(role!=='GUARDA'&&role!=='DEV')throw new Error('FORBIDDEN_GUARDA');
   return ctx;
 }
+
 
 function testarControleGuardaEtapa2() {
   ensureGuardStructure_();
@@ -576,4 +580,281 @@ function testarControleGuardaEtapa2() {
     turnoAberto:getOpenGuardShift_(),
     testeVtrOutros:sampleOutros
   };
+}
+
+
+/******************************************************************
+ * ETAPA 3 - RETIRADA / TOKEN / QR / CONFIRMACAO PUBLICA
+ ******************************************************************/
+function guardMovementFromRow_(row,map) {
+  return {
+    id:guardText_(guardRowValue_(row,map,'ID_MOVIMENTACAO'),100),
+    turnoId:guardText_(guardRowValue_(row,map,'ID_TURNO'),100),
+    status:guardUpper_(guardRowValue_(row,map,'STATUS'),50),
+    criadaEm:guardDateIso_(guardRowValue_(row,map,'CRIADA_EM')),
+    atualizadaEm:guardDateIso_(guardRowValue_(row,map,'ATUALIZADA_EM')),
+    vtrOrigem:guardUpper_(guardRowValue_(row,map,'VTR_ORIGEM'),20),
+    vtrId:guardText_(guardRowValue_(row,map,'VTR_ID'),100),
+    vtrPrefixo:guardText_(guardRowValue_(row,map,'VTR_PREFIXO_SNAPSHOT'),40),
+    vtrPlaca:guardText_(guardRowValue_(row,map,'VTR_PLACA_SNAPSHOT'),20),
+    vtrModelo:guardText_(guardRowValue_(row,map,'VTR_MODELO_SNAPSHOT'),100),
+    militarId:guardText_(guardRowValue_(row,map,'MILITAR_ID'),100),
+    militarPostoGraduacao:guardText_(guardRowValue_(row,map,'MILITAR_POSTO_GRAD_SNAPSHOT'),80),
+    militarRg:guardText_(guardRowValue_(row,map,'MILITAR_RG_SNAPSHOT'),20),
+    militarNome:guardText_(guardRowValue_(row,map,'MILITAR_NOME_SNAPSHOT'),160),
+    militarNomeGuerra:guardText_(guardRowValue_(row,map,'MILITAR_NOME_GUERRA_SNAPSHOT'),100),
+    kmRetirada:guardText_(guardRowValue_(row,map,'KM_RETIRADA'),30),
+    solicitacaoRetiradaEm:guardDateIso_(guardRowValue_(row,map,'SOLICITACAO_RETIRADA_EM')),
+    confirmacaoRetiradaEm:guardDateIso_(guardRowValue_(row,map,'CONFIRMACAO_RETIRADA_EM'))
+  };
+}
+
+function guardMovementLocator_(id) {
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  const wanted=guardText_(id,100);
+  for(let r=1;r<rows.length;r++){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_MOVIMENTACAO'),100)===wanted){
+      return {sheet:sh,map:hm.map,headers:hm.headers,rowIndex:r+1,row:rows[r],movimento:guardMovementFromRow_(rows[r],hm.map)};
+    }
+  }
+  return null;
+}
+
+function guardVehicleMovementKey_(vehicle) {
+  if(!vehicle)return '';
+  if(guardUpper_(vehicle.origem||vehicle.vtrOrigem,20)===GUARDA.VTR_ORIGEM.CADASTRADA&&guardText_(vehicle.id||vehicle.vtrId,100))return 'ID:'+guardText_(vehicle.id||vehicle.vtrId,100);
+  return 'OUTROS:'+guardUpper_(vehicle.prefixo||vehicle.vtrPrefixo,40)+'|'+guardUpper_(vehicle.placa||vehicle.vtrPlaca,20);
+}
+
+function guardMovementKeyFromRow_(row,map) {
+  const origem=guardUpper_(guardRowValue_(row,map,'VTR_ORIGEM'),20),id=guardText_(guardRowValue_(row,map,'VTR_ID'),100);
+  if(origem===GUARDA.VTR_ORIGEM.CADASTRADA&&id)return 'ID:'+id;
+  return 'OUTROS:'+guardUpper_(guardRowValue_(row,map,'VTR_PREFIXO_SNAPSHOT'),40)+'|'+guardUpper_(guardRowValue_(row,map,'VTR_PLACA_SNAPSHOT'),20);
+}
+
+function guardHashToken_(raw) {
+  const digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(raw||''),Utilities.Charset.UTF_8);
+  return digest.map(function(b){const n=(b<0?b+256:b);return ('0'+n.toString(16)).slice(-2);}).join('');
+}
+
+function guardNewRawToken_() {
+  return Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'');
+}
+
+function guardInvalidateActiveTokens_(movementId,type,status) {
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  for(let r=1;r<rows.length;r++){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_MOVIMENTACAO'),100)!==movementId)continue;
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20)!==type)continue;
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),20)!=='ATIVO')continue;
+    sh.getRange(r+1,hm.map.STATUS+1).setValue(status||'SUBSTITUIDO');
+  }
+}
+
+function guardIssueToken_(movementId,type) {
+  guardInvalidateActiveTokens_(movementId,type,'SUBSTITUIDO');
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),row=new Array(hm.headers.length).fill('');
+  const raw=guardNewRawToken_(),now=new Date(),expires=new Date(now.getTime()+GUARDA.TOKEN_TTL_MINUTES*60000);
+  row[hm.map.ID_TOKEN]='GTK-'+Utilities.getUuid();
+  row[hm.map.ID_MOVIMENTACAO]=movementId;
+  row[hm.map.TIPO]=type;
+  row[hm.map.TOKEN_HASH]=guardHashToken_(raw);
+  row[hm.map.CRIADO_EM]=now;
+  row[hm.map.EXPIRA_EM]=expires;
+  row[hm.map.STATUS]='ATIVO';
+  sh.appendRow(row);
+  if(hm.map.TOKEN_HASH!==undefined)sh.getRange(sh.getLastRow(),hm.map.TOKEN_HASH+1).setNumberFormat('@');
+  return {token:raw,expiraEm:guardDateIso_(expires)};
+}
+
+function guardFindToken_(raw,type) {
+  const token=guardText_(raw,200);if(!token)return null;
+  const wantedHash=guardHashToken_(token),sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  for(let r=rows.length-1;r>=1;r--){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'TOKEN_HASH'),100)!==wantedHash)continue;
+    if(type&&guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20)!==type)continue;
+    return {
+      sheet:sh,map:hm.map,rowIndex:r+1,row:rows[r],
+      id:guardText_(guardRowValue_(rows[r],hm.map,'ID_TOKEN'),100),
+      movimentoId:guardText_(guardRowValue_(rows[r],hm.map,'ID_MOVIMENTACAO'),100),
+      tipo:guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20),
+      status:guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),20),
+      expiraEm:guardRowValue_(rows[r],hm.map,'EXPIRA_EM'),
+      consumidoEm:guardRowValue_(rows[r],hm.map,'CONSUMIDO_EM')
+    };
+  }
+  return null;
+}
+
+function guardTokenAssertUsable_(tokenInfo) {
+  if(!tokenInfo)throw new Error('QR_CODE_INVALIDO');
+  if(tokenInfo.status==='CONSUMIDO')throw new Error('QR_CODE_JA_UTILIZADO');
+  if(tokenInfo.status!=='ATIVO')throw new Error('QR_CODE_INVALIDO');
+  const exp=tokenInfo.expiraEm instanceof Date?tokenInfo.expiraEm:new Date(tokenInfo.expiraEm);
+  if(!exp||isNaN(exp.getTime())||exp.getTime()<Date.now())throw new Error('QR_CODE_EXPIRADO');
+  return tokenInfo;
+}
+
+function guardVehicleLastKnownKm_(movement) {
+  if(!movement||movement.vtrOrigem!==GUARDA.VTR_ORIGEM.CADASTRADA||!movement.vtrId)return null;
+  const vehicles=getGuardVehicles_();
+  for(let i=0;i<vehicles.length;i++){
+    if(String(vehicles[i].id)===String(movement.vtrId)){
+      const digits=guardDigits_(vehicles[i].kmAtual,20);
+      return digits===''?null:Number(digits);
+    }
+  }
+  return null;
+}
+
+function guardParseKm_(value) {
+  if(value===null||value===undefined||String(value).trim()==='')throw new Error('Informe o KM atual da viatura.');
+  const raw=String(value).trim();
+  if(/^-/.test(raw))throw new Error('KM não pode ser negativo.');
+  const digits=guardDigits_(raw,12);
+  if(!digits)throw new Error('Informe um KM válido.');
+  const km=Number(digits);
+  if(!Number.isFinite(km)||km<0||km>999999999)throw new Error('KM informado é inválido.');
+  return Math.trunc(km);
+}
+
+function createGuardWithdrawal_(data,operator) {
+  const prepared=prepareGuardWithdrawal_(data),turno=prepared.turno,vehicle=prepared.viatura,military=prepared.militar;
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),key=guardVehicleMovementKey_(vehicle);
+  let reusable=null;
+  for(let r=1;r<rows.length;r++){
+    const status=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
+    if([GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA,GUARDA.STATUS_MOV.EM_USO,GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO].indexOf(status)<0)continue;
+    if(guardMovementKeyFromRow_(rows[r],hm.map)!==key)continue;
+    const rowTurno=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100),rowMil=guardText_(guardRowValue_(rows[r],hm.map,'MILITAR_ID'),100);
+    if(status===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA&&rowTurno===turno.id&&rowMil===military.id){
+      reusable={rowIndex:r+1,row:rows[r],movimento:guardMovementFromRow_(rows[r],hm.map)};break;
+    }
+    throw new Error('Já existe uma movimentação aberta para esta VTR.');
+  }
+  let movement;
+  if(reusable){movement=reusable.movimento;}
+  else{
+    const row=new Array(hm.headers.length).fill(''),now=new Date(),id='MGU-'+Utilities.getUuid();
+    row[hm.map.ID_MOVIMENTACAO]=id;row[hm.map.ID_TURNO]=turno.id;row[hm.map.STATUS]=GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA;
+    row[hm.map.CRIADA_EM]=now;row[hm.map.ATUALIZADA_EM]=now;
+    row[hm.map.VTR_ORIGEM]=vehicle.origem;row[hm.map.VTR_ID]=vehicle.id;row[hm.map.VTR_PREFIXO_SNAPSHOT]=vehicle.prefixo;row[hm.map.VTR_PLACA_SNAPSHOT]=vehicle.placa;row[hm.map.VTR_MODELO_SNAPSHOT]=vehicle.modelo;
+    row[hm.map.MILITAR_ID]=military.id;row[hm.map.MILITAR_POSTO_GRAD_SNAPSHOT]=military.postoGraduacao;row[hm.map.MILITAR_RG_SNAPSHOT]=military.rg;row[hm.map.MILITAR_NOME_SNAPSHOT]=military.nomeCompleto;row[hm.map.MILITAR_NOME_GUERRA_SNAPSHOT]=military.nomeGuerra;row[hm.map.MILITAR_CPF_SNAPSHOT]=military.cpf;row[hm.map.MILITAR_OPM_SNAPSHOT]=military.opm;
+    row[hm.map.SOLICITACAO_RETIRADA_EM]=now;row[hm.map.OPERADOR_RETIRADA_ID]=guardText_(operator&&operator.id||operator&&operator.login,100);row[hm.map.OPERADOR_RETIRADA_NOME]=guardText_(operator&&operator.name||operator&&operator.login,160);
+    sh.appendRow(row);
+    const insertedRow=sh.getLastRow();
+    // Reforço explícito: prefixo é texto operacional. Isso evita que o Sheets converta 025 em 25.
+    if(hm.map.VTR_PREFIXO_SNAPSHOT!==undefined){const c=sh.getRange(insertedRow,hm.map.VTR_PREFIXO_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(vehicle.prefixo));}
+    if(hm.map.VTR_PLACA_SNAPSHOT!==undefined){const c=sh.getRange(insertedRow,hm.map.VTR_PLACA_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(vehicle.placa));}
+    movement=guardMovementFromRow_(sh.getRange(insertedRow,1,1,hm.headers.length).getDisplayValues()[0],hm.map);
+  }
+  const issued=guardIssueToken_(movement.id,GUARDA.TOKEN_TIPOS.RETIRADA);
+  return {movimentacao:movement,token:issued.token,expiraEm:issued.expiraEm,tokenValidadeMinutos:GUARDA.TOKEN_TTL_MINUTES};
+}
+
+function getGuardPublicTokenInfo_(data) {
+  ensureGuardStructure_();data=data||{};
+  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.RETIRADA)),loc=guardMovementLocator_(ti.movimentoId);
+  if(!loc)throw new Error('QR_CODE_INVALIDO');
+  const m=loc.movimento;
+  if(m.status!==GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA){
+    if(m.status===GUARDA.STATUS_MOV.EM_USO)return {confirmado:true,operacao:'RETIRADA',vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},km:m.kmRetirada,confirmacaoEm:m.confirmacaoRetiradaEm};
+    throw new Error('QR_CODE_INVALIDO');
+  }
+  return {
+    confirmado:false,operacao:'RETIRADA',expiraEm:guardDateIso_(ti.expiraEm),
+    vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
+    condutor:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra},
+    solicitacaoEm:m.solicitacaoRetiradaEm,ultimoKmConhecido:guardVehicleLastKnownKm_(m)
+  };
+}
+
+function confirmGuardWithdrawalPublic_(data) {
+  ensureGuardStructure_();data=data||{};
+  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.RETIRADA)),loc=guardMovementLocator_(ti.movimentoId);
+  if(!loc)throw new Error('QR_CODE_INVALIDO');
+  if(loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)throw new Error(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
+  const km=guardParseKm_(data.km),last=guardVehicleLastKnownKm_(loc.movimento);
+  if(last!==null&&km<last)throw new Error('O KM informado ('+km+') é menor que o último KM conhecido da VTR ('+last+'). Revise o valor.');
+  const now=new Date();
+  loc.sheet.getRange(loc.rowIndex,loc.map.KM_RETIRADA+1).setValue(km);
+  loc.sheet.getRange(loc.rowIndex,loc.map.CONFIRMACAO_RETIRADA_EM+1).setValue(now);
+  loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.EM_USO);
+  loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
+  ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);
+  ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId)updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);
+  return {confirmado:true,operacao:'RETIRADA',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,confirmacaoEm:guardDateIso_(now)};
+}
+
+function getGuardMovementStatus_(data) {
+  const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');
+  const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
+  const m=loc.movimento;
+  return {id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}};
+}
+
+
+function guardOpenShiftLocator_() {
+  ensureGuardStructure_();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  for(let r=rows.length-1;r>=1;r--){
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)===GUARDA.STATUS_TURNO.ABERTO)return {sheet:sh,map:hm.map,rowIndex:r+1,row:rows[r],turno:guardShiftFromRow_(rows[r],hm.map)};
+  }
+  return null;
+}
+
+function getGuardShiftSummary_(turnoId) {
+  const id=guardText_(turnoId,100);if(!id)return {movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  let total=0,devolvidas=0,emUso=0,aguardando=0;
+  for(let r=1;r<rows.length;r++){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100)!==id)continue;
+    total++;
+    const st=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
+    if(st===GUARDA.STATUS_MOV.ENCERRADA)devolvidas++;
+    else if(st===GUARDA.STATUS_MOV.EM_USO||st===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)emUso++;
+    else if(st===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)aguardando++;
+  }
+  return {movimentacoes:total,devolvidas:devolvidas,emUso:emUso,aguardandoConfirmacao:aguardando};
+}
+
+function getGuardClosePreview_() {
+  const loc=guardOpenShiftLocator_();if(!loc)throw new Error('Não existe turno aberto para fechar.');
+  return {turno:loc.turno,resumo:getGuardShiftSummary_(loc.turno.id)};
+}
+
+function closeGuardShift_(data,operator) {
+  data=data||{};const loc=guardOpenShiftLocator_();if(!loc)throw new Error('Não existe turno aberto para fechar.');
+  const posto=guardUpper_(data.postoGraduacao,80),rg=guardDigits_(data.rg,20),nome=guardUpper_(data.nomeCompleto||data.nome,160),guerra=guardUpper_(data.nomeGuerra,100);
+  if(!posto)throw new Error('Informe o Posto/Graduação do Comandante da Guarda.');
+  if(!rg)throw new Error('Informe o RG do Comandante da Guarda.');
+  if(!nome)throw new Error('Informe o nome completo do Comandante da Guarda.');
+  if(!guerra)throw new Error('Informe o nome de guerra do Comandante da Guarda.');
+  const resumo=getGuardShiftSummary_(loc.turno.id),now=new Date(),m=loc.map;
+  loc.sheet.getRange(loc.rowIndex,m.STATUS+1).setValue(GUARDA.STATUS_TURNO.FECHADO);
+  loc.sheet.getRange(loc.rowIndex,m.FIM_EM+1).setValue(now);
+  loc.sheet.getRange(loc.rowIndex,m.CMD_POSTO_GRAD_SNAPSHOT+1).setValue(posto);
+  if(m.CMD_RG_SNAPSHOT!==undefined){const c=loc.sheet.getRange(loc.rowIndex,m.CMD_RG_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(rg));}
+  loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_SNAPSHOT+1).setValue(nome);
+  loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_GUERRA_SNAPSHOT+1).setValue(guerra);
+  loc.sheet.getRange(loc.rowIndex,m.CMD_CONFIRMACAO_EM+1).setValue(now);
+  loc.sheet.getRange(loc.rowIndex,m.MOVIMENTACOES_TOTAL+1).setValue(resumo.movimentacoes);
+  loc.sheet.getRange(loc.rowIndex,m.DEVOLVIDAS_TOTAL+1).setValue(resumo.devolvidas);
+  loc.sheet.getRange(loc.rowIndex,m.EM_USO_TOTAL+1).setValue(resumo.emUso);
+  return {fechado:true,turno:guardShiftFromRow_(loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getDisplayValues()[0],m),resumo:resumo,comandante:{postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra},confirmacaoEm:guardDateIso_(now),pdfPendente:true};
+}
+
+function testarControleGuardaEtapa3() {
+  ensureGuardStructure_();
+  const raw=guardNewRawToken_(),hash=guardHashToken_(raw);
+  const km1=guardParseKm_('67.879'),km2=guardParseKm_('092');
+  return {success:raw.length>=64&&hash.length===64&&km1===67879&&km2===92,moduleVersion:GUARDA.MODULE_VERSION,tokenLength:raw.length,hashLength:hash.length,kmFormatado:km1,prefixoContinuaTexto:resolveGuardVehicleSnapshot_({origem:'OUTROS',prefixo:'092',placa:'ABC1D23'}).prefixo};
+}
+
+function testarControleGuardaCorrecao031() {
+  ensureGuardStructure_();
+  const v=resolveGuardVehicleSnapshot_({origem:'OUTROS',prefixo:'025',placa:'ABC1D23'});
+  const roleOk=typeof ADMIN_AUTH!=='undefined'&&ADMIN_AUTH.VALID_ROLES.indexOf('GUARDA')>=0;
+  return {success:v.prefixo==='025'&&roleOk,moduleVersion:GUARDA.MODULE_VERSION,prefixoTeste:v.prefixo,perfilGuardaDisponivel:roleOk};
 }

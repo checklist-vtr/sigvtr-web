@@ -18,7 +18,7 @@ const ADMIN_AUTH = Object.freeze({
   PASSWORD_MIN_LENGTH: 12,
   PASSWORD_KDF_ROUNDS: 4096,
   SESSION_SHEET: 'SESSOES_ADMIN',
-  VALID_ROLES: ['CMD','SUBCMD','FISCAL','DEV'],
+  VALID_ROLES: ['CMD','SUBCMD','FISCAL','GUARDA','DEV'],
   USER_COLUMNS: [
     'LOGIN','NOME_ADMIN','PERFIL_ADMIN','SENHA_HASH','SALT','ATIVO_ADMIN',
     'TROCAR_SENHA','TENTATIVAS_FALHAS','BLOQUEADO_ATE','ULTIMO_LOGIN',
@@ -47,6 +47,9 @@ const ADMIN_AUTH = Object.freeze({
       'adminSalvarViatura','adminRegistrarRevisaoViatura',
       'adminAlterarMinhaSenha'
     ],
+    // Perfil operacional exclusivo do Controle da Guarda.
+    // Não possui acesso ao painel administrativo; somente troca da própria senha.
+    GUARDA: ['adminAlterarMinhaSenha'],
     DEV: ['*']
   }
 });
