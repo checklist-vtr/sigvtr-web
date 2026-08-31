@@ -150,3 +150,9 @@ A versão 1.20.20-RC1 reduz o custo de `adminValidateSession_` usando `CacheServ
 
 A fundação de dados do módulo Controle da Guarda está disponível a partir da versão interna `0.1.0`. O fluxo operacional e a rota `/controle-da-guarda/` serão adicionados nas próximas etapas. Veja `docs/CONTROLE_DA_GUARDA.md`.
 
+
+
+**Etapa 2 (v0.2.0):** painel `/controle-da-guarda/`, abertura de turno, seleção de VTR e seleção/complementação de militar.
+
+### Controle da Guarda — Etapa 3 (v0.3.0)
+A retirada já possui movimentação própria, QR com token opaco de uso único e página pública para o condutor informar o KM. A Guarda recebe a confirmação automaticamente e pode seguir para a próxima retirada. A devolução, fechamento do turno e PDF permanecem para as etapas seguintes.

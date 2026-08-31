@@ -599,3 +599,32 @@ No Console/Network observar:
 
 Foi preparada a fundação do novo módulo, sem ativar ainda a interface operacional. A instalação exige adicionar `Controle_Guarda.gs`, atualizar `Código.gs` e executar `configurarControleGuardaEtapa1()`. Consulte `docs/CONTROLE_DA_GUARDA.md`.
 
+
+
+## Controle da Guarda — Etapa 2 (v0.2.0)
+- Adicionada rota `/controle-da-guarda/` com interface mobile-first.
+- Abertura e recuperação de turno da Guarda.
+- Seleção de VTR cadastrada sem filtro de status e opção VTR `Outros`.
+- Pesquisa, complementação e cadastro de militar.
+- Integração autenticada das novas ações no backend.
+- Preparação/validação da retirada sem criar movimentação nem QR nesta etapa.
+
+## Controle da Guarda — Etapa 3 (v0.3.0)
+
+### Backend
+- `backend/Controle_Guarda.gs`: movimentação de retirada, token SHA-256, expiração, consumo único, consulta pública limitada, confirmação de KM e status para polling.
+- `backend/Complemento_Mobile_v4.gs`: novas rotas da Guarda para criar retirada, consultar status e confirmar publicamente por token.
+
+### Frontend
+- `/controle-da-guarda/`: geração visual do QR e atualização automática da confirmação.
+- `/controle-da-guarda/confirmar/`: página pública mobile-first para KM e confirmação.
+
+### Implantação
+1. Atualizar `Controle_Guarda.gs` e `Complemento_Mobile_v4.gs` no Apps Script.
+2. Salvar e executar `testarControleGuardaEtapa3()`.
+3. Criar nova versão da implantação do Web App.
+4. Publicar os arquivos atualizados no GitHub Pages.
+5. Testar retirada real com dois celulares: tela da Guarda em um dispositivo e leitura do QR pelo condutor no outro.
+
+### Resultado esperado do teste técnico
+`success: true`, `hashLength: 64`, `kmFormatado: 67879` e `prefixoContinuaTexto: 092`.

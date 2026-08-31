@@ -321,3 +321,25 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Preparado snapshot para VTR `OUTROS` com Prefixo e Placa, sem cadastro automático em `VIATURAS`.
 - Nenhuma alteração no fluxo dos checklists Condutor/Fiscal.
 
+
+
+## Controle da Guarda — Etapa 2 (v0.2.0)
+- Adicionada rota `/controle-da-guarda/` com interface mobile-first.
+- Abertura e recuperação de turno da Guarda.
+- Seleção de VTR cadastrada sem filtro de status e opção VTR `Outros`.
+- Pesquisa, complementação e cadastro de militar.
+- Integração autenticada das novas ações no backend.
+- Preparação/validação da retirada sem criar movimentação nem QR nesta etapa.
+
+## Controle da Guarda — Etapa 3 (v0.3.0)
+- Adicionada criação da movimentação de retirada vinculada ao turno aberto.
+- Adicionado token seguro/opaco, com hash SHA-256 armazenado e validade de 10 minutos.
+- Adicionada invalidação de token anterior ao reemitir QR para a mesma retirada pendente.
+- Adicionada página pública `/controle-da-guarda/confirmar/` sem login completo.
+- QR não contém CPF, RG, nome, KM ou outros dados pessoais; transporta somente token aleatório.
+- Condutor informa somente o KM atual e confirma o recebimento.
+- Adicionada validação do KM contra o último KM conhecido para VTR cadastrada.
+- Mantida a regra existente de atualização do `KM Atual` pelo maior valor.
+- VTR `OUTROS` continua sem criar cadastro automático em `VIATURAS`.
+- Adicionada atualização automática leve da tela da Guarda enquanto aguarda confirmação.
+- Nenhuma alteração funcional nos checklists Condutor/Fiscal, relatórios ou autenticação administrativa existente.
