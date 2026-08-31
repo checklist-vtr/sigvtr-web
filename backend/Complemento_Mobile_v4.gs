@@ -22,6 +22,18 @@ function doPost(e){
     if(action==="adminAtivarDesativarUsuario")return json_({success:true,data:adminSetUserActive_(token,data)});
     if(action==="adminEncerrarSessoes")return json_({success:true,data:adminEndUserSessions_(token,data)});
 
+    // Controle da Guarda: reutiliza a sessão administrativa existente, sem expor token na URL.
+    // As ações de leitura ficam fora do lock; escritas passam pelo lock geral abaixo.
+    let guardaRequestCtx=null;
+    if(action.indexOf("guarda")===0){
+      guardaRequestCtx=guardRequireOperator_(token);
+      const guardaUser=guardaRequestCtx.user;
+      if(action==="guardaContexto")return json_({success:true,data:getGuardContext_(guardaUser)});
+      if(action==="guardaListarViaturas")return json_({success:true,data:{viaturas:getGuardVehicles_()}});
+      if(action==="guardaPesquisarMilitar")return json_({success:true,data:{militares:searchGuardMilitary_(data.query||data.q||"",data.limit||20)}});
+      if(action==="guardaPrepararRetirada")return json_({success:true,data:prepareGuardWithdrawal_(data)});
+    }
+
     // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
     // A autorização é calculada uma única vez e reutilizada se a ação for de escrita.
     let adminRequestCtx=null;
@@ -58,6 +70,12 @@ function doPost(e){
         return json_(saveMobileWithdrawal_(driverData,"CONDUTOR"));
       }
       if(action==="salvarRetirada")return json_(saveWithdrawal_(data));
+
+      if(action.indexOf("guarda")===0){
+        const guardaWriteCtx=guardaRequestCtx||guardRequireOperator_(token);
+        if(action==="guardaIniciarTurno")return json_({success:true,data:openGuardShift_(guardaWriteCtx.user)});
+        if(action==="guardaSalvarMilitar")return json_({success:true,data:{militar:saveGuardMilitary_(data)}});
+      }
 
       if(action.indexOf("admin")===0){
         const adminWriteCtx=adminRequestCtx||adminAuthorize_(token,action);

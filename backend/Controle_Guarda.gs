@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 1 - Fundação de dados e integração cadastral
- * Versão do módulo: 0.1.0
+ * Etapa: 2 - Painel operacional e abertura do turno
+ * Versão do módulo: 0.2.0
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.1.0',
+  MODULE_VERSION: '0.2.0',
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',FECHADO:'FECHADO'}),
   STATUS_MOV: Object.freeze({
     AGUARDANDO_RETIRADA:'AGUARDANDO_CONFIRMACAO_RETIRADA',
@@ -468,5 +468,112 @@ function testarControleGuardaEtapa1() {
     planilha:{registros:registros,cpfDuplicado:cpfDuplicado,rgDuplicado:rgDuplicado,cpfComZeroInicial:cpfZeroInicial},
     testeVtrOutros:vtrOutros,
     sheets:[SIGVTR.SHEETS.GUARD_MILITARY,SIGVTR.SHEETS.GUARD_SHIFTS,SIGVTR.SHEETS.GUARD_MOVEMENTS,SIGVTR.SHEETS.GUARD_TOKENS]
+  };
+}
+
+
+/******************************************************************
+ * ETAPA 2 - PAINEL OPERACIONAL / TURNO / SELEÇÕES
+ ******************************************************************/
+function guardDateIso_(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return Utilities.formatDate(d, SIGVTR.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+function guardShiftFromRow_(row,map) {
+  return {
+    id: guardText_(guardRowValue_(row,map,'ID_TURNO'),100),
+    status: guardUpper_(guardRowValue_(row,map,'STATUS'),30),
+    inicioEm: guardDateIso_(guardRowValue_(row,map,'INICIO_EM')),
+    fimEm: guardDateIso_(guardRowValue_(row,map,'FIM_EM')),
+    operadorInicioId: guardText_(guardRowValue_(row,map,'OPERADOR_INICIO_ID'),100),
+    operadorInicioNome: guardText_(guardRowValue_(row,map,'OPERADOR_INICIO_NOME'),160),
+    movimentacoesTotal: Number(guardRowValue_(row,map,'MOVIMENTACOES_TOTAL'))||0,
+    devolvidasTotal: Number(guardRowValue_(row,map,'DEVOLVIDAS_TOTAL'))||0,
+    emUsoTotal: Number(guardRowValue_(row,map,'EM_USO_TOTAL'))||0
+  };
+}
+
+function getOpenGuardShift_() {
+  ensureGuardStructure_();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh);
+  const rows=sh.getDataRange().getValues();
+  for(let r=rows.length-1;r>=1;r--){
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)===GUARDA.STATUS_TURNO.ABERTO){
+      return guardShiftFromRow_(rows[r],hm.map);
+    }
+  }
+  return null;
+}
+
+function openGuardShift_(operator) {
+  ensureGuardStructure_();
+  const existing=getOpenGuardShift_();
+  if(existing)return {created:false,turno:existing};
+  operator=operator||{};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh);
+  const row=new Array(hm.headers.length).fill(''),now=new Date();
+  row[hm.map.ID_TURNO]='TGU-'+Utilities.getUuid();
+  row[hm.map.STATUS]=GUARDA.STATUS_TURNO.ABERTO;
+  row[hm.map.INICIO_EM]=now;
+  row[hm.map.OPERADOR_INICIO_ID]=guardText_(operator.id||operator.login,100);
+  row[hm.map.OPERADOR_INICIO_NOME]=guardText_(operator.name||operator.login,160);
+  sh.appendRow(row);
+  if(hm.map.ID_TURNO!==undefined)sh.getRange(sh.getLastRow(),hm.map.ID_TURNO+1).setNumberFormat('@');
+  return {created:true,turno:guardShiftFromRow_(sh.getRange(sh.getLastRow(),1,1,hm.headers.length).getValues()[0],hm.map)};
+}
+
+function getGuardContext_(operator) {
+  ensureGuardStructure_();
+  return {
+    moduleVersion:GUARDA.MODULE_VERSION,
+    operator:{
+      id:guardText_(operator&&operator.id,100),
+      login:guardText_(operator&&operator.login,80),
+      name:guardText_(operator&&operator.name,160),
+      role:guardText_(operator&&operator.role,30)
+    },
+    turno:getOpenGuardShift_(),
+    viaturas:getGuardVehicles_()
+  };
+}
+
+function prepareGuardWithdrawal_(data) {
+  data=data||{};
+  const turno=getOpenGuardShift_();
+  if(!turno)throw new Error('Inicie o turno da Guarda antes de continuar.');
+  const vehicle=resolveGuardVehicleSnapshot_(data.viatura||data.vehicle||data);
+  const militaryId=guardText_(data.militarId||data.militaryId,100);
+  if(!militaryId)throw new Error('Selecione um militar.');
+  const military=getGuardMilitaryById_(militaryId);
+  if(!military)throw new Error('Militar não encontrado.');
+  if(!guardText_(military.postoGraduacao,80))throw new Error('Complete o Posto/Graduação do militar antes de continuar.');
+  if(!guardText_(military.nomeGuerra,100))throw new Error('Complete o Nome de Guerra do militar antes de continuar.');
+  return {
+    turno:turno,
+    viatura:vehicle,
+    militar:guardMilitarySnapshot_(military),
+    readyForQr:true
+  };
+}
+
+function guardRequireOperator_(token) {
+  const ctx=adminValidateSession_(token,true,true);
+  if(ctx.user&&ctx.user.mustChangePassword)throw new Error('PASSWORD_CHANGE_REQUIRED');
+  return ctx;
+}
+
+function testarControleGuardaEtapa2() {
+  ensureGuardStructure_();
+  const vehicles=getGuardVehicles_();
+  const sampleOutros=resolveGuardVehicleSnapshot_({origem:'OUTROS',prefixo:'092',placa:'ABC1D23'});
+  return {
+    success:Array.isArray(vehicles)&&sampleOutros.prefixo==='092',
+    moduleVersion:GUARDA.MODULE_VERSION,
+    viaturasEncontradas:vehicles.length,
+    turnoAberto:getOpenGuardShift_(),
+    testeVtrOutros:sampleOutros
   };
 }
