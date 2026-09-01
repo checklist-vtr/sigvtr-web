@@ -1,6 +1,6 @@
 const GuardPage=(()=>{
   const TOKEN_KEY='sigvtr_admin_token',SESSION_KEY='sigvtr_admin_session';
-  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false};
+  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false};
   const $=id=>document.getElementById(id);
   const show=id=>$(id)?.classList.remove('d-none');
   const hide=id=>$(id)?.classList.add('d-none');
@@ -88,18 +88,39 @@ const GuardPage=(()=>{
   async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();state.currentMovement=null;await refreshMovements(false);return}newWithdrawal();await refreshMovements(false)}
   function newWithdrawal(){closeQr();state.currentMovement=null;state.selectedVehicle=null;state.selectedMilitary=null;renderSelectedVehicle();resetMilitary();$('militaryCard').classList.add('is-disabled');$('militarySearch').disabled=true;$('vehicleSearch').value='';renderVehicleResults('');window.scrollTo({top:0,behavior:'smooth'});alertBox('Retirada confirmada. Pronto para registrar a próxima VTR.','success')}
 
+  function clearCommanderFields(){
+    $('commanderMilitaryId').value='';$('commanderSearch').value='';$('commanderSearchResults').innerHTML='';hide('commanderSearchResults');
+    $('commanderRank').value='';$('commanderRg').value='';$('commanderName').value='';$('commanderWarName').value='';
+  }
+  function fillCommanderFields(m){
+    m=m||{};$('commanderMilitaryId').value=m.id||'';$('commanderSearch').value=[m.postoGraduacao,m.nomeGuerra||m.nomeCompleto].filter(Boolean).join(' ');
+    $('commanderRank').value=m.postoGraduacao||'';$('commanderRg').value=m.rg||'';$('commanderName').value=m.nomeCompleto||'';$('commanderWarName').value=m.nomeGuerra||'';
+    $('commanderSearchResults').innerHTML='';hide('commanderSearchResults');
+    setTimeout(()=>{if(!$('commanderRank').value)$('commanderRank').focus();else if(!$('commanderWarName').value)$('commanderWarName').focus();},30);
+  }
+  async function searchCommander(){
+    const q=$('commanderSearch').value.trim(),box=$('commanderSearchResults');$('commanderMilitaryId').value='';
+    if(q.length<2){box.innerHTML='';hide('commanderSearchResults');return}
+    box.innerHTML='<div class="commander-search-status"><span class="spinner-border spinner-border-sm me-2"></span>Pesquisando...</div>';show('commanderSearchResults');
+    try{
+      const data=await ApiService.post('guardaPesquisarMilitar',{query:q,limit:12}),list=Array.isArray(data.militares)?data.militares:[];
+      if(!list.length){box.innerHTML='<div class="commander-search-status">Nenhum militar encontrado. Você pode preencher os dados manualmente.</div>';return}
+      box.innerHTML=list.map((m,i)=>`<button class="commander-result" type="button" data-commander-index="${i}"><strong>${escapeHtml([m.postoGraduacao,m.nomeGuerra||m.nomeCompleto].filter(Boolean).join(' '))}</strong><span>${escapeHtml([m.rg?`RG ${m.rg}`:'',m.nomeCompleto].filter(Boolean).join(' • '))}</span></button>`).join('');
+      box._items=list;document.querySelectorAll('[data-commander-index]').forEach(b=>b.addEventListener('click',()=>fillCommanderFields(box._items[Number(b.dataset.commanderIndex)])));
+    }catch(error){box.innerHTML=`<div class="commander-search-status text-danger">${escapeHtml(error.message||'Não foi possível pesquisar.')}</div>`}
+  }
   async function openCloseShift(){
-    clearAlert();clearAlert('closeShiftAlert');show('closeShiftOverlay');show('closeShiftLoading');hide('closeShiftContent');
+    clearAlert();clearAlert('closeShiftAlert');clearCommanderFields();show('closeShiftOverlay');show('closeShiftLoading');hide('closeShiftContent');
     const btn=$('closeShiftButton');btn.disabled=true;
     try{
       const data=await ApiService.post('guardaPreviaFechamento',{});const r=data.resumo||{};
       $('closeShiftSummary').innerHTML=`<div class="close-summary-row"><span>Movimentações</span><strong>${escapeHtml(r.movimentacoes||0)}</strong></div><div class="close-summary-row"><span>Devolvidas</span><strong>${escapeHtml(r.devolvidas||0)}</strong></div><div class="close-summary-row"><span>Ainda em uso</span><strong>${escapeHtml(r.emUso||0)}</strong></div><div class="close-summary-row"><span>Aguardando confirmação</span><strong>${escapeHtml(r.aguardandoConfirmacao||0)}</strong></div>`;
-      hide('closeShiftLoading');show('closeShiftContent');setTimeout(()=>$('commanderRank').focus(),50)
+      hide('closeShiftLoading');show('closeShiftContent');setTimeout(()=>$('commanderSearch').focus(),50)
     }catch(error){hide('closeShiftLoading');show('closeShiftContent');alertBox(error.message||'Não foi possível preparar o fechamento do turno.','danger','closeShiftAlert')}
     finally{btn.disabled=false}
   }
   function closeCloseShift(){hide('closeShiftOverlay')}
-  async function submitCloseShift(event){event.preventDefault();clearAlert('closeShiftAlert');const btn=$('confirmCloseShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Fechando turno...';try{const data=await ApiService.post('guardaFecharTurno',{postoGraduacao:$('commanderRank').value,rg:$('commanderRg').value,nomeCompleto:$('commanderName').value,nomeGuerra:$('commanderWarName').value});closeCloseShift();state.context.turno=null;state.context.movimentacoes=[];state.selectedVehicle=null;state.selectedMilitary=null;renderApp();alertBox(`Turno fechado por ${data.comandante?.postoGraduacao||''} ${data.comandante?.nomeGuerra||''}.`,'success')}catch(error){alertBox(error.message||'Não foi possível fechar o turno.','danger','closeShiftAlert')}finally{btn.disabled=false;btn.textContent='Confirmar dados e fechar turno'}}
+  async function submitCloseShift(event){event.preventDefault();clearAlert('closeShiftAlert');const btn=$('confirmCloseShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Fechando turno...';try{const data=await ApiService.post('guardaFecharTurno',{militarId:$('commanderMilitaryId').value,postoGraduacao:$('commanderRank').value,rg:$('commanderRg').value,nomeCompleto:$('commanderName').value,nomeGuerra:$('commanderWarName').value});closeCloseShift();state.context.turno=null;state.context.movimentacoes=[];state.selectedVehicle=null;state.selectedMilitary=null;renderApp();alertBox(`Turno fechado por ${data.comandante?.postoGraduacao||''} ${data.comandante?.nomeGuerra||''} — Comandante da Guarda.`,'success')}catch(error){alertBox(error.message||'Não foi possível fechar o turno.','danger','closeShiftAlert')}finally{btn.disabled=false;btn.textContent='Confirmar dados e fechar turno'}}
   async function changeGuardPassword(event){event.preventDefault();clearAlert('passwordAlert');const current=$('currentPassword').value,next=$('newPassword').value,confirm=$('confirmPassword').value;if(next!==confirm){alertBox('A confirmação da nova senha não confere.','danger','passwordAlert');return}const btn=$('passwordSaveButton');btn.disabled=true;btn.textContent='Alterando...';try{const data=await ApiService.post('adminAlterarMinhaSenha',{senhaAtual:current,novaSenha:next});if(data.token){saveLogin(data)}hide('passwordOverlay');state.pendingPassword=false;await loadContext()}catch(error){alertBox(error.message||'Não foi possível alterar a senha.','danger','passwordAlert')}finally{btn.disabled=false;btn.textContent='Alterar senha'}}
   async function logout(){stopPolling();show('logoutOverlay');$('logoutButton').disabled=true;try{await ApiService.post('adminLogout',{})}catch(_){}clearSession();location.reload()}
   function bind(){
@@ -107,7 +128,7 @@ const GuardPage=(()=>{
     $('vehicleSearch').addEventListener('input',e=>renderVehicleResults(e.target.value));$('otherVehicleButton').addEventListener('click',()=>{hide('vehiclePicker');show('otherVehicleForm');$('otherPrefix').focus()});$('cancelOtherVehicle').addEventListener('click',()=>{hide('otherVehicleForm');show('vehiclePicker')});$('otherVehicleForm').addEventListener('submit',e=>{e.preventDefault();const p=$('otherPrefix').value.trim(),pl=$('otherPlate').value.trim();if(!p||!pl)return;selectOtherVehicle(p,pl)});
     $('militarySearch').addEventListener('input',()=>{clearTimeout(state.searchTimer);state.searchTimer=setTimeout(searchMilitary,280)});$('newMilitaryButton').addEventListener('click',()=>openMilitaryForm({rg:/^\d+$/.test($('militarySearch').value.trim())?$('militarySearch').value.trim():'',nomeCompleto:/\D/.test($('militarySearch').value)?$('militarySearch').value.trim():''}));$('militaryForm').addEventListener('submit',saveMilitary);$('cancelMilitaryForm').addEventListener('click',()=>{hide('militaryForm');show('militaryPicker')});
     $('prepareQrButton').addEventListener('click',createWithdrawalQr);$('qrCloseButton').addEventListener('click',closeQr);$('qrContinueButton').addEventListener('click',qrContinue);
-    $('closeShiftButton').addEventListener('click',openCloseShift);$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('closeShiftForm').addEventListener('submit',submitCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
+    $('closeShiftButton').addEventListener('click',openCloseShift);$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('commanderSearch').addEventListener('input',()=>{clearTimeout(state.commanderSearchTimer);state.commanderSearchTimer=setTimeout(searchCommander,280)});$('closeShiftForm').addEventListener('submit',submitCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
   }
   function init(){bind();bootstrap()}return{init};
 })();

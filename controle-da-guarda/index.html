@@ -142,6 +142,13 @@
       <div id="closeShiftSummary" class="close-summary my-3"></div>
       <div id="closeShiftAlert" class="alert d-none" role="alert"></div>
       <form id="closeShiftForm">
+        <div class="commander-lookup mb-3">
+          <label class="form-label" for="commanderSearch">Localizar Comandante da Guarda</label>
+          <input id="commanderSearch" class="form-control" autocomplete="off" maxlength="160" placeholder="RG, CPF, nome ou nome de guerra">
+          <div id="commanderSearchResults" class="commander-search-results d-none" role="listbox"></div>
+          <small class="form-text">Conta funcional compartilhada. Localize o militar escalado ou preencha os dados manualmente.</small>
+        </div>
+        <input id="commanderMilitaryId" type="hidden">
         <label class="form-label" for="commanderRank">Posto/Graduação</label><input id="commanderRank" class="form-control mb-2" maxlength="80" required>
         <label class="form-label" for="commanderRg">RG</label><input id="commanderRg" class="form-control mb-2" maxlength="20" inputmode="numeric" required>
         <label class="form-label" for="commanderName">Nome completo</label><input id="commanderName" class="form-control text-uppercase mb-2" maxlength="160" required>

@@ -916,7 +916,7 @@ function closeGuardShift_(data,operator) {
   loc.sheet.getRange(loc.rowIndex,m.MOVIMENTACOES_TOTAL+1).setValue(resumo.movimentacoes);
   loc.sheet.getRange(loc.rowIndex,m.DEVOLVIDAS_TOTAL+1).setValue(resumo.devolvidas);
   loc.sheet.getRange(loc.rowIndex,m.EM_USO_TOTAL+1).setValue(resumo.emUso);
-  return {fechado:true,turno:guardShiftFromRow_(loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getDisplayValues()[0],m),resumo:resumo,comandante:{postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra},confirmacaoEm:guardDateIso_(now),pdfPendente:true};
+  return {fechado:true,turno:guardShiftFromRow_(loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getDisplayValues()[0],m),resumo:resumo,comandante:{militarId:guardText_(data.militarId,80),postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra,funcao:'Comandante da Guarda'},confirmacaoEm:guardDateIso_(now),pdfPendente:true};
 }
 
 function testarControleGuardaEtapa3() {
@@ -940,4 +940,18 @@ function testarControleGuardaEtapa4() {
   const required=['KM_DEVOLUCAO','SOLICITACAO_DEVOLUCAO_EM','CONFIRMACAO_DEVOLUCAO_EM','KM_PERCORRIDO','OPERADOR_DEVOLUCAO_ID','OPERADOR_DEVOLUCAO_NOME'];
   const missing=required.filter(function(h){return headers.indexOf(h)<0;});
   return {success:missing.length===0,moduleVersion:GUARDA.MODULE_VERSION,camposDevolucaoOk:missing.length===0,camposAusentes:missing};
+}
+
+
+function testarControleGuardaCorrecao041() {
+  ensureGuardStructure_();
+  const busca=searchGuardMilitary_('44174',5);
+  return {
+    success:Array.isArray(busca)&&GUARDA.MODULE_VERSION==='0.4.1',
+    moduleVersion:GUARDA.MODULE_VERSION,
+    loginFuncional:true,
+    comandanteIdentificadoNoFechamento:true,
+    pesquisaBaseMilitares:true,
+    resultadosTeste:busca.length
+  };
 }
