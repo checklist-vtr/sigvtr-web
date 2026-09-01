@@ -1,7 +1,7 @@
 const GuardPage=(()=>{
   const TOKEN_KEY='sigvtr_admin_token',SESSION_KEY='sigvtr_admin_session';
   const GUARD_IDLE_TIMEOUT_MS=30*60*1000;
-  const state={context:null,vehicles:[],otherHistory:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false,closeMode:'NORMAL',closeTurnId:'',lastPdf:null,idleTimer:null,idleExpiring:false};
+  const state={context:null,vehicles:[],otherHistory:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false,closeMode:'NORMAL',closeTurnId:'',lastPdf:null,idleTimer:null,idleExpiring:false,refreshBusy:false};
   const $=id=>document.getElementById(id);
   const show=id=>$(id)?.classList.remove('d-none');
   const hide=id=>$(id)?.classList.add('d-none');
@@ -72,8 +72,9 @@ const GuardPage=(()=>{
     document.querySelectorAll('[data-return-id]').forEach(btn=>btn.addEventListener('click',()=>startReturn(btn.dataset.returnId,btn)));
   }
   async function refreshMovements(showBusy=false){
+    if(state.refreshBusy)return;state.refreshBusy=true;
     const btn=$('refreshMovementsButton');if(showBusy&&btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm"></span>'}
-    try{const data=await ApiService.post('guardaListarMovimentacoes',{});state.context.movimentacoes=data.movimentacoes||[];renderMovements(state.context.movimentacoes)}catch(error){if(showBusy)alertBox(error.message||'Não foi possível atualizar as movimentações.')}finally{if(showBusy&&btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-arrow-clockwise"></i>'}}
+    try{const data=await ApiService.post('guardaListarMovimentacoes',{});state.context.movimentacoes=data.movimentacoes||[];renderMovements(state.context.movimentacoes)}catch(error){if(showBusy)alertBox(error.message||'Não foi possível atualizar as movimentações.')}finally{state.refreshBusy=false;if(showBusy&&btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-arrow-clockwise"></i>'}}
   }
 
   function vehicleSearchNorm(v){return String(v||'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
