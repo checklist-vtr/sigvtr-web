@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 3.1 - correções operacionais pós-teste
- * Versão do módulo: 0.3.1
+ * Etapa: 4 - retirada e devolução operacionais
+ * Versão do módulo: 0.4.0
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.3.1',
+  MODULE_VERSION: '0.4.0',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',FECHADO:'FECHADO'}),
   STATUS_MOV: Object.freeze({
@@ -537,7 +537,8 @@ function getGuardContext_(operator) {
       role:guardText_(operator&&operator.role,30)
     },
     turno:getOpenGuardShift_(),
-    viaturas:getGuardVehicles_()
+    viaturas:getGuardVehicles_(),
+    movimentacoes:listGuardShiftMovements_()
   };
 }
 
@@ -605,7 +606,13 @@ function guardMovementFromRow_(row,map) {
     militarNomeGuerra:guardText_(guardRowValue_(row,map,'MILITAR_NOME_GUERRA_SNAPSHOT'),100),
     kmRetirada:guardText_(guardRowValue_(row,map,'KM_RETIRADA'),30),
     solicitacaoRetiradaEm:guardDateIso_(guardRowValue_(row,map,'SOLICITACAO_RETIRADA_EM')),
-    confirmacaoRetiradaEm:guardDateIso_(guardRowValue_(row,map,'CONFIRMACAO_RETIRADA_EM'))
+    confirmacaoRetiradaEm:guardDateIso_(guardRowValue_(row,map,'CONFIRMACAO_RETIRADA_EM')),
+    kmDevolucao:guardText_(guardRowValue_(row,map,'KM_DEVOLUCAO'),30),
+    solicitacaoDevolucaoEm:guardDateIso_(guardRowValue_(row,map,'SOLICITACAO_DEVOLUCAO_EM')),
+    confirmacaoDevolucaoEm:guardDateIso_(guardRowValue_(row,map,'CONFIRMACAO_DEVOLUCAO_EM')),
+    kmPercorrido:guardText_(guardRowValue_(row,map,'KM_PERCORRIDO'),30),
+    operadorDevolucaoId:guardText_(guardRowValue_(row,map,'OPERADOR_DEVOLUCAO_ID'),100),
+    operadorDevolucaoNome:guardText_(guardRowValue_(row,map,'OPERADOR_DEVOLUCAO_NOME'),160)
   };
 }
 
@@ -754,19 +761,30 @@ function createGuardWithdrawal_(data,operator) {
 
 function getGuardPublicTokenInfo_(data) {
   ensureGuardStructure_();data=data||{};
-  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.RETIRADA)),loc=guardMovementLocator_(ti.movimentoId);
+  const ti=guardTokenAssertUsable_(guardFindToken_(data.token)),loc=guardMovementLocator_(ti.movimentoId);
   if(!loc)throw new Error('QR_CODE_INVALIDO');
   const m=loc.movimento;
-  if(m.status!==GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA){
-    if(m.status===GUARDA.STATUS_MOV.EM_USO)return {confirmado:true,operacao:'RETIRADA',vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},km:m.kmRetirada,confirmacaoEm:m.confirmacaoRetiradaEm};
-    throw new Error('QR_CODE_INVALIDO');
+
+  if(ti.tipo===GUARDA.TOKEN_TIPOS.RETIRADA){
+    if(m.status!==GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)throw new Error(m.status===GUARDA.STATUS_MOV.EM_USO?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
+    return {
+      confirmado:false,operacao:'RETIRADA',expiraEm:guardDateIso_(ti.expiraEm),
+      vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
+      condutor:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra},
+      solicitacaoEm:m.solicitacaoRetiradaEm,ultimoKmConhecido:guardVehicleLastKnownKm_(m),kmInicial:null
+    };
   }
-  return {
-    confirmado:false,operacao:'RETIRADA',expiraEm:guardDateIso_(ti.expiraEm),
-    vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
-    condutor:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra},
-    solicitacaoEm:m.solicitacaoRetiradaEm,ultimoKmConhecido:guardVehicleLastKnownKm_(m)
-  };
+
+  if(ti.tipo===GUARDA.TOKEN_TIPOS.DEVOLUCAO){
+    if(m.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error(m.status===GUARDA.STATUS_MOV.ENCERRADA?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
+    return {
+      confirmado:false,operacao:'DEVOLUCAO',expiraEm:guardDateIso_(ti.expiraEm),
+      vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
+      condutor:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra},
+      solicitacaoEm:m.solicitacaoDevolucaoEm,ultimoKmConhecido:null,kmInicial:Number(m.kmRetirada||0)
+    };
+  }
+  throw new Error('QR_CODE_INVALIDO');
 }
 
 function confirmGuardWithdrawalPublic_(data) {
@@ -787,13 +805,69 @@ function confirmGuardWithdrawalPublic_(data) {
   return {confirmado:true,operacao:'RETIRADA',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,confirmacaoEm:guardDateIso_(now)};
 }
 
+function listGuardShiftMovements_(turnoId) {
+  ensureGuardStructure_();
+  const id=guardText_(turnoId||((getOpenGuardShift_()||{}).id),100);
+  if(!id)return [];
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getDisplayValues(),out=[];
+  for(let r=1;r<rows.length;r++){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100)!==id)continue;
+    out.push(guardMovementFromRow_(rows[r],hm.map));
+  }
+  out.sort(function(a,b){return String(b.criadaEm||'').localeCompare(String(a.criadaEm||''));});
+  return out;
+}
+
+function startGuardReturn_(data,operator) {
+  ensureGuardStructure_();data=data||{};
+  const turno=getOpenGuardShift_();if(!turno)throw new Error('Inicie o turno da Guarda antes de registrar a devolução.');
+  const id=guardText_(data.movimentacaoId||data.id,100);if(!id)throw new Error('Movimentação não informada.');
+  const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
+  if(loc.movimento.turnoId!==turno.id)throw new Error('Esta movimentação não pertence ao turno aberto.');
+  if(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA)throw new Error('Esta VTR já foi devolvida.');
+  if(loc.movimento.status!==GUARDA.STATUS_MOV.EM_USO&&loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A retirada ainda não foi confirmada para esta VTR.');
+
+  const now=new Date();
+  if(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO){
+    loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO);
+    loc.sheet.getRange(loc.rowIndex,loc.map.SOLICITACAO_DEVOLUCAO_EM+1).setValue(now);
+    loc.sheet.getRange(loc.rowIndex,loc.map.OPERADOR_DEVOLUCAO_ID+1).setValue(guardText_(operator&&operator.id||operator&&operator.login,100));
+    loc.sheet.getRange(loc.rowIndex,loc.map.OPERADOR_DEVOLUCAO_NOME+1).setValue(guardText_(operator&&operator.name||operator&&operator.login,160));
+    loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
+  }
+  const refreshed=guardMovementLocator_(id).movimento,issued=guardIssueToken_(id,GUARDA.TOKEN_TIPOS.DEVOLUCAO);
+  return {movimentacao:refreshed,token:issued.token,expiraEm:issued.expiraEm,tokenValidadeMinutos:GUARDA.TOKEN_TTL_MINUTES,operacao:'DEVOLUCAO'};
+}
+
+function confirmGuardReturnPublic_(data) {
+  ensureGuardStructure_();data=data||{};
+  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.DEVOLUCAO)),loc=guardMovementLocator_(ti.movimentoId);
+  if(!loc)throw new Error('QR_CODE_INVALIDO');
+  if(loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
+  const km=guardParseKm_(data.km),kmInicial=Number(guardDigits_(loc.movimento.kmRetirada,12)||0);
+  if(km<kmInicial)throw new Error('O KM final ('+km+') não pode ser menor que o KM inicial ('+kmInicial+'). Revise o valor.');
+  const now=new Date(),percorrido=km-kmInicial;
+  loc.sheet.getRange(loc.rowIndex,loc.map.KM_DEVOLUCAO+1).setValue(km);
+  loc.sheet.getRange(loc.rowIndex,loc.map.CONFIRMACAO_DEVOLUCAO_EM+1).setValue(now);
+  loc.sheet.getRange(loc.rowIndex,loc.map.KM_PERCORRIDO+1).setValue(percorrido);
+  loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.ENCERRADA);
+  loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
+  ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);
+  ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId)updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);
+  return {confirmado:true,operacao:'DEVOLUCAO',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,kmInicial:kmInicial,kmPercorrido:percorrido,confirmacaoEm:guardDateIso_(now)};
+}
+
 function getGuardMovementStatus_(data) {
   const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');
   const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
   const m=loc.movimento;
-  return {id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}};
+  return {
+    id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,
+    kmDevolucao:m.kmDevolucao,confirmacaoDevolucaoEm:m.confirmacaoDevolucaoEm,kmPercorrido:m.kmPercorrido,
+    vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}
+  };
 }
-
 
 function guardOpenShiftLocator_() {
   ensureGuardStructure_();
@@ -857,4 +931,13 @@ function testarControleGuardaCorrecao031() {
   const v=resolveGuardVehicleSnapshot_({origem:'OUTROS',prefixo:'025',placa:'ABC1D23'});
   const roleOk=typeof ADMIN_AUTH!=='undefined'&&ADMIN_AUTH.VALID_ROLES.indexOf('GUARDA')>=0;
   return {success:v.prefixo==='025'&&roleOk,moduleVersion:GUARDA.MODULE_VERSION,prefixoTeste:v.prefixo,perfilGuardaDisponivel:roleOk};
+}
+
+
+function testarControleGuardaEtapa4() {
+  ensureGuardStructure_();
+  const headers=GUARDA.SHEET_HEADERS.MOVIMENTACOES;
+  const required=['KM_DEVOLUCAO','SOLICITACAO_DEVOLUCAO_EM','CONFIRMACAO_DEVOLUCAO_EM','KM_PERCORRIDO','OPERADOR_DEVOLUCAO_ID','OPERADOR_DEVOLUCAO_NOME'];
+  const missing=required.filter(function(h){return headers.indexOf(h)<0;});
+  return {success:missing.length===0,moduleVersion:GUARDA.MODULE_VERSION,camposDevolucaoOk:missing.length===0,camposAusentes:missing};
 }

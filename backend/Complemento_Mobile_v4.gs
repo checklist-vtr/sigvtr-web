@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.24-RC1
+ * Versão do pacote: 1.20.25-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -24,7 +24,7 @@ function doPost(e){
 
     // Controle da Guarda: confirmação pública recebe SOMENTE token opaco.
     // A leitura pública não usa sessão; a confirmação pública passa pelo lock geral abaixo.
-    const guardaPublicAction=(action==="guardaPublicoTokenInfo"||action==="guardaPublicoConfirmarRetirada");
+    const guardaPublicAction=(action==="guardaPublicoTokenInfo"||action==="guardaPublicoConfirmarRetirada"||action==="guardaPublicoConfirmarDevolucao");
     if(action==="guardaPublicoTokenInfo")return json_({success:true,data:getGuardPublicTokenInfo_(data)});
 
     // Demais ações da Guarda reutilizam a sessão administrativa existente, sem token na URL.
@@ -38,6 +38,7 @@ function doPost(e){
       if(action==="guardaPrepararRetirada")return json_({success:true,data:prepareGuardWithdrawal_(data)});
       if(action==="guardaStatusMovimentacao")return json_({success:true,data:getGuardMovementStatus_(data)});
       if(action==="guardaPreviaFechamento")return json_({success:true,data:getGuardClosePreview_()});
+      if(action==="guardaListarMovimentacoes")return json_({success:true,data:{movimentacoes:listGuardShiftMovements_()}});
     }
 
     // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
@@ -78,12 +79,14 @@ function doPost(e){
       if(action==="salvarRetirada")return json_(saveWithdrawal_(data));
 
       if(action==="guardaPublicoConfirmarRetirada")return json_({success:true,data:confirmGuardWithdrawalPublic_(data)});
+      if(action==="guardaPublicoConfirmarDevolucao")return json_({success:true,data:confirmGuardReturnPublic_(data)});
 
       if(action.indexOf("guarda")===0&&!guardaPublicAction){
         const guardaWriteCtx=guardaRequestCtx||guardRequireOperator_(token);
         if(action==="guardaIniciarTurno")return json_({success:true,data:openGuardShift_(guardaWriteCtx.user)});
         if(action==="guardaSalvarMilitar")return json_({success:true,data:{militar:saveGuardMilitary_(data)}});
         if(action==="guardaCriarRetirada")return json_({success:true,data:createGuardWithdrawal_(data,guardaWriteCtx.user)});
+        if(action==="guardaIniciarDevolucao")return json_({success:true,data:startGuardReturn_(data,guardaWriteCtx.user)});
         if(action==="guardaFecharTurno")return json_({success:true,data:closeGuardShift_(data,guardaWriteCtx.user)});
       }
 
