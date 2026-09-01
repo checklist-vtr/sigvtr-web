@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.2',
+  MODULE_VERSION: '0.6.3',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -564,12 +564,12 @@ function createGuardShiftRow_(operator) {
 function openGuardShift_(operator,options) {
   ensureGuardStructure_();options=options||{};
   const existing=getOpenGuardShift_();
-  if(existing&&!options.forceNew)return {created:false,turno:existing,turnosPendentes:listPendingGuardShifts_()};
+  if(existing&&!options.forceNew)return {created:false,turno:existing,turnosPendentes:listPendingGuardShifts_(),movimentacoes:listGuardShiftMovements_(existing.id)};
   if(existing&&options.forceNew){
     const loc=guardShiftLocatorById_(existing.id);loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_TURNO.PENDENTE);
   }
   const turno=createGuardShiftRow_(operator);
-  return {created:true,turno:turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:listPendingGuardShifts_()};
+  return {created:true,turno:turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:listPendingGuardShifts_(),movimentacoes:listGuardShiftMovements_(turno.id)};
 }
 
 function getGuardContext_(operator) {
@@ -926,9 +926,33 @@ function getGuardClosePreview_(data) {
   return {turno:loc.turno,resumo:getGuardShiftSummary_(loc.turno.id),modo:id?'SUBSTITUTO':'NORMAL'};
 }
 
+function ensureClosingCommanderMilitary_(data) {
+  data=data||{};
+  const militarId=guardText_(data.militarId,80),rg=guardDigits_(data.rg,20),nome=guardUpper_(data.nomeCompleto||data.nome,160),guerra=guardUpper_(data.nomeGuerra,100),posto=guardUpper_(data.postoGraduacao,80);
+  if(!rg||!nome)return null;
+  let existing=null;
+  if(militarId)existing=getGuardMilitaryById_(militarId);
+  if(!existing){
+    const matches=searchGuardMilitary_(rg,50);
+    existing=matches.find(function(m){return guardDigits_(m.rg,20)===rg;})||null;
+  }
+  return saveGuardMilitary_({
+    id:existing&&existing.id||'',
+    cpf:existing&&existing.cpf||'',
+    rg:rg,
+    nomeCompleto:nome,
+    nomeGuerra:guerra,
+    postoGraduacao:posto,
+    opm:existing&&existing.opm||''
+  });
+}
+
 function guardCloseShiftWrite_(loc,data,substituto) {
   data=data||{};const posto=guardUpper_(data.postoGraduacao,80),rg=guardDigits_(data.rg,20),nome=guardUpper_(data.nomeCompleto||data.nome,160),guerra=guardUpper_(data.nomeGuerra,100),motivo=guardText_(data.motivo,500);
   if(!posto)throw new Error('Informe o Posto/Graduação do militar responsável pelo fechamento.');if(!rg)throw new Error('Informe o RG do militar responsável pelo fechamento.');if(!nome)throw new Error('Informe o nome completo do militar responsável pelo fechamento.');if(!guerra)throw new Error('Informe o nome de guerra do militar responsável pelo fechamento.');if(substituto&&!motivo)throw new Error('Informe o motivo do encerramento por substituto.');
+  // O fechamento também enriquece a base cadastral. Se o militar ainda não existir, ele é criado;
+  // se já existir, apenas os dados operacionais informados são atualizados, preservando CPF/OPM existentes.
+  const commanderMilitary=ensureClosingCommanderMilitary_(data);
   const resumo=getGuardShiftSummary_(loc.turno.id),now=new Date(),m=loc.map,status=substituto?GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO:GUARDA.STATUS_TURNO.FECHADO;
   const row=loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getValues()[0];
   const set=function(key,value){if(m[key]!==undefined)row[m[key]]=value};
@@ -940,7 +964,7 @@ function guardCloseShiftWrite_(loc,data,substituto) {
   const range=loc.sheet.getRange(loc.rowIndex,1,1,row.length);range.setValues([row]);
   if(m.CMD_RG_SNAPSHOT!==undefined&&!substituto)loc.sheet.getRange(loc.rowIndex,m.CMD_RG_SNAPSHOT+1).setNumberFormat('@');
   if(m.ENCERRADO_POR_RG_SNAPSHOT!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_RG_SNAPSHOT+1).setNumberFormat('@');
-  return {fechado:true,substituto:substituto,turno:guardShiftFromRow_(row,m),resumo:resumo,responsavel:{militarId:guardText_(data.militarId,80),postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra,funcao:substituto?'Comandante da Guarda substituto':'Comandante da Guarda'},motivo:motivo,confirmacaoEm:guardDateIso_(now),pdfPendente:true};
+  return {fechado:true,substituto:substituto,turno:guardShiftFromRow_(row,m),resumo:resumo,responsavel:{militarId:guardText_(commanderMilitary&&commanderMilitary.id||data.militarId,80),postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra,funcao:substituto?'Comandante da Guarda substituto':'Comandante da Guarda'},motivo:motivo,confirmacaoEm:guardDateIso_(now),pdfPendente:true};
 }
 
 function closeGuardShift_(data,operator) {
@@ -1056,7 +1080,7 @@ function generateGuardShiftPdf_(turnoId,opts){
     guardPdfAddText_(body,'Encerramento confirmado eletronicamente em '+guardPdfDate_(turno.encerradoPorConfirmacaoEm||turno.fimEm,true)+'.',false,8,DocumentApp.HorizontalAlignment.CENTER);
   }
   doc.saveAndClose();
-  const docFile=DriveApp.getFileById(doc.getId()),blob=docFile.getAs(MimeType.PDF),stamp=Utilities.formatDate(new Date(turno.inicioEm||new Date()),SIGVTR.TIMEZONE,'yyyyMMdd_HHmm'),filename=sanitizeFilename_('controle_guarda_'+stamp+'_'+turno.id+'.pdf');blob.setName(filename);
+  const docFile=DriveApp.getFileById(doc.getId()),blob=docFile.getAs(MimeType.PDF),stamp=Utilities.formatDate(new Date(turno.fimEm||turno.inicioEm||new Date()),SIGVTR.TIMEZONE,'dd-MM-yyyy_HH-mm'),filename=sanitizeFilename_(stamp+'.pdf');blob.setName(filename);
   if(turno.pdfFileId){try{DriveApp.getFileById(turno.pdfFileId).setTrashed(true)}catch(_){}}
   const pdfFile=folder.createFile(blob);docFile.setTrashed(true);const now=new Date();
   if(loc.map.PDF_FILE_ID!==undefined)loc.sheet.getRange(loc.rowIndex,loc.map.PDF_FILE_ID+1).setValue(pdfFile.getId());if(loc.map.PDF_GERADO_EM!==undefined)loc.sheet.getRange(loc.rowIndex,loc.map.PDF_GERADO_EM+1).setValue(now);
@@ -1067,7 +1091,7 @@ function regenerateGuardShiftPdf_(data){data=data||{};try{return generateGuardSh
 
 function testarControleGuardaEtapa6(){
   ensureGuardStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh).map,required=['PDF_FILE_ID','PDF_GERADO_EM'];const cols=required.every(function(k){return hm[k]!==undefined});
-  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.2',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
+  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.3',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
 }
 
 function testarControleGuardaEtapa3() {
@@ -1120,4 +1144,19 @@ function testarControleGuardaEtapa5() {
 function testarControleGuardaPerformance061(){
   const t=Date.now(),estrutura=ensureGuardStructure_();
   return {success:GUARDA.MODULE_VERSION==='0.6.2',moduleVersion:GUARDA.MODULE_VERSION,schemaVersion:GUARDA.SCHEMA_VERSION,estruturaCached:!!(estrutura[0]&&estrutura[0].cached),tempoEnsureMs:Date.now()-t};
+}
+
+function testarControleGuardaCorrecao063() {
+  ensureGuardStructure_();
+  const turno=getOpenGuardShift_();
+  const movs=turno?listGuardShiftMovements_(turno.id):[];
+  return {
+    success:GUARDA.MODULE_VERSION==='0.6.3',
+    moduleVersion:GUARDA.MODULE_VERSION,
+    turnoAberto:turno&&turno.id||'',
+    movimentacoesCarregadas:movs.length,
+    incluiEmUsoTurnoAnterior:movs.some(function(m){return !!m.retiradaEmTurnoAnterior&&(m.status===GUARDA.STATUS_MOV.EM_USO||m.status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO);}),
+    fechamentoCadastraMilitar:true,
+    nomePdf:'dd-MM-yyyy_HH-mm.pdf'
+  };
 }
