@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 6.1 - PDF robusto e otimização de performance
- * Versão do módulo: 0.6.2
+ * Etapa: 6.4 - performance e memória de VTRs reserva
+ * Versão do módulo: 0.6.4
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.3',
+  MODULE_VERSION: '0.6.4',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -51,6 +51,22 @@ const GUARDA = Object.freeze({
     ]
   })
 });
+
+
+
+const GUARDA_CACHE = Object.freeze({
+  VEHICLES:'SIGVTR_GUARDA_VEHICLES_V1',
+  MILITARY:'SIGVTR_GUARDA_MILITARY_V1',
+  OTHER_VEHICLES:'SIGVTR_GUARDA_OTHER_VEHICLES_V1',
+  VEHICLES_SECONDS:300,
+  MILITARY_SECONDS:180,
+  OTHER_SECONDS:300
+});
+function guardCacheGetJson_(key){try{const raw=CacheService.getScriptCache().get(key);return raw?JSON.parse(raw):null}catch(_){return null}}
+function guardCachePutJson_(key,value,seconds){try{const raw=JSON.stringify(value);if(raw.length<95000)CacheService.getScriptCache().put(key,raw,seconds)}catch(_){}}
+function guardCacheRemove_(keys){try{CacheService.getScriptCache().removeAll(Array.isArray(keys)?keys:[keys])}catch(_){}}
+function guardInvalidateMilitaryCache_(){guardCacheRemove_(GUARDA_CACHE.MILITARY)}
+function guardInvalidateVehicleHistoryCache_(){guardCacheRemove_([GUARDA_CACHE.OTHER_VEHICLES])}
 
 const GUARDA_MILITARES_BASE_INICIAL = Object.freeze([
   {"cpf": "70386480206", "rg": "29182", "nome": "CLAUDMAR ELPÍDIO FERREIRA DIAS"},
@@ -336,30 +352,31 @@ function importGuardInitialMilitaryBase_() {
   return {base:GUARDA_MILITARES_BASE_INICIAL.length,inseridos:newRows.length,existentes:existentes,conflitos:conflitos};
 }
 
-function searchGuardMilitary_(query,limit) {
+function guardMilitaryList_() {
+  const cached=guardCacheGetJson_(GUARDA_CACHE.MILITARY);if(Array.isArray(cached))return cached;
   ensureGuardStructure_();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MILITARY),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getDisplayValues(),out=[];
+  for(let r=1;r<rows.length;r++){
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'ATIVO'))==='NAO')continue;
+    const m=guardMilitaryFromRow_(rows[r],hm.map);if(m.id||m.rg||m.nomeCompleto)out.push(m);
+  }
+  guardCachePutJson_(GUARDA_CACHE.MILITARY,out,GUARDA_CACHE.MILITARY_SECONDS);return out;
+}
+function searchGuardMilitary_(query,limit) {
   const q=guardText_(query,160),digits=guardDigits_(q,20),text=guardNormalizeSearch_(q),max=Math.max(1,Math.min(Number(limit)||20,50));
   if(!q)return [];
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MILITARY),hm=guardHeaderMap_(sh);
-  const rows=sh.getDataRange().getDisplayValues(),out=[];
-  for(let r=1;r<rows.length&&out.length<max;r++){
-    const row=rows[r];
-    if(guardUpper_(guardRowValue_(row,hm.map,'ATIVO'))==='NAO')continue;
-    const cpf=guardDigits_(guardRowValue_(row,hm.map,'CPF'),11),rg=guardDigits_(guardRowValue_(row,hm.map,'RG'),20);
-    const nome=guardText_(guardRowValue_(row,hm.map,'NOME_COMPLETO'),160),guerra=guardText_(guardRowValue_(row,hm.map,'NOME_GUERRA'),100);
+  const list=guardMilitaryList_(),out=[];
+  for(let i=0;i<list.length&&out.length<max;i++){
+    const m=list[i],cpf=guardDigits_(m.cpf,11),rg=guardDigits_(m.rg,20);
     const matchDigits=digits&&(cpf.indexOf(digits)>=0||rg.indexOf(digits)>=0);
-    const matchText=text&&(guardNormalizeSearch_(nome).indexOf(text)>=0||guardNormalizeSearch_(guerra).indexOf(text)>=0);
-    if(matchDigits||matchText)out.push(guardMilitaryFromRow_(row,hm.map));
+    const matchText=text&&(guardNormalizeSearch_(m.nomeCompleto).indexOf(text)>=0||guardNormalizeSearch_(m.nomeGuerra).indexOf(text)>=0);
+    if(matchDigits||matchText)out.push(m);
   }
   return out;
 }
-
 function getGuardMilitaryById_(id) {
-  ensureGuardStructure_();
   const wanted=guardText_(id,80);if(!wanted)return null;
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MILITARY),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getDisplayValues();
-  for(let r=1;r<rows.length;r++)if(guardText_(guardRowValue_(rows[r],hm.map,'ID_MILITAR'),80)===wanted)return guardMilitaryFromRow_(rows[r],hm.map);
-  return null;
+  const list=guardMilitaryList_();for(let i=0;i<list.length;i++)if(list[i].id===wanted)return list[i];return null;
 }
 
 function guardMilitaryFromRow_(row,map) {
@@ -408,10 +425,13 @@ function saveGuardMilitary_(data) {
   }
   if(hm.map.CPF!==undefined)sh.getRange(targetRow,hm.map.CPF+1).setNumberFormat('@');
   if(hm.map.RG!==undefined)sh.getRange(targetRow,hm.map.RG+1).setNumberFormat('@');
-  return guardMilitaryFromRow_(sh.getRange(targetRow,1,1,hm.headers.length).getDisplayValues()[0],hm.map);
+  const saved=guardMilitaryFromRow_(sh.getRange(targetRow,1,1,hm.headers.length).getDisplayValues()[0],hm.map);
+  guardInvalidateMilitaryCache_();
+  return saved;
 }
 
 function getGuardVehicles_() {
+  const cached=guardCacheGetJson_(GUARDA_CACHE.VEHICLES);if(Array.isArray(cached))return cached;
   const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.VEHICLES);
   if(!sh)throw new Error('Aba VIATURAS não encontrada.');
   const values=sh.getDataRange().getDisplayValues();if(!values.length)return [];
@@ -419,14 +439,31 @@ function getGuardVehicles_() {
   values.forEach(function(row){
     const id=guardText_(valueByHeader_(headers,row,'ID-VTR'),100),prefixo=guardText_(valueByHeader_(headers,row,'Prefixo'),40),placa=guardUpper_(valueByHeader_(headers,row,'Placa'),20);
     if(!id&&!prefixo&&!placa)return;
-    out.push({
-      id:id,prefixo:prefixo,placa:placa,
-      modelo:guardText_(valueByHeader_(headers,row,'Modelo'),100),
-      status:guardText_(valueByHeader_(headers,row,'Status'),50),
-      kmAtual:guardText_(valueByHeader_(headers,row,'KM Atual'),40)
-    });
+    out.push({id:id,prefixo:prefixo,placa:placa,modelo:guardText_(valueByHeader_(headers,row,'Modelo'),100),status:guardText_(valueByHeader_(headers,row,'Status'),50),kmAtual:guardText_(valueByHeader_(headers,row,'KM Atual'),40)});
   });
-  return out;
+  guardCachePutJson_(GUARDA_CACHE.VEHICLES,out,GUARDA_CACHE.VEHICLES_SECONDS);return out;
+}
+
+function guardBuildHistoricalOtherVehicles_(rows,map){
+  const byKey={};
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];if(guardUpper_(guardRowValue_(row,map,'VTR_ORIGEM'),20)!==GUARDA.VTR_ORIGEM.OUTROS)continue;
+    const prefixo=guardText_(guardRowValue_(row,map,'VTR_PREFIXO_SNAPSHOT'),40),placa=guardUpper_(guardRowValue_(row,map,'VTR_PLACA_SNAPSHOT'),20);if(!prefixo&&!placa)continue;
+    const kmDev=guardDigits_(guardRowValue_(row,map,'KM_DEVOLUCAO'),15),kmRet=guardDigits_(guardRowValue_(row,map,'KM_RETIRADA'),15);
+    const confDev=guardRowValue_(row,map,'CONFIRMACAO_DEVOLUCAO_EM'),confRet=guardRowValue_(row,map,'CONFIRMACAO_RETIRADA_EM');
+    const eventDate=confDev||confRet||guardRowValue_(row,map,'ATUALIZADA_EM')||guardRowValue_(row,map,'CRIADA_EM');
+    const d=eventDate instanceof Date?eventDate:new Date(eventDate),ts=!isNaN(d.getTime())?d.getTime():0;
+    const key=placa?'PLACA:'+placa:'PREFIXO:'+guardUpper_(prefixo,40),km=kmDev||kmRet||'';
+    if(!byKey[key]||ts>=byKey[key]._ts)byKey[key]={origem:GUARDA.VTR_ORIGEM.OUTROS,prefixo:String(prefixo),placa:String(placa),ultimoKm:km?Number(km):null,ultimoUsoEm:guardDateIso_(eventDate),_ts:ts};
+  }
+  const registered=getGuardVehicles_(),plates={},pairs={};registered.forEach(function(v){if(v.placa)plates[guardUpper_(v.placa,20)]=true;pairs[guardUpper_(v.prefixo,40)+'|'+guardUpper_(v.placa,20)]=true});
+  return Object.keys(byKey).map(function(k){return byKey[k]}).filter(function(v){return !(v.placa&&plates[guardUpper_(v.placa,20)])&&!pairs[guardUpper_(v.prefixo,40)+'|'+guardUpper_(v.placa,20)]}).sort(function(a,b){return b._ts-a._ts}).map(function(v){delete v._ts;return v});
+}
+function getGuardHistoricalOtherVehicles_(){
+  const cached=guardCacheGetJson_(GUARDA_CACHE.OTHER_VEHICLES);if(Array.isArray(cached))return cached;
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS);if(!sh)return [];
+  const hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),out=guardBuildHistoricalOtherVehicles_(rows,hm.map);
+  guardCachePutJson_(GUARDA_CACHE.OTHER_VEHICLES,out,GUARDA_CACHE.OTHER_SECONDS);return out;
 }
 
 function resolveGuardVehicleSnapshot_(data) {
@@ -572,12 +609,24 @@ function openGuardShift_(operator,options) {
   return {created:true,turno:turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:listPendingGuardShifts_(),movimentacoes:listGuardShiftMovements_(turno.id)};
 }
 
+function guardContextSnapshot_(){
+  const ss=getSpreadsheet_(),turnSh=ss.getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),turnHm=guardHeaderMap_(turnSh),turnRows=turnSh.getDataRange().getValues();
+  let open=null;const pending=[];
+  for(let r=turnRows.length-1;r>=1;r--){const st=guardUpper_(guardRowValue_(turnRows[r],turnHm.map,'STATUS'),30);if(!open&&st===GUARDA.STATUS_TURNO.ABERTO)open=guardShiftFromRow_(turnRows[r],turnHm.map);else if(st===GUARDA.STATUS_TURNO.PENDENTE)pending.push(guardShiftFromRow_(turnRows[r],turnHm.map))}
+  const movSh=ss.getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),movHm=guardHeaderMap_(movSh),movRows=movSh.getDataRange().getValues();
+  const summary=function(id){let total=0,devolvidas=0,emUso=0,aguardando=0,recebidas=0;for(let r=1;r<movRows.length;r++){const row=movRows[r],orig=guardText_(guardRowValue_(row,movHm.map,'ID_TURNO_RETIRADA'),100)||guardText_(guardRowValue_(row,movHm.map,'ID_TURNO'),100),ret=guardText_(guardRowValue_(row,movHm.map,'ID_TURNO_DEVOLUCAO'),100),st=guardUpper_(guardRowValue_(row,movHm.map,'STATUS'),50);if(ret===id&&orig!==id&&st===GUARDA.STATUS_MOV.ENCERRADA)recebidas++;if(orig!==id)continue;total++;if(st===GUARDA.STATUS_MOV.ENCERRADA)devolvidas++;else if(st===GUARDA.STATUS_MOV.EM_USO||st===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)emUso++;else if(st===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)aguardando++}return {movimentacoes:total,devolvidas:devolvidas,emUso:emUso,aguardandoConfirmacao:aguardando,devolucoesTurnoAnterior:recebidas}};
+  pending.forEach(function(t){t.resumo=summary(t.id)});
+  const movements=[];if(open){for(let r=1;r<movRows.length;r++){const m=guardMovementFromRow_(movRows[r],movHm.map),orig=m.turnoRetiradaId||m.turnoId,ret=m.turnoDevolucaoId,aberta=m.status===GUARDA.STATUS_MOV.EM_USO||m.status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO;if(orig!==open.id&&ret!==open.id&&!aberta)continue;m.turnoAtualId=open.id;m.retiradaEmTurnoAnterior=orig!==open.id;m.devolucaoNesteTurno=ret===open.id;m.origemTurnoId=orig;movements.push(m)}movements.sort(function(a,b){return String(b.criadaEm||'').localeCompare(String(a.criadaEm||''))})}
+  return {turno:open,turnosPendentes:pending,movimentacoes:movements,_movRows:movRows,_movMap:movHm.map};
+}
+
 function getGuardContext_(operator) {
-  ensureGuardStructure_();const turno=getOpenGuardShift_();
+  ensureGuardStructure_();const snap=guardContextSnapshot_(),vehicles=getGuardVehicles_();
+  let history=guardCacheGetJson_(GUARDA_CACHE.OTHER_VEHICLES);if(!Array.isArray(history)){history=guardBuildHistoricalOtherVehicles_(snap._movRows,snap._movMap);guardCachePutJson_(GUARDA_CACHE.OTHER_VEHICLES,history,GUARDA_CACHE.OTHER_SECONDS)}
   return {
     moduleVersion:GUARDA.MODULE_VERSION,
     operator:{id:guardText_(operator&&operator.id,100),login:guardText_(operator&&operator.login,80),name:guardText_(operator&&operator.name,160),role:guardText_(operator&&operator.role,30)},
-    turno:turno,turnosPendentes:listPendingGuardShifts_(),viaturas:getGuardVehicles_(),movimentacoes:turno?listGuardShiftMovements_(turno.id):[]
+    turno:snap.turno,turnosPendentes:snap.turnosPendentes,viaturas:vehicles,vtrsOutrosHistorico:history,movimentacoes:snap.movimentacoes
   };
 }
 
@@ -744,13 +793,14 @@ function guardTokenAssertUsable_(tokenInfo) {
 }
 
 function guardVehicleLastKnownKm_(movement) {
-  if(!movement||movement.vtrOrigem!==GUARDA.VTR_ORIGEM.CADASTRADA||!movement.vtrId)return null;
-  const vehicles=getGuardVehicles_();
-  for(let i=0;i<vehicles.length;i++){
-    if(String(vehicles[i].id)===String(movement.vtrId)){
-      const digits=guardDigits_(vehicles[i].kmAtual,20);
-      return digits===''?null:Number(digits);
-    }
+  if(!movement)return null;
+  if(movement.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&movement.vtrId){
+    const vehicles=getGuardVehicles_();for(let i=0;i<vehicles.length;i++)if(String(vehicles[i].id)===String(movement.vtrId)){const digits=guardDigits_(vehicles[i].kmAtual,20);return digits===''?null:Number(digits)}
+    return null;
+  }
+  if(movement.vtrOrigem===GUARDA.VTR_ORIGEM.OUTROS){
+    const prefix=guardUpper_(movement.vtrPrefixo,40),plate=guardUpper_(movement.vtrPlaca,20),history=getGuardHistoricalOtherVehicles_();
+    for(let i=0;i<history.length;i++){const h=history[i];if((plate&&guardUpper_(h.placa,20)===plate)||(!plate&&prefix&&guardUpper_(h.prefixo,40)===prefix)){return h.ultimoKm===null||h.ultimoKm===undefined?null:Number(h.ultimoKm)}}
   }
   return null;
 }
@@ -842,7 +892,8 @@ function confirmGuardWithdrawalPublic_(data) {
   loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
   ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);
   ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
-  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId)updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId){updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);guardCacheRemove_(GUARDA_CACHE.VEHICLES)}
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.OUTROS)guardInvalidateVehicleHistoryCache_();
   return {confirmado:true,operacao:'RETIRADA',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,confirmacaoEm:guardDateIso_(now)};
 }
 
@@ -888,7 +939,8 @@ function confirmGuardReturnPublic_(data) {
   const now=new Date(),percorrido=km-kmInicial;
   loc.sheet.getRange(loc.rowIndex,loc.map.KM_DEVOLUCAO+1).setValue(km);loc.sheet.getRange(loc.rowIndex,loc.map.CONFIRMACAO_DEVOLUCAO_EM+1).setValue(now);loc.sheet.getRange(loc.rowIndex,loc.map.KM_PERCORRIDO+1).setValue(percorrido);loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.ENCERRADA);loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
   ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
-  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId)updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId){updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);guardCacheRemove_(GUARDA_CACHE.VEHICLES)}
+  if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.OUTROS)guardInvalidateVehicleHistoryCache_();
   return {confirmado:true,operacao:'DEVOLUCAO',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,kmInicial:kmInicial,kmPercorrido:percorrido,confirmacaoEm:guardDateIso_(now)};
 }
 
@@ -1159,4 +1211,11 @@ function testarControleGuardaCorrecao063() {
     fechamentoCadastraMilitar:true,
     nomePdf:'dd-MM-yyyy_HH-mm.pdf'
   };
+}
+
+
+function testarControleGuardaPerformance064(){
+  ensureGuardStructure_();guardCacheRemove_([GUARDA_CACHE.VEHICLES,GUARDA_CACHE.MILITARY,GUARDA_CACHE.OTHER_VEHICLES]);
+  const t0=Date.now(),vehicles=getGuardVehicles_(),t1=Date.now(),vehiclesCached=getGuardVehicles_(),t2=Date.now(),mil=guardMilitaryList_(),t3=Date.now(),milCached=guardMilitaryList_(),t4=Date.now(),hist=getGuardHistoricalOtherVehicles_(),t5=Date.now(),histCached=getGuardHistoricalOtherVehicles_(),t6=Date.now();
+  return {success:GUARDA.MODULE_VERSION==='0.6.4',moduleVersion:GUARDA.MODULE_VERSION,viaturas:vehicles.length,militares:mil.length,vtrsOutrosHistorico:hist.length,temposMs:{viaturasPrimeira:t1-t0,viaturasCache:t2-t1,militaresPrimeira:t3-t2,militaresCache:t4-t3,historicoPrimeira:t5-t4,historicoCache:t6-t5},cacheAtivo:Array.isArray(vehiclesCached)&&Array.isArray(milCached)&&Array.isArray(histCached)};
 }
