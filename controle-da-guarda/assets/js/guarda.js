@@ -1,6 +1,7 @@
 const GuardPage=(()=>{
   const TOKEN_KEY='sigvtr_admin_token',SESSION_KEY='sigvtr_admin_session';
-  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false,closeMode:'NORMAL',closeTurnId:'',lastPdf:null};
+  const GUARD_IDLE_TIMEOUT_MS=30*60*1000;
+  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false,closeMode:'NORMAL',closeTurnId:'',lastPdf:null,idleTimer:null,idleExpiring:false};
   const $=id=>document.getElementById(id);
   const show=id=>$(id)?.classList.remove('d-none');
   const hide=id=>$(id)?.classList.add('d-none');
@@ -9,22 +10,34 @@ const GuardPage=(()=>{
   function clearAlert(target='appAlert'){const el=$(target);if(!el)return;el.className='alert d-none';el.textContent=''}
   function token(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return ''}}
   function clearSession(){try{sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(SESSION_KEY)}catch(_){}}
-  function saveLogin(result){sessionStorage.setItem(TOKEN_KEY,result.token);sessionStorage.setItem(SESSION_KEY,JSON.stringify({authenticated:true,expiresAt:result.expiresAt,user:result.user}))}
+  function saveLogin(result){sessionStorage.setItem(TOKEN_KEY,result.token);sessionStorage.setItem(SESSION_KEY,JSON.stringify({authenticated:true,expiresAt:result.expiresAt,user:result.user}));resetIdleTimer()}
   function formatDateTime(iso){if(!iso)return '';const d=new Date(iso);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(d)}
   function setLoading(on){$('loadingScreen').style.display=on?'flex':'none'}
+  function stopIdleTimer(){if(state.idleTimer){clearTimeout(state.idleTimer);state.idleTimer=null}}
+  function resetIdleTimer(){
+    if(!token()||state.idleExpiring)return;stopIdleTimer();state.idleTimer=setTimeout(expireForInactivity,GUARD_IDLE_TIMEOUT_MS)
+  }
+  async function expireForInactivity(){
+    if(state.idleExpiring||!token())return;state.idleExpiring=true;stopPolling();stopIdleTimer();
+    try{await ApiService.post('adminLogout',{}, {timeout:5000,retries:0})}catch(_){}
+    clearSession();state.context=null;state.idleExpiring=false;hide('appView');show('loginView');setLoading(false);$('password').value='';alertBox('Sessão encerrada após 30 minutos de inatividade. Entre novamente.','warning','loginAlert');setTimeout(()=>$('login').focus(),50)
+  }
+  function bindIdleActivity(){
+    ['pointerdown','keydown','touchstart','scroll'].forEach(name=>window.addEventListener(name,()=>{if(token())resetIdleTimer()},{passive:true}))
+  }
 
-  async function loadContext(){const data=await ApiService.post('guardaContexto',{});state.context=data;state.vehicles=Array.isArray(data.viaturas)?data.viaturas:[];renderApp()}
+  async function loadContext(){const data=await ApiService.post('guardaContexto',{});state.context=data;state.vehicles=Array.isArray(data.viaturas)?data.viaturas:[];resetIdleTimer();renderApp()}
   function renderApp(){
     hide('loginView');show('appView');
     $('operatorName').textContent=state.context?.operator?.name||state.context?.operator?.login||'Operador';
-    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.6.1'}`;
+    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.6.2'}`;
     renderPendingShifts(state.context?.turnosPendentes||[]);
     if(state.context?.turno){
       hide('noShiftView');show('shiftView');$('shiftStartedAt').textContent=`Iniciado em ${formatDateTime(state.context.turno.inicioEm)}`;
       renderVehicleResults('');renderMovements(state.context.movimentacoes||[]);
     }else{show('noShiftView');hide('shiftView')}
   }
-  function showLogin(){hide('appView');show('loginView');setLoading(false);setTimeout(()=>$('login').focus(),50)}
+  function showLogin(){if(!token())stopIdleTimer();hide('appView');show('loginView');setLoading(false);setTimeout(()=>$('login').focus(),50)}
   async function bootstrap(){setLoading(true);if(!token()){showLogin();return}try{await loadContext();setLoading(false)}catch(error){if(/^SESSION_/.test(error.code||error.message||'')){clearSession();showLogin()}else if((error.code||error.message||'')==='PASSWORD_CHANGE_REQUIRED'){showLogin();alertBox('Primeiro acesso: entre com a senha temporária para definir uma nova senha neste módulo.','warning','loginAlert')}else{setLoading(false);showLogin();alertBox(error.message||'Não foi possível carregar o Controle da Guarda.','danger','loginAlert')}}}
   async function handleLogin(event){event.preventDefault();if(state.loginBusy)return;clearAlert('loginAlert');state.loginBusy=true;$('loginButton').disabled=true;$('loginButton').querySelector('.button-label').classList.add('d-none');$('loginButton').querySelector('.button-loading').classList.remove('d-none');try{const result=await ApiService.publicPost('adminLogin',{login:$('login').value,password:$('password').value});if(!result.success)throw new Error(result.message||'Usuário ou senha inválidos.');saveLogin(result);if(result.user?.mustChangePassword){state.pendingPassword=true;show('passwordOverlay');$('currentPassword').value=$('password').value;setLoading(false);return}await loadContext()}catch(error){alertBox(error.message||'Não foi possível entrar.','danger','loginAlert');$('password').value=''}finally{state.loginBusy=false;$('loginButton').disabled=false;$('loginButton').querySelector('.button-label').classList.remove('d-none');$('loginButton').querySelector('.button-loading').classList.add('d-none');setLoading(false)}}
   async function startShift(){clearAlert();const btn=$('startShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Iniciando...';try{const data=await ApiService.post('guardaIniciarTurno',{});state.context.turno=data.turno;state.context.turnosPendentes=data.turnosPendentes||state.context.turnosPendentes||[];state.context.movimentacoes=[];renderApp()}catch(error){alertBox(error.message||'Não foi possível iniciar o turno.')}finally{btn.disabled=false;btn.textContent='Iniciar turno'}}
@@ -151,7 +164,7 @@ const GuardPage=(()=>{
     }catch(error){hide('closeShiftLoading');show('closeShiftContent');alertBox(error.message||'Não foi possível encerrar o turno.','danger','closeShiftAlert')}finally{btn.disabled=false;btn.textContent=substitute?'Confirmar e encerrar turno pendente':'Confirmar dados e fechar turno'}
   }
   async function changeGuardPassword(event){event.preventDefault();clearAlert('passwordAlert');const current=$('currentPassword').value,next=$('newPassword').value,confirm=$('confirmPassword').value;if(next!==confirm){alertBox('A confirmação da nova senha não confere.','danger','passwordAlert');return}const btn=$('passwordSaveButton');btn.disabled=true;btn.textContent='Alterando...';try{const data=await ApiService.post('adminAlterarMinhaSenha',{senhaAtual:current,novaSenha:next});if(data.token){saveLogin(data)}hide('passwordOverlay');state.pendingPassword=false;await loadContext()}catch(error){alertBox(error.message||'Não foi possível alterar a senha.','danger','passwordAlert')}finally{btn.disabled=false;btn.textContent='Alterar senha'}}
-  async function logout(){stopPolling();show('logoutOverlay');$('logoutButton').disabled=true;try{await ApiService.post('adminLogout',{})}catch(_){}clearSession();location.reload()}
+  async function logout(){stopPolling();stopIdleTimer();show('logoutOverlay');$('logoutButton').disabled=true;try{await ApiService.post('adminLogout',{})}catch(_){}clearSession();location.reload()}
   function bind(){
     $('loginForm').addEventListener('submit',handleLogin);$('startShiftButton').addEventListener('click',startShift);$('newShiftButton').addEventListener('click',startNewShift);$('refreshMovementsButton').addEventListener('click',()=>refreshMovements(true));
     $('vehicleSearch').addEventListener('input',e=>renderVehicleResults(e.target.value));$('otherVehicleButton').addEventListener('click',()=>{hide('vehiclePicker');show('otherVehicleForm');$('otherPrefix').focus()});$('cancelOtherVehicle').addEventListener('click',()=>{hide('otherVehicleForm');show('vehiclePicker')});$('otherVehicleForm').addEventListener('submit',e=>{e.preventDefault();const p=$('otherPrefix').value.trim(),pl=$('otherPlate').value.trim();if(!p||!pl)return;selectOtherVehicle(p,pl)});
@@ -159,6 +172,6 @@ const GuardPage=(()=>{
     $('prepareQrButton').addEventListener('click',createWithdrawalQr);$('qrCloseButton').addEventListener('click',closeQr);$('qrContinueButton').addEventListener('click',qrContinue);
     $('closeShiftButton').addEventListener('click',()=>openCloseShift('',false));$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('commanderSearch').addEventListener('input',()=>{clearTimeout(state.commanderSearchTimer);state.commanderSearchTimer=setTimeout(searchCommander,280)});$('closeShiftForm').addEventListener('submit',submitCloseShift);$('downloadShiftPdfButton').addEventListener('click',handleDownloadPdf);$('finishCloseShiftButton').addEventListener('click',closeCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
   }
-  function init(){bind();bootstrap()}return{init};
+  function init(){bind();bindIdleActivity();bootstrap()}return{init};
 })();
 document.addEventListener('DOMContentLoaded',GuardPage.init);

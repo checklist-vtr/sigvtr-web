@@ -2,7 +2,7 @@
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
  * Etapa: 6.1 - PDF robusto e otimização de performance
- * Versão do módulo: 0.6.1
+ * Versão do módulo: 0.6.2
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.1',
+  MODULE_VERSION: '0.6.2',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -1032,7 +1032,7 @@ function generateGuardShiftPdf_(turnoId,opts){
   body.setMarginTop(28).setMarginBottom(28).setMarginLeft(28).setMarginRight(28);
   guardPdfAddText_(body,'SIGVTR — CONTROLE DA GUARDA',true,15,DocumentApp.HorizontalAlignment.CENTER);
   guardPdfAddText_(body,'Relatório do serviço',true,11,DocumentApp.HorizontalAlignment.CENTER);
-  guardPdfAddText_(body,'Turno: '+turno.id,false,8,DocumentApp.HorizontalAlignment.CENTER);
+  guardPdfAddText_(body,'Data do serviço: '+guardPdfDate_(turno.inicioEm,false),false,8,DocumentApp.HorizontalAlignment.CENTER);
   body.appendParagraph('');
   const info=body.appendTable();
   let row=info.appendTableRow();guardPdfCell_(row.appendTableCell(),'Início',true,8);guardPdfCell_(row.appendTableCell(),guardPdfDate_(turno.inicioEm,true),false,8);guardPdfCell_(row.appendTableCell(),'Término',true,8);guardPdfCell_(row.appendTableCell(),guardPdfDate_(turno.fimEm,true),false,8);
@@ -1055,7 +1055,6 @@ function generateGuardShiftPdf_(turnoId,opts){
     guardPdfAddText_(body,'Motivo: '+(turno.encerramentoMotivo||'—'),false,8,DocumentApp.HorizontalAlignment.CENTER);
     guardPdfAddText_(body,'Encerramento confirmado eletronicamente em '+guardPdfDate_(turno.encerradoPorConfirmacaoEm||turno.fimEm,true)+'.',false,8,DocumentApp.HorizontalAlignment.CENTER);
   }
-  body.appendParagraph('');guardPdfAddText_(body,'Documento gerado pelo SIGVTR a partir dos registros estruturados do Controle da Guarda.',false,7,DocumentApp.HorizontalAlignment.CENTER);
   doc.saveAndClose();
   const docFile=DriveApp.getFileById(doc.getId()),blob=docFile.getAs(MimeType.PDF),stamp=Utilities.formatDate(new Date(turno.inicioEm||new Date()),SIGVTR.TIMEZONE,'yyyyMMdd_HHmm'),filename=sanitizeFilename_('controle_guarda_'+stamp+'_'+turno.id+'.pdf');blob.setName(filename);
   if(turno.pdfFileId){try{DriveApp.getFileById(turno.pdfFileId).setTrashed(true)}catch(_){}}
@@ -1068,7 +1067,7 @@ function regenerateGuardShiftPdf_(data){data=data||{};try{return generateGuardSh
 
 function testarControleGuardaEtapa6(){
   ensureGuardStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh).map,required=['PDF_FILE_ID','PDF_GERADO_EM'];const cols=required.every(function(k){return hm[k]!==undefined});
-  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.1',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
+  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.2',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
 }
 
 function testarControleGuardaEtapa3() {
@@ -1120,5 +1119,5 @@ function testarControleGuardaEtapa5() {
 
 function testarControleGuardaPerformance061(){
   const t=Date.now(),estrutura=ensureGuardStructure_();
-  return {success:GUARDA.MODULE_VERSION==='0.6.1',moduleVersion:GUARDA.MODULE_VERSION,schemaVersion:GUARDA.SCHEMA_VERSION,estruturaCached:!!(estrutura[0]&&estrutura[0].cached),tempoEnsureMs:Date.now()-t};
+  return {success:GUARDA.MODULE_VERSION==='0.6.2',moduleVersion:GUARDA.MODULE_VERSION,schemaVersion:GUARDA.SCHEMA_VERSION,estruturaCached:!!(estrutura[0]&&estrutura[0].cached),tempoEnsureMs:Date.now()-t};
 }
