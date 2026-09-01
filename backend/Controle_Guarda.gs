@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 6.4 - performance e memória de VTRs reserva
- * Versão do módulo: 0.6.4
+ * Etapa: 6.5 - consolidação histórica do turno e performance
+ * Versão do módulo: 0.6.5
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.4',
+  MODULE_VERSION: '0.6.5',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -601,12 +601,15 @@ function createGuardShiftRow_(operator) {
 function openGuardShift_(operator,options) {
   ensureGuardStructure_();options=options||{};
   const existing=getOpenGuardShift_();
-  if(existing&&!options.forceNew)return {created:false,turno:existing,turnosPendentes:listPendingGuardShifts_(),movimentacoes:listGuardShiftMovements_(existing.id)};
+  if(existing&&!options.forceNew){
+    const snap=guardContextSnapshot_();
+    return {created:false,turno:snap.turno||existing,turnosPendentes:snap.turnosPendentes||[],movimentacoes:snap.movimentacoes||[]};
+  }
   if(existing&&options.forceNew){
     const loc=guardShiftLocatorById_(existing.id);loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_TURNO.PENDENTE);
   }
-  const turno=createGuardShiftRow_(operator);
-  return {created:true,turno:turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:listPendingGuardShifts_(),movimentacoes:listGuardShiftMovements_(turno.id)};
+  const turno=createGuardShiftRow_(operator),snap=guardContextSnapshot_();
+  return {created:true,turno:snap.turno||turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:snap.turnosPendentes||[],movimentacoes:snap.movimentacoes||[]};
 }
 
 function guardContextSnapshot_(){
@@ -899,8 +902,9 @@ function confirmGuardWithdrawalPublic_(data) {
 
 function listGuardShiftMovements_(turnoId) {
   ensureGuardStructure_();
-  const id=guardText_(turnoId||((getOpenGuardShift_()||{}).id),100);if(!id)return [];
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getDisplayValues(),out=[];
+  if(!turnoId){const snap=guardContextSnapshot_();return snap.movimentacoes||[];}
+  const id=guardText_(turnoId,100);if(!id)return [];
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),out=[];
   for(let r=1;r<rows.length;r++){
     const m=guardMovementFromRow_(rows[r],hm.map),origem=m.turnoRetiradaId||m.turnoId,retorno=m.turnoDevolucaoId;
     const aberta=m.status===GUARDA.STATUS_MOV.EM_USO||m.status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO;
@@ -959,16 +963,37 @@ function guardOpenShiftLocator_() {
   return null;
 }
 
+function guardShiftOperationalSnapshot_(turno) {
+  if(!turno||!turno.id)return {movimentacoes:[],resumo:{movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0,devolucoesTurnoAnterior:0}};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),out=[];
+  const start=turno.inicioEm?new Date(turno.inicioEm):null,end=turno.fimEm?new Date(turno.fimEm):new Date();
+  const startMs=start&&!isNaN(start.getTime())?start.getTime():0,endMs=end&&!isNaN(end.getTime())?end.getTime():Date.now();
+  for(let r=1;r<rows.length;r++){
+    const m=guardMovementFromRow_(rows[r],hm.map),origin=m.turnoRetiradaId||m.turnoId,ret=m.turnoDevolucaoId;
+    const wd=m.confirmacaoRetiradaEm?new Date(m.confirmacaoRetiradaEm):null,rd=m.confirmacaoDevolucaoEm?new Date(m.confirmacaoDevolucaoEm):null;
+    const wdMs=wd&&!isNaN(wd.getTime())?wd.getTime():0,rdMs=rd&&!isNaN(rd.getTime())?rd.getTime():0;
+    const startedHere=origin===turno.id;
+    const returnedHere=origin!==turno.id&&ret===turno.id&&rdMs&&rdMs>=startMs&&rdMs<=endMs;
+    const inheritedActiveAtEnd=origin!==turno.id&&wdMs&&wdMs<=endMs&&(!rdMs||rdMs>endMs);
+    if(!startedHere&&!returnedHere&&!inheritedActiveAtEnd)continue;
+    let situacao='';
+    if(returnedHere)situacao='DEVOLUÇÃO DE TURNO ANTERIOR';
+    else if(!wdMs||wdMs>endMs)situacao='AGUARDANDO CONFIRMAÇÃO NO ENCERRAMENTO';
+    else if(rdMs&&rdMs<=endMs&&ret===turno.id)situacao='DEVOLVIDA';
+    else if(origin!==turno.id)situacao='EM USO NO ENCERRAMENTO — RETIRADA EM TURNO ANTERIOR';
+    else situacao='EM USO NO ENCERRAMENTO';
+    out.push({movimento:m,situacao:situacao,retiradaEmTurnoAnterior:origin!==turno.id,recebidaNesteTurno:returnedHere,ativaNoEncerramento:situacao.indexOf('EM USO NO ENCERRAMENTO')===0});
+  }
+  out.sort(function(a,b){return String(a.movimento.confirmacaoRetiradaEm||a.movimento.solicitacaoRetiradaEm||a.movimento.criadaEm||'').localeCompare(String(b.movimento.confirmacaoRetiradaEm||b.movimento.solicitacaoRetiradaEm||b.movimento.criadaEm||''))});
+  const resumo={movimentacoes:out.length,devolvidas:0,emUso:0,aguardandoConfirmacao:0,devolucoesTurnoAnterior:0};
+  out.forEach(function(x){if(x.situacao==='DEVOLVIDA'||x.situacao==='DEVOLUÇÃO DE TURNO ANTERIOR')resumo.devolvidas++;if(x.ativaNoEncerramento)resumo.emUso++;if(x.situacao==='AGUARDANDO CONFIRMAÇÃO NO ENCERRAMENTO')resumo.aguardandoConfirmacao++;if(x.situacao==='DEVOLUÇÃO DE TURNO ANTERIOR')resumo.devolucoesTurnoAnterior++});
+  return {movimentacoes:out,resumo:resumo};
+}
+
 function getGuardShiftSummary_(turnoId) {
   const id=guardText_(turnoId,100);if(!id)return {movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0,devolucoesTurnoAnterior:0};
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();let total=0,devolvidas=0,emUso=0,aguardando=0,recebidasAnteriores=0;
-  for(let r=1;r<rows.length;r++){
-    const origem=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO_RETIRADA'),100)||guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100),retorno=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO_DEVOLUCAO'),100),st=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
-    if(retorno===id&&origem!==id&&st===GUARDA.STATUS_MOV.ENCERRADA)recebidasAnteriores++;
-    if(origem!==id)continue;total++;
-    if(st===GUARDA.STATUS_MOV.ENCERRADA)devolvidas++;else if(st===GUARDA.STATUS_MOV.EM_USO||st===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)emUso++;else if(st===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)aguardando++;
-  }
-  return {movimentacoes:total,devolvidas:devolvidas,emUso:emUso,aguardandoConfirmacao:aguardando,devolucoesTurnoAnterior:recebidasAnteriores};
+  const loc=guardShiftLocatorById_(id);if(!loc)return {movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0,devolucoesTurnoAnterior:0};
+  return guardShiftOperationalSnapshot_(loc.turno).resumo;
 }
 
 function getGuardClosePreview_(data) {
@@ -1078,33 +1103,24 @@ function guardPdfAddText_(body,text,bold,size,align){
 function guardPdfCell_(cell,text,bold,size){cell.setText(String(text===undefined||text===null?'':text));const t=cell.editAsText();t.setFontSize(size||8);if(bold)t.setBold(true);return cell;}
 
 function guardPdfMovementRows_(turno){
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),out=[],end=turno.fimEm?new Date(turno.fimEm):new Date();
-  for(let r=1;r<rows.length;r++){
-    const m=guardMovementFromRow_(rows[r],hm.map),origin=m.turnoRetiradaId||m.turnoId,ret=m.turnoDevolucaoId;
-    if(origin!==turno.id&&ret!==turno.id)continue;
-    const retDate=m.confirmacaoDevolucaoEm?new Date(m.confirmacaoDevolucaoEm):null;
-    let situacao='';
-    const withdrawalDate=m.confirmacaoRetiradaEm?new Date(m.confirmacaoRetiradaEm):null,withdrawalConfirmed=withdrawalDate&&!isNaN(withdrawalDate.getTime())&&withdrawalDate.getTime()<=end.getTime(),returnConfirmed=retDate&&!isNaN(retDate.getTime())&&retDate.getTime()<=end.getTime();
-    if(origin!==turno.id&&ret===turno.id)situacao=returnConfirmed?'DEVOLUÇÃO DE TURNO ANTERIOR':'DEVOLUÇÃO DE TURNO ANTERIOR PENDENTE NO ENCERRAMENTO';
-    else if(!withdrawalConfirmed)situacao='AGUARDANDO CONFIRMAÇÃO NO ENCERRAMENTO';
-    else if(returnConfirmed&&ret===turno.id)situacao='DEVOLVIDA';
-    else situacao='EM USO NO ENCERRAMENTO';
-    out.push({
+  const snapshot=guardShiftOperationalSnapshot_(turno),end=turno.fimEm?new Date(turno.fimEm):new Date();
+  return snapshot.movimentacoes.map(function(item){
+    const m=item.movimento,retDate=m.confirmacaoDevolucaoEm?new Date(m.confirmacaoDevolucaoEm):null,retOk=retDate&&!isNaN(retDate.getTime())&&retDate.getTime()<=end.getTime();
+    return {
       vtr:m.vtrPrefixo||'—',placa:m.vtrPlaca||'—',militar:[m.militarPostoGraduacao,m.militarNomeGuerra||m.militarNome].filter(Boolean).join(' '),rg:m.militarRg||'—',
       retirada:m.confirmacaoRetiradaEm?guardPdfDate_(m.confirmacaoRetiradaEm,true):guardPdfDate_(m.solicitacaoRetiradaEm,true),kmInicial:guardPdfKm_(m.kmRetirada),
-      devolucao:(retDate&&retDate.getTime()<=end.getTime())?guardPdfDate_(m.confirmacaoDevolucaoEm,true):'—',kmFinal:(retDate&&retDate.getTime()<=end.getTime())?guardPdfKm_(m.kmDevolucao):'—',
-      percorrido:(retDate&&retDate.getTime()<=end.getTime())?guardPdfKm_(m.kmPercorrido):'—',situacao:situacao,
-      confRet:m.confirmacaoRetiradaEm?'CONF. ELETRÔNICA':'—',confDev:(retDate&&retDate.getTime()<=end.getTime())?'CONF. ELETRÔNICA':'—'
-    });
-  }
-  out.sort(function(a,b){return String(a.retirada).localeCompare(String(b.retirada));});return out;
+      devolucao:retOk?guardPdfDate_(m.confirmacaoDevolucaoEm,true):'—',kmFinal:retOk?guardPdfKm_(m.kmDevolucao):'—',
+      percorrido:retOk?guardPdfKm_(m.kmPercorrido):'—',situacao:item.situacao,
+      confRet:m.confirmacaoRetiradaEm?'CONF. ELETRÔNICA':'—',confDev:retOk?'CONF. ELETRÔNICA':'—'
+    };
+  });
 }
 
 function generateGuardShiftPdf_(turnoId,opts){
   opts=opts||{};ensureGuardStructure_();
   const loc=guardShiftLocatorById_(turnoId);if(!loc)throw new Error('Turno não encontrado para geração do PDF.');
   const turno=loc.turno;if(turno.status!==GUARDA.STATUS_TURNO.FECHADO&&turno.status!==GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO)throw new Error('O PDF só pode ser gerado após o fechamento do turno.');
-  const movs=guardPdfMovementRows_(turno),resumo={movimentacoes:turno.movimentacoesTotal,devolvidas:turno.devolvidasTotal,emUso:turno.emUsoTotal,devolucoesTurnoAnterior:movs.filter(function(m){return m.situacao==='DEVOLUÇÃO DE TURNO ANTERIOR'}).length},folder=guardReportsFolder_(),doc=DocumentApp.create('SIGVTR_CONTROLE_GUARDA_'+turno.id),body=doc.getBody();
+  const snapshot=guardShiftOperationalSnapshot_(turno),movs=guardPdfMovementRows_(turno),resumo=snapshot.resumo,folder=guardReportsFolder_(),doc=DocumentApp.create('SIGVTR_CONTROLE_GUARDA_'+turno.id),body=doc.getBody();
   body.setMarginTop(28).setMarginBottom(28).setMarginLeft(28).setMarginRight(28);
   guardPdfAddText_(body,'SIGVTR — CONTROLE DA GUARDA',true,15,DocumentApp.HorizontalAlignment.CENTER);
   guardPdfAddText_(body,'Relatório do serviço',true,11,DocumentApp.HorizontalAlignment.CENTER);
@@ -1143,7 +1159,7 @@ function regenerateGuardShiftPdf_(data){data=data||{};try{return generateGuardSh
 
 function testarControleGuardaEtapa6(){
   ensureGuardStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh).map,required=['PDF_FILE_ID','PDF_GERADO_EM'];const cols=required.every(function(k){return hm[k]!==undefined});
-  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.3',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
+  return {success:cols&&GUARDA.MODULE_VERSION==='0.6.5',moduleVersion:GUARDA.MODULE_VERSION,colunasPdfOk:cols,pastaRelatorios:'SIGVTR - Controle da Guarda / Relatorios',pdfRegeneravel:true};
 }
 
 function testarControleGuardaEtapa3() {
@@ -1218,4 +1234,11 @@ function testarControleGuardaPerformance064(){
   ensureGuardStructure_();guardCacheRemove_([GUARDA_CACHE.VEHICLES,GUARDA_CACHE.MILITARY,GUARDA_CACHE.OTHER_VEHICLES]);
   const t0=Date.now(),vehicles=getGuardVehicles_(),t1=Date.now(),vehiclesCached=getGuardVehicles_(),t2=Date.now(),mil=guardMilitaryList_(),t3=Date.now(),milCached=guardMilitaryList_(),t4=Date.now(),hist=getGuardHistoricalOtherVehicles_(),t5=Date.now(),histCached=getGuardHistoricalOtherVehicles_(),t6=Date.now();
   return {success:GUARDA.MODULE_VERSION==='0.6.4',moduleVersion:GUARDA.MODULE_VERSION,viaturas:vehicles.length,militares:mil.length,vtrsOutrosHistorico:hist.length,temposMs:{viaturasPrimeira:t1-t0,viaturasCache:t2-t1,militaresPrimeira:t3-t2,militaresCache:t4-t3,historicoPrimeira:t5-t4,historicoCache:t6-t5},cacheAtivo:Array.isArray(vehiclesCached)&&Array.isArray(milCached)&&Array.isArray(histCached)};
+}
+
+
+function testarControleGuardaCorrecao065(){
+  ensureGuardStructure_();
+  const aberto=getOpenGuardShift_(),snap=aberto?guardShiftOperationalSnapshot_(aberto):null;
+  return {success:GUARDA.MODULE_VERSION==='0.6.5',moduleVersion:GUARDA.MODULE_VERSION,pdfIncluiVtrHerdadaEmUso:true,resumoAlinhadoAoPainel:true,turnoAbertoId:aberto&&aberto.id||'',movimentacoesVisiveisNoTurno:snap?snap.resumo.movimentacoes:0,emUsoVisiveisNoTurno:snap?snap.resumo.emUso:0};
 }
