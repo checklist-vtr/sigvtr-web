@@ -115,15 +115,20 @@ const GuardPage=(()=>{
   async function createWithdrawalQr(){clearAlert();const btn=$('prepareQrButton');if(btn.disabled)return;btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Gerando QR...';try{const data=await ApiService.post('guardaCriarRetirada',{viatura:state.selectedVehicle,militarId:state.selectedMilitary?.id});renderQr(data,'RETIRADA')}catch(error){alertBox(error.message||'Não foi possível gerar o QR de retirada.')}finally{btn.disabled=false;btn.innerHTML='<i class="bi bi-qr-code me-2"></i>Gerar QR de retirada'}}
   async function startReturn(movementId,btn){clearAlert();if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Gerando...'}try{const data=await ApiService.post('guardaIniciarDevolucao',{movimentacaoId:movementId});renderQr(data,'DEVOLUCAO')}catch(error){alertBox(error.message||'Não foi possível iniciar a devolução.');await refreshMovements(false)}finally{if(btn)btn.disabled=false}}
   function startPolling(movementId,operation){stopPolling();const poll=async()=>{try{const data=await ApiService.post('guardaStatusMovimentacao',{movimentacaoId:movementId},{timeout:15000,retries:0});const done=operation==='DEVOLUCAO'?data.status==='ENCERRADA':data.status==='EM_USO';if(done){showConfirmed(data,operation);return}}catch(_){}state.pollTimer=setTimeout(poll,5000)};state.pollTimer=setTimeout(poll,2500)}
+  function resetWithdrawalForm(scrollToTop){
+    state.selectedVehicle=null;state.selectedMilitary=null;renderSelectedVehicle();resetMilitary();
+    $('militaryCard').classList.add('is-disabled');$('militarySearch').disabled=true;$('vehicleSearch').value='';renderVehicleResults('');
+    if(scrollToTop)window.scrollTo({top:0,behavior:'smooth'});
+  }
   async function showConfirmed(data,operation){
     stopPolling();hide('qrWaiting');const isReturn=operation==='DEVOLUCAO';
     $('qrStatus').className='qr-status confirmed';$('qrStatus').innerHTML=`<i class="bi bi-check-circle-fill me-2"></i>${isReturn?'Devolução confirmada':'Retirada confirmada'}`;
     $('qrSuccessDetails').innerHTML=isReturn?`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM final: ${escapeHtml(data.kmDevolucao||'')}</span><span>Percorrido: ${escapeHtml(data.kmPercorrido||'0')} km</span><span>${escapeHtml(formatDateTime(data.confirmacaoDevolucaoEm))}</span>`:`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM registrado: ${escapeHtml(data.kmRetirada||'')}</span><span>${escapeHtml(formatDateTime(data.confirmacaoRetiradaEm))}</span>`;
+    if(!isReturn)resetWithdrawalForm(false);
     $('qrContinueButton').textContent=isReturn?'Fechar':'Registrar próxima retirada';show('qrSuccess');await refreshMovements(false)
   }
   function closeQr(){stopPolling();hide('qrOverlay');state.currentMovement=null;state.currentOperation='RETIRADA';hide('qrSuccess');show('qrWaiting');$('qrStatus').className='qr-status waiting';$('qrStatus').innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Aguardando confirmação do condutor...'}
-  async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();return}newWithdrawal();await refreshMovements(false)}
-  function newWithdrawal(){closeQr();state.currentMovement=null;state.selectedVehicle=null;state.selectedMilitary=null;renderSelectedVehicle();resetMilitary();$('militaryCard').classList.add('is-disabled');$('militarySearch').disabled=true;$('vehicleSearch').value='';renderVehicleResults('');window.scrollTo({top:0,behavior:'smooth'});alertBox('Retirada confirmada. Pronto para registrar a próxima VTR.','success')}
+  async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();return}closeQr();resetWithdrawalForm(true);alertBox('Retirada confirmada. Pronto para registrar a próxima VTR.','success')}
 
   function clearCommanderFields(){
     $('commanderMilitaryId').value='';$('commanderSearch').value='';$('commanderSearchResults').innerHTML='';hide('commanderSearchResults');
