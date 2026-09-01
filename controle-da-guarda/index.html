@@ -164,7 +164,14 @@
         <div id="substituteReasonGroup" class="d-none mb-3"><label class="form-label" for="substituteReason">Motivo do encerramento por substituto</label><textarea id="substituteReason" class="form-control" rows="3" maxlength="500" placeholder="Ex.: comandante anterior precisou se ausentar por ocorrência emergencial."></textarea><small class="form-text">Obrigatório somente para encerrar um turno anterior por outro militar.</small></div>
         <button id="confirmCloseShiftButton" class="btn btn-danger btn-lg w-100" type="submit">Confirmar dados e fechar turno</button>
       </form>
-      <p class="stage-note mt-2 mb-0">O PDF será integrado na etapa específica de relatórios; o fechamento e os dados do comandante já ficam gravados.</p>
+      <p class="stage-note mt-2 mb-0">Ao confirmar, o turno será encerrado e o PDF do serviço será gerado automaticamente.</p>
+      </div>
+      <div id="closeShiftSuccess" class="d-none text-center">
+        <div class="qr-status confirmed mb-3"><i class="bi bi-check-circle-fill me-2"></i>Turno encerrado</div>
+        <h3 class="h5">PDF do serviço gerado</h3>
+        <p id="closeShiftSuccessText" class="text-secondary small">O relatório está pronto para arquivamento.</p>
+        <button id="downloadShiftPdfButton" class="btn btn-primary btn-lg w-100" type="button"><i class="bi bi-file-earmark-pdf me-2"></i>Baixar PDF</button>
+        <button id="finishCloseShiftButton" class="btn btn-outline-secondary w-100 mt-2" type="button">Fechar</button>
       </div>
     </div>
   </div>
@@ -187,6 +194,6 @@
 
   <script src="../admin/assets/js/api.js?v=1.20.16-rc1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/js/guarda.js?v=0.5.0"></script>
+  <script src="assets/js/guarda.js?v=0.6.0"></script>
 </body>
 </html>

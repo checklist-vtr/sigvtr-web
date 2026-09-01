@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.25-RC1
+ * Versão do pacote: 1.20.26-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -39,6 +39,7 @@ function doPost(e){
       if(action==="guardaStatusMovimentacao")return json_({success:true,data:getGuardMovementStatus_(data)});
       if(action==="guardaPreviaFechamento")return json_({success:true,data:getGuardClosePreview_(data)});
       if(action==="guardaListarMovimentacoes")return json_({success:true,data:{movimentacoes:listGuardShiftMovements_()}});
+      if(action==="guardaBaixarPdfTurno")return json_({success:true,data:getGuardShiftPdf_(data)});
     }
 
     // Consultas administrativas agora também usam POST para que o token nunca vá para a URL.
@@ -90,6 +91,7 @@ function doPost(e){
         if(action==="guardaIniciarDevolucao")return json_({success:true,data:startGuardReturn_(data,guardaWriteCtx.user)});
         if(action==="guardaFecharTurno")return json_({success:true,data:closeGuardShift_(data,guardaWriteCtx.user)});
         if(action==="guardaEncerrarTurnoPendente")return json_({success:true,data:closePendingGuardShift_(data,guardaWriteCtx.user)});
+        if(action==="guardaRegenerarPdfTurno")return json_({success:true,data:regenerateGuardShiftPdf_(data)});
       }
 
       if(action.indexOf("admin")===0){
