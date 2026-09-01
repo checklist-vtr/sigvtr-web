@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.7',
+  MODULE_VERSION: '0.6.8',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -1069,7 +1069,10 @@ function closeGuardShift_(data,operator) {
 }
 function closePendingGuardShift_(data,operator) {
   data=data||{};const loc=guardShiftLocatorById_(data.turnoId);if(!loc)throw new Error('Turno pendente não encontrado.');if(loc.turno.status!==GUARDA.STATUS_TURNO.PENDENTE)throw new Error('Este turno não está pendente de encerramento.');
-  return guardCloseShiftWrite_(loc,data,true);
+  // Um turno pendente pode ser encerrado pelo próprio Comandante da Guarda em atraso
+  // ou, excepcionalmente, por outro militar. Nunca presumir substituição apenas pelo status PENDENTE.
+  const encerramentoPorOutro=data.encerramentoPorOutro===true||String(data.encerramentoPorOutro).toLowerCase()==='true';
+  return guardCloseShiftWrite_(loc,data,encerramentoPorOutro);
 }
 
 /******************************************************************
@@ -1272,4 +1275,8 @@ function testarControleGuardaPerformance067(){
   const a=Date.now(),ctx1=guardContextSnapshot_(true),first=Date.now()-a,b=Date.now(),ctx2=guardContextSnapshot_(),second=Date.now()-b;
   const militares=guardMilitaryList_();
   return {success:true,moduleVersion:GUARDA.MODULE_VERSION,contextoPrimeiraMs:first,contextoCacheMs:second,militaresBusca:militares.length,pollingCacheSegundos:GUARDA_CACHE.MOVEMENT_STATUS_SECONDS,observacao:'Nome/RG são pesquisados localmente; CPF permanece consultado sob demanda no backend. O polling usa cache curto por movimentação.'};
+}
+
+function testarControleGuardaCorrecao068(){
+  return {success:GUARDA.MODULE_VERSION==='0.6.8',moduleVersion:GUARDA.MODULE_VERSION,turnoPendenteNaoPresumeSubstituto:true,motivoSomenteQuandoOutroMilitar:true,previaFechamentoPodeUsarContextoFrontend:true};
 }
