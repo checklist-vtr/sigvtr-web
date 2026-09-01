@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 4 - retirada e devolução operacionais
- * Versão do módulo: 0.4.0
+ * Etapa: 5 - continuidade de turnos e encerramento por substituto
+ * Versão do módulo: 0.5.0
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,9 +12,9 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.4.0',
+  MODULE_VERSION: '0.5.0',
   TOKEN_TTL_MINUTES: 10,
-  STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',FECHADO:'FECHADO'}),
+  STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
   STATUS_MOV: Object.freeze({
     AGUARDANDO_RETIRADA:'AGUARDANDO_CONFIRMACAO_RETIRADA',
     EM_USO:'EM_USO',
@@ -32,10 +32,12 @@ const GUARDA = Object.freeze({
       'ID_TURNO','STATUS','INICIO_EM','FIM_EM','OPERADOR_INICIO_ID','OPERADOR_INICIO_NOME',
       'CMD_POSTO_GRAD_SNAPSHOT','CMD_RG_SNAPSHOT','CMD_NOME_SNAPSHOT','CMD_NOME_GUERRA_SNAPSHOT',
       'CMD_CONFIRMACAO_EM','MOVIMENTACOES_TOTAL','DEVOLVIDAS_TOTAL','EM_USO_TOTAL',
+      'ENCERRAMENTO_TIPO','ENCERRAMENTO_MOTIVO','ENCERRADO_POR_POSTO_GRAD_SNAPSHOT','ENCERRADO_POR_RG_SNAPSHOT',
+      'ENCERRADO_POR_NOME_SNAPSHOT','ENCERRADO_POR_NOME_GUERRA_SNAPSHOT','ENCERRADO_POR_FUNCAO','ENCERRADO_POR_CONFIRMACAO_EM',
       'PDF_FILE_ID','PDF_GERADO_EM'
     ],
     MOVIMENTACOES: [
-      'ID_MOVIMENTACAO','ID_TURNO','STATUS','CRIADA_EM','ATUALIZADA_EM',
+      'ID_MOVIMENTACAO','ID_TURNO','ID_TURNO_RETIRADA','ID_TURNO_DEVOLUCAO','STATUS','CRIADA_EM','ATUALIZADA_EM',
       'VTR_ORIGEM','VTR_ID','VTR_PREFIXO_SNAPSHOT','VTR_PLACA_SNAPSHOT','VTR_MODELO_SNAPSHOT',
       'MILITAR_ID','MILITAR_POSTO_GRAD_SNAPSHOT','MILITAR_RG_SNAPSHOT','MILITAR_NOME_SNAPSHOT',
       'MILITAR_NOME_GUERRA_SNAPSHOT','MILITAR_CPF_SNAPSHOT','MILITAR_OPM_SNAPSHOT',
@@ -251,8 +253,8 @@ function formatGuardTextColumns_(sheet,sheetName) {
   const hm=guardHeaderMap_(sheet);
   let cols=[];
   if(sheetName===SIGVTR.SHEETS.GUARD_MILITARY)cols=['ID_MILITAR','CPF','RG'];
-  else if(sheetName===SIGVTR.SHEETS.GUARD_SHIFTS)cols=['ID_TURNO','CMD_RG_SNAPSHOT'];
-  else if(sheetName===SIGVTR.SHEETS.GUARD_MOVEMENTS)cols=['ID_MOVIMENTACAO','ID_TURNO','VTR_ID','VTR_PREFIXO_SNAPSHOT','VTR_PLACA_SNAPSHOT','MILITAR_ID','MILITAR_RG_SNAPSHOT','MILITAR_CPF_SNAPSHOT'];
+  else if(sheetName===SIGVTR.SHEETS.GUARD_SHIFTS)cols=['ID_TURNO','CMD_RG_SNAPSHOT','ENCERRADO_POR_RG_SNAPSHOT'];
+  else if(sheetName===SIGVTR.SHEETS.GUARD_MOVEMENTS)cols=['ID_MOVIMENTACAO','ID_TURNO','ID_TURNO_RETIRADA','ID_TURNO_DEVOLUCAO','VTR_ID','VTR_PREFIXO_SNAPSHOT','VTR_PLACA_SNAPSHOT','MILITAR_ID','MILITAR_RG_SNAPSHOT','MILITAR_CPF_SNAPSHOT'];
   else if(sheetName===SIGVTR.SHEETS.GUARD_TOKENS)cols=['ID_TOKEN','ID_MOVIMENTACAO','TOKEN_HASH'];
   cols.forEach(function(name){
     const index=hm.map[name];
@@ -493,52 +495,73 @@ function guardShiftFromRow_(row,map) {
     operadorInicioNome: guardText_(guardRowValue_(row,map,'OPERADOR_INICIO_NOME'),160),
     movimentacoesTotal: Number(guardRowValue_(row,map,'MOVIMENTACOES_TOTAL'))||0,
     devolvidasTotal: Number(guardRowValue_(row,map,'DEVOLVIDAS_TOTAL'))||0,
-    emUsoTotal: Number(guardRowValue_(row,map,'EM_USO_TOTAL'))||0
+    emUsoTotal: Number(guardRowValue_(row,map,'EM_USO_TOTAL'))||0,
+    encerramentoTipo: guardUpper_(guardRowValue_(row,map,'ENCERRAMENTO_TIPO'),40),
+    encerramentoMotivo: guardText_(guardRowValue_(row,map,'ENCERRAMENTO_MOTIVO'),500),
+    encerradoPorPostoGraduacao: guardText_(guardRowValue_(row,map,'ENCERRADO_POR_POSTO_GRAD_SNAPSHOT'),80),
+    encerradoPorRg: guardText_(guardRowValue_(row,map,'ENCERRADO_POR_RG_SNAPSHOT'),20),
+    encerradoPorNome: guardText_(guardRowValue_(row,map,'ENCERRADO_POR_NOME_SNAPSHOT'),160),
+    encerradoPorNomeGuerra: guardText_(guardRowValue_(row,map,'ENCERRADO_POR_NOME_GUERRA_SNAPSHOT'),100),
+    encerradoPorFuncao: guardText_(guardRowValue_(row,map,'ENCERRADO_POR_FUNCAO'),100),
+    encerradoPorConfirmacaoEm: guardDateIso_(guardRowValue_(row,map,'ENCERRADO_POR_CONFIRMACAO_EM'))
   };
 }
 
-function getOpenGuardShift_() {
+function guardShiftLocatorById_(turnoId) {
   ensureGuardStructure_();
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh);
-  const rows=sh.getDataRange().getValues();
-  for(let r=rows.length-1;r>=1;r--){
-    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)===GUARDA.STATUS_TURNO.ABERTO){
-      return guardShiftFromRow_(rows[r],hm.map);
-    }
+  const id=guardText_(turnoId,100);if(!id)return null;
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  for(let r=1;r<rows.length;r++){
+    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100)===id)return {sheet:sh,map:hm.map,rowIndex:r+1,row:rows[r],turno:guardShiftFromRow_(rows[r],hm.map)};
   }
   return null;
 }
 
-function openGuardShift_(operator) {
+function getOpenGuardShift_() {
   ensureGuardStructure_();
-  const existing=getOpenGuardShift_();
-  if(existing)return {created:false,turno:existing};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  for(let r=rows.length-1;r>=1;r--){
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)===GUARDA.STATUS_TURNO.ABERTO)return guardShiftFromRow_(rows[r],hm.map);
+  }
+  return null;
+}
+
+function listPendingGuardShifts_() {
+  ensureGuardStructure_();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),out=[];
+  for(let r=rows.length-1;r>=1;r--){
+    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)!==GUARDA.STATUS_TURNO.PENDENTE)continue;
+    const t=guardShiftFromRow_(rows[r],hm.map);t.resumo=getGuardShiftSummary_(t.id);out.push(t);
+  }
+  return out;
+}
+
+function createGuardShiftRow_(operator) {
   operator=operator||{};
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh);
-  const row=new Array(hm.headers.length).fill(''),now=new Date();
-  row[hm.map.ID_TURNO]='TGU-'+Utilities.getUuid();
-  row[hm.map.STATUS]=GUARDA.STATUS_TURNO.ABERTO;
-  row[hm.map.INICIO_EM]=now;
-  row[hm.map.OPERADOR_INICIO_ID]=guardText_(operator.id||operator.login,100);
-  row[hm.map.OPERADOR_INICIO_NOME]=guardText_(operator.name||operator.login,160);
-  sh.appendRow(row);
-  if(hm.map.ID_TURNO!==undefined)sh.getRange(sh.getLastRow(),hm.map.ID_TURNO+1).setNumberFormat('@');
-  return {created:true,turno:guardShiftFromRow_(sh.getRange(sh.getLastRow(),1,1,hm.headers.length).getValues()[0],hm.map)};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),row=new Array(hm.headers.length).fill(''),now=new Date();
+  row[hm.map.ID_TURNO]='TGU-'+Utilities.getUuid();row[hm.map.STATUS]=GUARDA.STATUS_TURNO.ABERTO;row[hm.map.INICIO_EM]=now;
+  row[hm.map.OPERADOR_INICIO_ID]=guardText_(operator.id||operator.login,100);row[hm.map.OPERADOR_INICIO_NOME]=guardText_(operator.name||operator.login,160);
+  sh.appendRow(row);if(hm.map.ID_TURNO!==undefined)sh.getRange(sh.getLastRow(),hm.map.ID_TURNO+1).setNumberFormat('@');
+  return guardShiftFromRow_(sh.getRange(sh.getLastRow(),1,1,hm.headers.length).getValues()[0],hm.map);
+}
+
+function openGuardShift_(operator,options) {
+  ensureGuardStructure_();options=options||{};
+  const existing=getOpenGuardShift_();
+  if(existing&&!options.forceNew)return {created:false,turno:existing,turnosPendentes:listPendingGuardShifts_()};
+  if(existing&&options.forceNew){
+    const loc=guardShiftLocatorById_(existing.id);loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_TURNO.PENDENTE);
+  }
+  const turno=createGuardShiftRow_(operator);
+  return {created:true,turno:turno,turnoAnteriorPendente:existing&&options.forceNew?existing:null,turnosPendentes:listPendingGuardShifts_()};
 }
 
 function getGuardContext_(operator) {
-  ensureGuardStructure_();
+  ensureGuardStructure_();const turno=getOpenGuardShift_();
   return {
     moduleVersion:GUARDA.MODULE_VERSION,
-    operator:{
-      id:guardText_(operator&&operator.id,100),
-      login:guardText_(operator&&operator.login,80),
-      name:guardText_(operator&&operator.name,160),
-      role:guardText_(operator&&operator.role,30)
-    },
-    turno:getOpenGuardShift_(),
-    viaturas:getGuardVehicles_(),
-    movimentacoes:listGuardShiftMovements_()
+    operator:{id:guardText_(operator&&operator.id,100),login:guardText_(operator&&operator.login,80),name:guardText_(operator&&operator.name,160),role:guardText_(operator&&operator.role,30)},
+    turno:turno,turnosPendentes:listPendingGuardShifts_(),viaturas:getGuardVehicles_(),movimentacoes:turno?listGuardShiftMovements_(turno.id):[]
   };
 }
 
@@ -591,6 +614,8 @@ function guardMovementFromRow_(row,map) {
   return {
     id:guardText_(guardRowValue_(row,map,'ID_MOVIMENTACAO'),100),
     turnoId:guardText_(guardRowValue_(row,map,'ID_TURNO'),100),
+    turnoRetiradaId:guardText_(guardRowValue_(row,map,'ID_TURNO_RETIRADA'),100)||guardText_(guardRowValue_(row,map,'ID_TURNO'),100),
+    turnoDevolucaoId:guardText_(guardRowValue_(row,map,'ID_TURNO_DEVOLUCAO'),100),
     status:guardUpper_(guardRowValue_(row,map,'STATUS'),50),
     criadaEm:guardDateIso_(guardRowValue_(row,map,'CRIADA_EM')),
     atualizadaEm:guardDateIso_(guardRowValue_(row,map,'ATUALIZADA_EM')),
@@ -743,7 +768,7 @@ function createGuardWithdrawal_(data,operator) {
   if(reusable){movement=reusable.movimento;}
   else{
     const row=new Array(hm.headers.length).fill(''),now=new Date(),id='MGU-'+Utilities.getUuid();
-    row[hm.map.ID_MOVIMENTACAO]=id;row[hm.map.ID_TURNO]=turno.id;row[hm.map.STATUS]=GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA;
+    row[hm.map.ID_MOVIMENTACAO]=id;row[hm.map.ID_TURNO]=turno.id;if(hm.map.ID_TURNO_RETIRADA!==undefined)row[hm.map.ID_TURNO_RETIRADA]=turno.id;row[hm.map.STATUS]=GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA;
     row[hm.map.CRIADA_EM]=now;row[hm.map.ATUALIZADA_EM]=now;
     row[hm.map.VTR_ORIGEM]=vehicle.origem;row[hm.map.VTR_ID]=vehicle.id;row[hm.map.VTR_PREFIXO_SNAPSHOT]=vehicle.prefixo;row[hm.map.VTR_PLACA_SNAPSHOT]=vehicle.placa;row[hm.map.VTR_MODELO_SNAPSHOT]=vehicle.modelo;
     row[hm.map.MILITAR_ID]=military.id;row[hm.map.MILITAR_POSTO_GRAD_SNAPSHOT]=military.postoGraduacao;row[hm.map.MILITAR_RG_SNAPSHOT]=military.rg;row[hm.map.MILITAR_NOME_SNAPSHOT]=military.nomeCompleto;row[hm.map.MILITAR_NOME_GUERRA_SNAPSHOT]=military.nomeGuerra;row[hm.map.MILITAR_CPF_SNAPSHOT]=military.cpf;row[hm.map.MILITAR_OPM_SNAPSHOT]=military.opm;
@@ -807,15 +832,16 @@ function confirmGuardWithdrawalPublic_(data) {
 
 function listGuardShiftMovements_(turnoId) {
   ensureGuardStructure_();
-  const id=guardText_(turnoId||((getOpenGuardShift_()||{}).id),100);
-  if(!id)return [];
+  const id=guardText_(turnoId||((getOpenGuardShift_()||{}).id),100);if(!id)return [];
   const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getDisplayValues(),out=[];
   for(let r=1;r<rows.length;r++){
-    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100)!==id)continue;
-    out.push(guardMovementFromRow_(rows[r],hm.map));
+    const m=guardMovementFromRow_(rows[r],hm.map),origem=m.turnoRetiradaId||m.turnoId,retorno=m.turnoDevolucaoId;
+    const aberta=m.status===GUARDA.STATUS_MOV.EM_USO||m.status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO;
+    if(origem!==id&&retorno!==id&&!aberta)continue;
+    m.turnoAtualId=id;m.retiradaEmTurnoAnterior=origem!==id;m.devolucaoNesteTurno=retorno===id;m.origemTurnoId=origem;
+    out.push(m);
   }
-  out.sort(function(a,b){return String(b.criadaEm||'').localeCompare(String(a.criadaEm||''));});
-  return out;
+  out.sort(function(a,b){return String(b.criadaEm||'').localeCompare(String(a.criadaEm||''));});return out;
 }
 
 function startGuardReturn_(data,operator) {
@@ -823,14 +849,13 @@ function startGuardReturn_(data,operator) {
   const turno=getOpenGuardShift_();if(!turno)throw new Error('Inicie o turno da Guarda antes de registrar a devolução.');
   const id=guardText_(data.movimentacaoId||data.id,100);if(!id)throw new Error('Movimentação não informada.');
   const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
-  if(loc.movimento.turnoId!==turno.id)throw new Error('Esta movimentação não pertence ao turno aberto.');
   if(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA)throw new Error('Esta VTR já foi devolvida.');
   if(loc.movimento.status!==GUARDA.STATUS_MOV.EM_USO&&loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A retirada ainda não foi confirmada para esta VTR.');
-
-  const now=new Date();
-  if(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO){
+  const now=new Date(),returnTurn=loc.movimento.turnoDevolucaoId;
+  if(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO||returnTurn!==turno.id){
     loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO);
     loc.sheet.getRange(loc.rowIndex,loc.map.SOLICITACAO_DEVOLUCAO_EM+1).setValue(now);
+    if(loc.map.ID_TURNO_DEVOLUCAO!==undefined)loc.sheet.getRange(loc.rowIndex,loc.map.ID_TURNO_DEVOLUCAO+1).setValue(turno.id);
     loc.sheet.getRange(loc.rowIndex,loc.map.OPERADOR_DEVOLUCAO_ID+1).setValue(guardText_(operator&&operator.id||operator&&operator.login,100));
     loc.sheet.getRange(loc.rowIndex,loc.map.OPERADOR_DEVOLUCAO_NOME+1).setValue(guardText_(operator&&operator.name||operator&&operator.login,160));
     loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
@@ -841,83 +866,56 @@ function startGuardReturn_(data,operator) {
 
 function confirmGuardReturnPublic_(data) {
   ensureGuardStructure_();data=data||{};
-  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.DEVOLUCAO)),loc=guardMovementLocator_(ti.movimentoId);
-  if(!loc)throw new Error('QR_CODE_INVALIDO');
+  const ti=guardTokenAssertUsable_(guardFindToken_(data.token,GUARDA.TOKEN_TIPOS.DEVOLUCAO)),loc=guardMovementLocator_(ti.movimentoId);if(!loc)throw new Error('QR_CODE_INVALIDO');
   if(loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
-  const km=guardParseKm_(data.km),kmInicial=Number(guardDigits_(loc.movimento.kmRetirada,12)||0);
-  if(km<kmInicial)throw new Error('O KM final ('+km+') não pode ser menor que o KM inicial ('+kmInicial+'). Revise o valor.');
+  const km=guardParseKm_(data.km),kmInicial=Number(guardDigits_(loc.movimento.kmRetirada,12)||0);if(km<kmInicial)throw new Error('O KM final ('+km+') não pode ser menor que o KM inicial ('+kmInicial+'). Revise o valor.');
   const now=new Date(),percorrido=km-kmInicial;
-  loc.sheet.getRange(loc.rowIndex,loc.map.KM_DEVOLUCAO+1).setValue(km);
-  loc.sheet.getRange(loc.rowIndex,loc.map.CONFIRMACAO_DEVOLUCAO_EM+1).setValue(now);
-  loc.sheet.getRange(loc.rowIndex,loc.map.KM_PERCORRIDO+1).setValue(percorrido);
-  loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.ENCERRADA);
-  loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
-  ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);
-  ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
+  loc.sheet.getRange(loc.rowIndex,loc.map.KM_DEVOLUCAO+1).setValue(km);loc.sheet.getRange(loc.rowIndex,loc.map.CONFIRMACAO_DEVOLUCAO_EM+1).setValue(now);loc.sheet.getRange(loc.rowIndex,loc.map.KM_PERCORRIDO+1).setValue(percorrido);loc.sheet.getRange(loc.rowIndex,loc.map.STATUS+1).setValue(GUARDA.STATUS_MOV.ENCERRADA);loc.sheet.getRange(loc.rowIndex,loc.map.ATUALIZADA_EM+1).setValue(now);
+  ti.sheet.getRange(ti.rowIndex,ti.map.CONSUMIDO_EM+1).setValue(now);ti.sheet.getRange(ti.rowIndex,ti.map.STATUS+1).setValue('CONSUMIDO');
   if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId)updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);
   return {confirmado:true,operacao:'DEVOLUCAO',vtr:{prefixo:loc.movimento.vtrPrefixo,placa:loc.movimento.vtrPlaca},km:km,kmInicial:kmInicial,kmPercorrido:percorrido,confirmacaoEm:guardDateIso_(now)};
 }
 
 function getGuardMovementStatus_(data) {
-  const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');
-  const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
-  const m=loc.movimento;
-  return {
-    id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,
-    kmDevolucao:m.kmDevolucao,confirmacaoDevolucaoEm:m.confirmacaoDevolucaoEm,kmPercorrido:m.kmPercorrido,
-    vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}
-  };
+  const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');const m=loc.movimento;
+  return {id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,kmDevolucao:m.kmDevolucao,confirmacaoDevolucaoEm:m.confirmacaoDevolucaoEm,kmPercorrido:m.kmPercorrido,vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}};
 }
 
-function guardOpenShiftLocator_() {
-  ensureGuardStructure_();
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
-  for(let r=rows.length-1;r>=1;r--){
-    if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),30)===GUARDA.STATUS_TURNO.ABERTO)return {sheet:sh,map:hm.map,rowIndex:r+1,row:rows[r],turno:guardShiftFromRow_(rows[r],hm.map)};
-  }
-  return null;
-}
+function guardOpenShiftLocator_() {const t=getOpenGuardShift_();return t?guardShiftLocatorById_(t.id):null;}
 
 function getGuardShiftSummary_(turnoId) {
-  const id=guardText_(turnoId,100);if(!id)return {movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0};
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
-  let total=0,devolvidas=0,emUso=0,aguardando=0;
+  const id=guardText_(turnoId,100);if(!id)return {movimentacoes:0,devolvidas:0,emUso:0,aguardandoConfirmacao:0,devolucoesTurnoAnterior:0};
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();let total=0,devolvidas=0,emUso=0,aguardando=0,recebidasAnteriores=0;
   for(let r=1;r<rows.length;r++){
-    if(guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100)!==id)continue;
-    total++;
-    const st=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
-    if(st===GUARDA.STATUS_MOV.ENCERRADA)devolvidas++;
-    else if(st===GUARDA.STATUS_MOV.EM_USO||st===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)emUso++;
-    else if(st===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)aguardando++;
+    const origem=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO_RETIRADA'),100)||guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100),retorno=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO_DEVOLUCAO'),100),st=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
+    if(retorno===id&&origem!==id&&st===GUARDA.STATUS_MOV.ENCERRADA)recebidasAnteriores++;
+    if(origem!==id)continue;total++;
+    if(st===GUARDA.STATUS_MOV.ENCERRADA)devolvidas++;else if(st===GUARDA.STATUS_MOV.EM_USO||st===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)emUso++;else if(st===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)aguardando++;
   }
-  return {movimentacoes:total,devolvidas:devolvidas,emUso:emUso,aguardandoConfirmacao:aguardando};
+  return {movimentacoes:total,devolvidas:devolvidas,emUso:emUso,aguardandoConfirmacao:aguardando,devolucoesTurnoAnterior:recebidasAnteriores};
 }
 
-function getGuardClosePreview_() {
-  const loc=guardOpenShiftLocator_();if(!loc)throw new Error('Não existe turno aberto para fechar.');
-  return {turno:loc.turno,resumo:getGuardShiftSummary_(loc.turno.id)};
+function getGuardClosePreview_(data) {
+  data=data||{};const id=guardText_(data.turnoId,100),loc=id?guardShiftLocatorById_(id):guardOpenShiftLocator_();if(!loc)throw new Error('Turno não encontrado para fechamento.');
+  if(id&&loc.turno.status!==GUARDA.STATUS_TURNO.PENDENTE)throw new Error('Este turno não está pendente de encerramento.');
+  if(!id&&loc.turno.status!==GUARDA.STATUS_TURNO.ABERTO)throw new Error('Não existe turno aberto para fechar.');
+  return {turno:loc.turno,resumo:getGuardShiftSummary_(loc.turno.id),modo:id?'SUBSTITUTO':'NORMAL'};
 }
 
-function closeGuardShift_(data,operator) {
-  data=data||{};const loc=guardOpenShiftLocator_();if(!loc)throw new Error('Não existe turno aberto para fechar.');
-  const posto=guardUpper_(data.postoGraduacao,80),rg=guardDigits_(data.rg,20),nome=guardUpper_(data.nomeCompleto||data.nome,160),guerra=guardUpper_(data.nomeGuerra,100);
-  if(!posto)throw new Error('Informe o Posto/Graduação do Comandante da Guarda.');
-  if(!rg)throw new Error('Informe o RG do Comandante da Guarda.');
-  if(!nome)throw new Error('Informe o nome completo do Comandante da Guarda.');
-  if(!guerra)throw new Error('Informe o nome de guerra do Comandante da Guarda.');
-  const resumo=getGuardShiftSummary_(loc.turno.id),now=new Date(),m=loc.map;
-  loc.sheet.getRange(loc.rowIndex,m.STATUS+1).setValue(GUARDA.STATUS_TURNO.FECHADO);
-  loc.sheet.getRange(loc.rowIndex,m.FIM_EM+1).setValue(now);
-  loc.sheet.getRange(loc.rowIndex,m.CMD_POSTO_GRAD_SNAPSHOT+1).setValue(posto);
-  if(m.CMD_RG_SNAPSHOT!==undefined){const c=loc.sheet.getRange(loc.rowIndex,m.CMD_RG_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(rg));}
-  loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_SNAPSHOT+1).setValue(nome);
-  loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_GUERRA_SNAPSHOT+1).setValue(guerra);
-  loc.sheet.getRange(loc.rowIndex,m.CMD_CONFIRMACAO_EM+1).setValue(now);
-  loc.sheet.getRange(loc.rowIndex,m.MOVIMENTACOES_TOTAL+1).setValue(resumo.movimentacoes);
-  loc.sheet.getRange(loc.rowIndex,m.DEVOLVIDAS_TOTAL+1).setValue(resumo.devolvidas);
-  loc.sheet.getRange(loc.rowIndex,m.EM_USO_TOTAL+1).setValue(resumo.emUso);
-  return {fechado:true,turno:guardShiftFromRow_(loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getDisplayValues()[0],m),resumo:resumo,comandante:{militarId:guardText_(data.militarId,80),postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra,funcao:'Comandante da Guarda'},confirmacaoEm:guardDateIso_(now),pdfPendente:true};
+function guardCloseShiftWrite_(loc,data,substituto) {
+  data=data||{};const posto=guardUpper_(data.postoGraduacao,80),rg=guardDigits_(data.rg,20),nome=guardUpper_(data.nomeCompleto||data.nome,160),guerra=guardUpper_(data.nomeGuerra,100),motivo=guardText_(data.motivo,500);
+  if(!posto)throw new Error('Informe o Posto/Graduação do militar responsável pelo fechamento.');if(!rg)throw new Error('Informe o RG do militar responsável pelo fechamento.');if(!nome)throw new Error('Informe o nome completo do militar responsável pelo fechamento.');if(!guerra)throw new Error('Informe o nome de guerra do militar responsável pelo fechamento.');if(substituto&&!motivo)throw new Error('Informe o motivo do encerramento por substituto.');
+  const resumo=getGuardShiftSummary_(loc.turno.id),now=new Date(),m=loc.map,status=substituto?GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO:GUARDA.STATUS_TURNO.FECHADO;
+  loc.sheet.getRange(loc.rowIndex,m.STATUS+1).setValue(status);loc.sheet.getRange(loc.rowIndex,m.FIM_EM+1).setValue(now);
+  if(!substituto){loc.sheet.getRange(loc.rowIndex,m.CMD_POSTO_GRAD_SNAPSHOT+1).setValue(posto);if(m.CMD_RG_SNAPSHOT!==undefined){const c=loc.sheet.getRange(loc.rowIndex,m.CMD_RG_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(rg));}loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_SNAPSHOT+1).setValue(nome);loc.sheet.getRange(loc.rowIndex,m.CMD_NOME_GUERRA_SNAPSHOT+1).setValue(guerra);loc.sheet.getRange(loc.rowIndex,m.CMD_CONFIRMACAO_EM+1).setValue(now);}
+  loc.sheet.getRange(loc.rowIndex,m.MOVIMENTACOES_TOTAL+1).setValue(resumo.movimentacoes);loc.sheet.getRange(loc.rowIndex,m.DEVOLVIDAS_TOTAL+1).setValue(resumo.devolvidas);loc.sheet.getRange(loc.rowIndex,m.EM_USO_TOTAL+1).setValue(resumo.emUso);
+  if(m.ENCERRAMENTO_TIPO!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRAMENTO_TIPO+1).setValue(substituto?'SUBSTITUTO':'NORMAL');if(m.ENCERRAMENTO_MOTIVO!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRAMENTO_MOTIVO+1).setValue(motivo);
+  if(m.ENCERRADO_POR_POSTO_GRAD_SNAPSHOT!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_POSTO_GRAD_SNAPSHOT+1).setValue(posto);if(m.ENCERRADO_POR_RG_SNAPSHOT!==undefined){const c=loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_RG_SNAPSHOT+1);c.setNumberFormat('@');c.setValue(String(rg));}if(m.ENCERRADO_POR_NOME_SNAPSHOT!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_NOME_SNAPSHOT+1).setValue(nome);if(m.ENCERRADO_POR_NOME_GUERRA_SNAPSHOT!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_NOME_GUERRA_SNAPSHOT+1).setValue(guerra);if(m.ENCERRADO_POR_FUNCAO!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_FUNCAO+1).setValue(substituto?'Comandante da Guarda substituto':'Comandante da Guarda');if(m.ENCERRADO_POR_CONFIRMACAO_EM!==undefined)loc.sheet.getRange(loc.rowIndex,m.ENCERRADO_POR_CONFIRMACAO_EM+1).setValue(now);
+  return {fechado:true,substituto:substituto,turno:guardShiftFromRow_(loc.sheet.getRange(loc.rowIndex,1,1,loc.sheet.getLastColumn()).getDisplayValues()[0],m),resumo:resumo,responsavel:{militarId:guardText_(data.militarId,80),postoGraduacao:posto,rg:rg,nomeCompleto:nome,nomeGuerra:guerra,funcao:substituto?'Comandante da Guarda substituto':'Comandante da Guarda'},motivo:motivo,confirmacaoEm:guardDateIso_(now),pdfPendente:true};
 }
+
+function closeGuardShift_(data,operator) {const loc=guardOpenShiftLocator_();if(!loc)throw new Error('Não existe turno aberto para fechar.');return guardCloseShiftWrite_(loc,data,false);}
+function closePendingGuardShift_(data,operator) {data=data||{};const loc=guardShiftLocatorById_(data.turnoId);if(!loc)throw new Error('Turno pendente não encontrado.');if(loc.turno.status!==GUARDA.STATUS_TURNO.PENDENTE)throw new Error('Este turno não está pendente de encerramento.');return guardCloseShiftWrite_(loc,data,true);}
 
 function testarControleGuardaEtapa3() {
   ensureGuardStructure_();
@@ -954,4 +952,14 @@ function testarControleGuardaCorrecao041() {
     pesquisaBaseMilitares:true,
     resultadosTeste:busca.length
   };
+}
+
+
+function testarControleGuardaEtapa5() {
+  ensureGuardStructure_();
+  const shT=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),shM=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),ht=guardHeaderMap_(shT).map,hm=guardHeaderMap_(shM).map;
+  const requiredTurn=['ENCERRAMENTO_TIPO','ENCERRAMENTO_MOTIVO','ENCERRADO_POR_NOME_SNAPSHOT','ENCERRADO_POR_CONFIRMACAO_EM'];
+  const requiredMov=['ID_TURNO_RETIRADA','ID_TURNO_DEVOLUCAO'];
+  const ok=requiredTurn.every(k=>ht[k]!==undefined)&&requiredMov.every(k=>hm[k]!==undefined);
+  return {success:ok,moduleVersion:GUARDA.MODULE_VERSION,statusPendente:GUARDA.STATUS_TURNO.PENDENTE,statusFechadoSubstituto:GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO,turnosPendentes:listPendingGuardShifts_().length,colunasTurnoOk:requiredTurn.every(k=>ht[k]!==undefined),colunasMovimentacaoOk:requiredMov.every(k=>hm[k]!==undefined)};
 }

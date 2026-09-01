@@ -1,6 +1,6 @@
 const GuardPage=(()=>{
   const TOKEN_KEY='sigvtr_admin_token',SESSION_KEY='sigvtr_admin_session';
-  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false};
+  const state={context:null,vehicles:[],selectedVehicle:null,selectedMilitary:null,searchTimer:null,commanderSearchTimer:null,loginBusy:false,currentMovement:null,currentOperation:'RETIRADA',pollTimer:null,pendingPassword:false,closeMode:'NORMAL',closeTurnId:''};
   const $=id=>document.getElementById(id);
   const show=id=>$(id)?.classList.remove('d-none');
   const hide=id=>$(id)?.classList.add('d-none');
@@ -17,7 +17,8 @@ const GuardPage=(()=>{
   function renderApp(){
     hide('loginView');show('appView');
     $('operatorName').textContent=state.context?.operator?.name||state.context?.operator?.login||'Operador';
-    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.4.0'}`;
+    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.5.0'}`;
+    renderPendingShifts(state.context?.turnosPendentes||[]);
     if(state.context?.turno){
       hide('noShiftView');show('shiftView');$('shiftStartedAt').textContent=`Iniciado em ${formatDateTime(state.context.turno.inicioEm)}`;
       renderVehicleResults('');renderMovements(state.context.movimentacoes||[]);
@@ -26,7 +27,20 @@ const GuardPage=(()=>{
   function showLogin(){hide('appView');show('loginView');setLoading(false);setTimeout(()=>$('login').focus(),50)}
   async function bootstrap(){setLoading(true);if(!token()){showLogin();return}try{await loadContext();setLoading(false)}catch(error){if(/^SESSION_/.test(error.code||error.message||'')){clearSession();showLogin()}else if((error.code||error.message||'')==='PASSWORD_CHANGE_REQUIRED'){showLogin();alertBox('Primeiro acesso: entre com a senha temporária para definir uma nova senha neste módulo.','warning','loginAlert')}else{setLoading(false);showLogin();alertBox(error.message||'Não foi possível carregar o Controle da Guarda.','danger','loginAlert')}}}
   async function handleLogin(event){event.preventDefault();if(state.loginBusy)return;clearAlert('loginAlert');state.loginBusy=true;$('loginButton').disabled=true;$('loginButton').querySelector('.button-label').classList.add('d-none');$('loginButton').querySelector('.button-loading').classList.remove('d-none');try{const result=await ApiService.publicPost('adminLogin',{login:$('login').value,password:$('password').value});if(!result.success)throw new Error(result.message||'Usuário ou senha inválidos.');saveLogin(result);if(result.user?.mustChangePassword){state.pendingPassword=true;show('passwordOverlay');$('currentPassword').value=$('password').value;setLoading(false);return}await loadContext()}catch(error){alertBox(error.message||'Não foi possível entrar.','danger','loginAlert');$('password').value=''}finally{state.loginBusy=false;$('loginButton').disabled=false;$('loginButton').querySelector('.button-label').classList.remove('d-none');$('loginButton').querySelector('.button-loading').classList.add('d-none');setLoading(false)}}
-  async function startShift(){clearAlert();const btn=$('startShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Iniciando...';try{const data=await ApiService.post('guardaIniciarTurno',{});state.context.turno=data.turno;state.context.movimentacoes=[];renderApp()}catch(error){alertBox(error.message||'Não foi possível iniciar o turno.')}finally{btn.disabled=false;btn.textContent='Iniciar turno'}}
+  async function startShift(){clearAlert();const btn=$('startShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Iniciando...';try{const data=await ApiService.post('guardaIniciarTurno',{});state.context.turno=data.turno;state.context.turnosPendentes=data.turnosPendentes||state.context.turnosPendentes||[];state.context.movimentacoes=[];renderApp()}catch(error){alertBox(error.message||'Não foi possível iniciar o turno.')}finally{btn.disabled=false;btn.textContent='Iniciar turno'}}
+
+  async function startNewShift(){
+    if(!state.context?.turno)return startShift();
+    const ok=window.confirm('O turno atual ficará como PENDENTE DE ENCERRAMENTO e um novo turno será iniciado. Deseja continuar?');if(!ok)return;
+    const btn=$('newShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Iniciando...';clearAlert();
+    try{const data=await ApiService.post('guardaIniciarNovoTurno',{});state.context.turno=data.turno;state.context.turnosPendentes=data.turnosPendentes||[];state.context.movimentacoes=[];state.selectedVehicle=null;state.selectedMilitary=null;renderApp();alertBox('Novo turno iniciado. O turno anterior ficou pendente de encerramento.','warning')}catch(error){alertBox(error.message||'Não foi possível iniciar um novo turno.')}finally{btn.disabled=false;btn.innerHTML='<i class="bi bi-plus-circle me-1"></i>Novo turno'}
+  }
+
+  function renderPendingShifts(list){
+    list=Array.isArray(list)?list:[];if(!list.length){hide('pendingShiftsSection');return}show('pendingShiftsSection');$('pendingShiftsCount').textContent=String(list.length);
+    $('pendingShiftsList').innerHTML=list.map(t=>{const r=t.resumo||{};return `<div class="pending-shift-item"><div class="pending-shift-main"><strong>Turno iniciado em ${escapeHtml(formatDateTime(t.inicioEm))}</strong><span>${escapeHtml(r.movimentacoes||0)} movimentações • ${escapeHtml(r.devolvidas||0)} devolvidas • ${escapeHtml(r.emUso||0)} ainda em uso</span><small>O turno anterior permanece preservado e pode ser encerrado por substituto.</small></div><button class="btn btn-sm btn-outline-warning" type="button" data-pending-close="${escapeHtml(t.id)}">Encerrar pendente</button></div>`}).join('');
+    document.querySelectorAll('[data-pending-close]').forEach(b=>b.addEventListener('click',()=>openCloseShift(b.dataset.pendingClose,true)));
+  }
 
   function movementLabel(status){return ({AGUARDANDO_CONFIRMACAO_RETIRADA:'Aguardando retirada',EM_USO:'Em uso',AGUARDANDO_CONFIRMACAO_DEVOLUCAO:'Aguardando devolução',ENCERRADA:'Devolvida'})[status]||status||'—'}
   function movementClass(status){return ({AGUARDANDO_CONFIRMACAO_RETIRADA:'warning',EM_USO:'use',AGUARDANDO_CONFIRMACAO_DEVOLUCAO:'warning',ENCERRADA:'done'})[status]||''}
@@ -40,7 +54,7 @@ const GuardPage=(()=>{
       const canReturn=m.status==='EM_USO'||m.status==='AGUARDANDO_CONFIRMACAO_DEVOLUCAO';
       const button=canReturn?`<button class="btn btn-sm ${m.status==='EM_USO'?'btn-primary':'btn-outline-primary'}" type="button" data-return-id="${escapeHtml(m.id)}"><i class="bi bi-qr-code me-1"></i>${m.status==='EM_USO'?'Iniciar devolução':'Gerar novo QR'}</button>`:'';
       const km=m.status==='ENCERRADA'?`KM ${escapeHtml(m.kmRetirada||'—')} → ${escapeHtml(m.kmDevolucao||'—')} • ${escapeHtml(m.kmPercorrido||'0')} km`:m.kmRetirada?`KM inicial ${escapeHtml(m.kmRetirada)}`:'Retirada ainda não confirmada';
-      return `<div class="movement-item"><div class="movement-main"><div class="movement-top"><strong>VTR ${escapeHtml(m.vtrPrefixo||'')}</strong><span class="movement-badge ${movementClass(m.status)}">${escapeHtml(movementLabel(m.status))}</span></div><span>${escapeHtml([m.militarPostoGraduacao,m.militarNomeGuerra].filter(Boolean).join(' '))}</span><small>${escapeHtml(km)}</small></div>${button}</div>`;
+      const originNote=m.retiradaEmTurnoAnterior?'<small class="movement-origin-note"><i class="bi bi-arrow-left-right"></i> Retirada em turno anterior</small>':'';return `<div class="movement-item"><div class="movement-main"><div class="movement-top"><strong>VTR ${escapeHtml(m.vtrPrefixo||'')}</strong><span class="movement-badge ${movementClass(m.status)}">${escapeHtml(movementLabel(m.status))}</span></div><span>${escapeHtml([m.militarPostoGraduacao,m.militarNomeGuerra].filter(Boolean).join(' '))}</span><small>${escapeHtml(km)}</small>${originNote}</div>${button}</div>`;
     }).join('');
     document.querySelectorAll('[data-return-id]').forEach(btn=>btn.addEventListener('click',()=>startReturn(btn.dataset.returnId,btn)));
   }
@@ -82,10 +96,10 @@ const GuardPage=(()=>{
     stopPolling();hide('qrWaiting');const isReturn=operation==='DEVOLUCAO';
     $('qrStatus').className='qr-status confirmed';$('qrStatus').innerHTML=`<i class="bi bi-check-circle-fill me-2"></i>${isReturn?'Devolução confirmada':'Retirada confirmada'}`;
     $('qrSuccessDetails').innerHTML=isReturn?`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM final: ${escapeHtml(data.kmDevolucao||'')}</span><span>Percorrido: ${escapeHtml(data.kmPercorrido||'0')} km</span><span>${escapeHtml(formatDateTime(data.confirmacaoDevolucaoEm))}</span>`:`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM registrado: ${escapeHtml(data.kmRetirada||'')}</span><span>${escapeHtml(formatDateTime(data.confirmacaoRetiradaEm))}</span>`;
-    $('qrContinueButton').textContent=isReturn?'Continuar no turno':'Registrar próxima retirada';show('qrSuccess');await refreshMovements(false)
+    $('qrContinueButton').textContent=isReturn?'Fechar':'Registrar próxima retirada';show('qrSuccess');await refreshMovements(false)
   }
-  function closeQr(){stopPolling();hide('qrOverlay')}
-  async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();state.currentMovement=null;await refreshMovements(false);return}newWithdrawal();await refreshMovements(false)}
+  function closeQr(){stopPolling();hide('qrOverlay');state.currentMovement=null;state.currentOperation='RETIRADA';hide('qrSuccess');show('qrWaiting');$('qrStatus').className='qr-status waiting';$('qrStatus').innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Aguardando confirmação do condutor...'}
+  async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();await refreshMovements(false);return}newWithdrawal();await refreshMovements(false)}
   function newWithdrawal(){closeQr();state.currentMovement=null;state.selectedVehicle=null;state.selectedMilitary=null;renderSelectedVehicle();resetMilitary();$('militaryCard').classList.add('is-disabled');$('militarySearch').disabled=true;$('vehicleSearch').value='';renderVehicleResults('');window.scrollTo({top:0,behavior:'smooth'});alertBox('Retirada confirmada. Pronto para registrar a próxima VTR.','success')}
 
   function clearCommanderFields(){
@@ -109,26 +123,30 @@ const GuardPage=(()=>{
       box._items=list;document.querySelectorAll('[data-commander-index]').forEach(b=>b.addEventListener('click',()=>fillCommanderFields(box._items[Number(b.dataset.commanderIndex)])));
     }catch(error){box.innerHTML=`<div class="commander-search-status text-danger">${escapeHtml(error.message||'Não foi possível pesquisar.')}</div>`}
   }
-  async function openCloseShift(){
-    clearAlert();clearAlert('closeShiftAlert');clearCommanderFields();show('closeShiftOverlay');show('closeShiftLoading');hide('closeShiftContent');
-    const btn=$('closeShiftButton');btn.disabled=true;
-    try{
-      const data=await ApiService.post('guardaPreviaFechamento',{});const r=data.resumo||{};
-      $('closeShiftSummary').innerHTML=`<div class="close-summary-row"><span>Movimentações</span><strong>${escapeHtml(r.movimentacoes||0)}</strong></div><div class="close-summary-row"><span>Devolvidas</span><strong>${escapeHtml(r.devolvidas||0)}</strong></div><div class="close-summary-row"><span>Ainda em uso</span><strong>${escapeHtml(r.emUso||0)}</strong></div><div class="close-summary-row"><span>Aguardando confirmação</span><strong>${escapeHtml(r.aguardandoConfirmacao||0)}</strong></div>`;
+  async function openCloseShift(turnoId='',substitute=false){
+    clearAlert();clearAlert('closeShiftAlert');clearCommanderFields();state.closeMode=substitute?'SUBSTITUTO':'NORMAL';state.closeTurnId=turnoId||'';
+    $('closeShiftTitle').textContent=substitute?'Encerrar turno pendente':'Fechar turno da Guarda';
+    $('closeShiftContext').textContent=substitute?'Este encerramento será registrado como realizado por outro militar. Informe o motivo.':'Confirme os dados do Comandante da Guarda deste serviço.';
+    if(substitute){show('substituteReasonGroup');$('substituteReason').required=true;$('confirmCloseShiftButton').textContent='Confirmar e encerrar turno pendente'}else{hide('substituteReasonGroup');$('substituteReason').required=false;$('substituteReason').value='';$('confirmCloseShiftButton').textContent='Confirmar dados e fechar turno'}
+    show('closeShiftOverlay');show('closeShiftLoading');hide('closeShiftContent');const btn=substitute?null:$('closeShiftButton');if(btn)btn.disabled=true;
+    try{const data=await ApiService.post('guardaPreviaFechamento',substitute?{turnoId:turnoId}:{}),r=data.resumo||{};
+      $('closeShiftSummary').innerHTML=`<div class="close-summary-row"><span>Movimentações</span><strong>${escapeHtml(r.movimentacoes||0)}</strong></div><div class="close-summary-row"><span>Devolvidas</span><strong>${escapeHtml(r.devolvidas||0)}</strong></div><div class="close-summary-row"><span>Ainda em uso</span><strong>${escapeHtml(r.emUso||0)}</strong></div><div class="close-summary-row"><span>Aguardando confirmação</span><strong>${escapeHtml(r.aguardandoConfirmacao||0)}</strong></div>${r.devolucoesTurnoAnterior?`<div class="close-summary-row"><span>Devoluções de turno anterior</span><strong>${escapeHtml(r.devolucoesTurnoAnterior)}</strong></div>`:''}`;
       hide('closeShiftLoading');show('closeShiftContent');setTimeout(()=>$('commanderSearch').focus(),50)
-    }catch(error){hide('closeShiftLoading');show('closeShiftContent');alertBox(error.message||'Não foi possível preparar o fechamento do turno.','danger','closeShiftAlert')}
-    finally{btn.disabled=false}
+    }catch(error){hide('closeShiftLoading');show('closeShiftContent');alertBox(error.message||'Não foi possível preparar o fechamento do turno.','danger','closeShiftAlert')}finally{if(btn)btn.disabled=false}
   }
-  function closeCloseShift(){hide('closeShiftOverlay')}
-  async function submitCloseShift(event){event.preventDefault();clearAlert('closeShiftAlert');const btn=$('confirmCloseShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Fechando turno...';try{const data=await ApiService.post('guardaFecharTurno',{militarId:$('commanderMilitaryId').value,postoGraduacao:$('commanderRank').value,rg:$('commanderRg').value,nomeCompleto:$('commanderName').value,nomeGuerra:$('commanderWarName').value});closeCloseShift();state.context.turno=null;state.context.movimentacoes=[];state.selectedVehicle=null;state.selectedMilitary=null;renderApp();alertBox(`Turno fechado por ${data.comandante?.postoGraduacao||''} ${data.comandante?.nomeGuerra||''} — Comandante da Guarda.`,'success')}catch(error){alertBox(error.message||'Não foi possível fechar o turno.','danger','closeShiftAlert')}finally{btn.disabled=false;btn.textContent='Confirmar dados e fechar turno'}}
+  function closeCloseShift(){hide('closeShiftOverlay');state.closeMode='NORMAL';state.closeTurnId=''}
+  async function submitCloseShift(event){event.preventDefault();clearAlert('closeShiftAlert');const substitute=state.closeMode==='SUBSTITUTO',btn=$('confirmCloseShiftButton');btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Encerrando...';
+    const payload={turnoId:state.closeTurnId,militarId:$('commanderMilitaryId').value,postoGraduacao:$('commanderRank').value,rg:$('commanderRg').value,nomeCompleto:$('commanderName').value,nomeGuerra:$('commanderWarName').value,motivo:$('substituteReason').value.trim()};
+    try{const data=await ApiService.post(substitute?'guardaEncerrarTurnoPendente':'guardaFecharTurno',payload);closeCloseShift();await loadContext();const resp=data.responsavel||data.comandante||{};alertBox(substitute?`Turno pendente encerrado por ${resp.postoGraduacao||''} ${resp.nomeGuerra||''}.`:`Turno fechado por ${resp.postoGraduacao||''} ${resp.nomeGuerra||''} — Comandante da Guarda.`,'success')}catch(error){alertBox(error.message||'Não foi possível encerrar o turno.','danger','closeShiftAlert')}finally{btn.disabled=false;btn.textContent=substitute?'Confirmar e encerrar turno pendente':'Confirmar dados e fechar turno'}
+  }
   async function changeGuardPassword(event){event.preventDefault();clearAlert('passwordAlert');const current=$('currentPassword').value,next=$('newPassword').value,confirm=$('confirmPassword').value;if(next!==confirm){alertBox('A confirmação da nova senha não confere.','danger','passwordAlert');return}const btn=$('passwordSaveButton');btn.disabled=true;btn.textContent='Alterando...';try{const data=await ApiService.post('adminAlterarMinhaSenha',{senhaAtual:current,novaSenha:next});if(data.token){saveLogin(data)}hide('passwordOverlay');state.pendingPassword=false;await loadContext()}catch(error){alertBox(error.message||'Não foi possível alterar a senha.','danger','passwordAlert')}finally{btn.disabled=false;btn.textContent='Alterar senha'}}
   async function logout(){stopPolling();show('logoutOverlay');$('logoutButton').disabled=true;try{await ApiService.post('adminLogout',{})}catch(_){}clearSession();location.reload()}
   function bind(){
-    $('loginForm').addEventListener('submit',handleLogin);$('startShiftButton').addEventListener('click',startShift);$('refreshMovementsButton').addEventListener('click',()=>refreshMovements(true));
+    $('loginForm').addEventListener('submit',handleLogin);$('startShiftButton').addEventListener('click',startShift);$('newShiftButton').addEventListener('click',startNewShift);$('refreshMovementsButton').addEventListener('click',()=>refreshMovements(true));
     $('vehicleSearch').addEventListener('input',e=>renderVehicleResults(e.target.value));$('otherVehicleButton').addEventListener('click',()=>{hide('vehiclePicker');show('otherVehicleForm');$('otherPrefix').focus()});$('cancelOtherVehicle').addEventListener('click',()=>{hide('otherVehicleForm');show('vehiclePicker')});$('otherVehicleForm').addEventListener('submit',e=>{e.preventDefault();const p=$('otherPrefix').value.trim(),pl=$('otherPlate').value.trim();if(!p||!pl)return;selectOtherVehicle(p,pl)});
     $('militarySearch').addEventListener('input',()=>{clearTimeout(state.searchTimer);state.searchTimer=setTimeout(searchMilitary,280)});$('newMilitaryButton').addEventListener('click',()=>openMilitaryForm({rg:/^\d+$/.test($('militarySearch').value.trim())?$('militarySearch').value.trim():'',nomeCompleto:/\D/.test($('militarySearch').value)?$('militarySearch').value.trim():''}));$('militaryForm').addEventListener('submit',saveMilitary);$('cancelMilitaryForm').addEventListener('click',()=>{hide('militaryForm');show('militaryPicker')});
     $('prepareQrButton').addEventListener('click',createWithdrawalQr);$('qrCloseButton').addEventListener('click',closeQr);$('qrContinueButton').addEventListener('click',qrContinue);
-    $('closeShiftButton').addEventListener('click',openCloseShift);$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('commanderSearch').addEventListener('input',()=>{clearTimeout(state.commanderSearchTimer);state.commanderSearchTimer=setTimeout(searchCommander,280)});$('closeShiftForm').addEventListener('submit',submitCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
+    $('closeShiftButton').addEventListener('click',()=>openCloseShift('',false));$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('commanderSearch').addEventListener('input',()=>{clearTimeout(state.commanderSearchTimer);state.commanderSearchTimer=setTimeout(searchCommander,280)});$('closeShiftForm').addEventListener('submit',submitCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
   }
   function init(){bind();bootstrap()}return{init};
 })();

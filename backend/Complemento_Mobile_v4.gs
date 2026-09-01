@@ -37,7 +37,7 @@ function doPost(e){
       if(action==="guardaPesquisarMilitar")return json_({success:true,data:{militares:searchGuardMilitary_(data.query||data.q||"",data.limit||20)}});
       if(action==="guardaPrepararRetirada")return json_({success:true,data:prepareGuardWithdrawal_(data)});
       if(action==="guardaStatusMovimentacao")return json_({success:true,data:getGuardMovementStatus_(data)});
-      if(action==="guardaPreviaFechamento")return json_({success:true,data:getGuardClosePreview_()});
+      if(action==="guardaPreviaFechamento")return json_({success:true,data:getGuardClosePreview_(data)});
       if(action==="guardaListarMovimentacoes")return json_({success:true,data:{movimentacoes:listGuardShiftMovements_()}});
     }
 
@@ -84,10 +84,12 @@ function doPost(e){
       if(action.indexOf("guarda")===0&&!guardaPublicAction){
         const guardaWriteCtx=guardaRequestCtx||guardRequireOperator_(token);
         if(action==="guardaIniciarTurno")return json_({success:true,data:openGuardShift_(guardaWriteCtx.user)});
+        if(action==="guardaIniciarNovoTurno")return json_({success:true,data:openGuardShift_(guardaWriteCtx.user,{forceNew:true})});
         if(action==="guardaSalvarMilitar")return json_({success:true,data:{militar:saveGuardMilitary_(data)}});
         if(action==="guardaCriarRetirada")return json_({success:true,data:createGuardWithdrawal_(data,guardaWriteCtx.user)});
         if(action==="guardaIniciarDevolucao")return json_({success:true,data:startGuardReturn_(data,guardaWriteCtx.user)});
         if(action==="guardaFecharTurno")return json_({success:true,data:closeGuardShift_(data,guardaWriteCtx.user)});
+        if(action==="guardaEncerrarTurnoPendente")return json_({success:true,data:closePendingGuardShift_(data,guardaWriteCtx.user)});
       }
 
       if(action.indexOf("admin")===0){

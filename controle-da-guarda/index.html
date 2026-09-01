@@ -9,7 +9,7 @@
   <link rel="icon" href="../favicon.ico">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="assets/css/guarda.css?v=0.4.0">
+  <link rel="stylesheet" href="assets/css/guarda.css?v=0.5.0">
 </head>
 <body>
   <div id="loadingScreen" class="loading-screen"><div class="spinner-border text-primary" role="status"></div><span>Carregando Controle da Guarda...</span></div>
@@ -45,6 +45,14 @@
     <main class="container guard-container py-3 py-md-4">
       <div id="appAlert" class="alert d-none" role="alert"></div>
 
+      <section id="pendingShiftsSection" class="guard-card pending-shifts-card mb-3 d-none">
+        <div class="movements-head">
+          <div><h2>Turnos pendentes</h2><p>Serviços anteriores que não foram encerrados pelo comandante anterior.</p></div>
+          <span id="pendingShiftsCount" class="pending-count"></span>
+        </div>
+        <div id="pendingShiftsList" class="pending-shifts-list"></div>
+      </section>
+
       <section id="noShiftView" class="start-shift-card d-none">
         <div class="start-icon"><i class="bi bi-play-circle"></i></div>
         <h2>Iniciar turno da Guarda</h2>
@@ -55,7 +63,7 @@
       <section id="shiftView" class="d-none">
         <div class="shift-bar mb-3">
           <div><span class="status-dot"></span><strong>Turno aberto</strong><small id="shiftStartedAt"></small></div>
-          <div class="shift-actions"><span id="moduleVersion" class="version-chip"></span><button id="closeShiftButton" class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-stop-circle me-1"></i>Fechar turno</button></div>
+          <div class="shift-actions"><span id="moduleVersion" class="version-chip"></span><button id="newShiftButton" class="btn btn-sm btn-outline-primary" type="button"><i class="bi bi-plus-circle me-1"></i>Novo turno</button><button id="closeShiftButton" class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-stop-circle me-1"></i>Fechar turno</button></div>
         </div>
 
         <article id="movementsCard" class="guard-card movements-card mb-3">
@@ -127,7 +135,7 @@
       <div id="qrStatus" class="qr-status waiting"><span class="spinner-border spinner-border-sm me-2"></span>Aguardando confirmação do condutor...</div>
       <div id="qrSuccess" class="d-none">
         <div id="qrSuccessDetails" class="qr-success-details"></div>
-        <button id="qrContinueButton" class="btn btn-primary btn-lg w-100 mt-3" type="button">Registrar próxima retirada</button>
+        <button id="qrContinueButton" class="btn btn-primary btn-lg w-100 mt-3" type="button">Fechar</button>
       </div>
     </div>
   </div>
@@ -136,7 +144,7 @@
     <div class="qr-dialog text-start">
       <button id="closeShiftCloseButton" class="qr-close" type="button" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
       <span class="qr-kicker">ENCERRAMENTO DO SERVIÇO</span>
-      <h2 id="closeShiftTitle" class="mt-2">Fechar turno da Guarda</h2>
+      <h2 id="closeShiftTitle" class="mt-2">Fechar turno da Guarda</h2><p id="closeShiftContext" class="text-secondary small mb-2"></p>
       <div id="closeShiftLoading" class="close-loading d-none"><div class="spinner-border text-primary" role="status"></div><strong>Preparando fechamento...</strong><span>Carregando o resumo do turno.</span></div>
       <div id="closeShiftContent">
       <div id="closeShiftSummary" class="close-summary my-3"></div>
@@ -153,6 +161,7 @@
         <label class="form-label" for="commanderRg">RG</label><input id="commanderRg" class="form-control mb-2" maxlength="20" inputmode="numeric" required>
         <label class="form-label" for="commanderName">Nome completo</label><input id="commanderName" class="form-control text-uppercase mb-2" maxlength="160" required>
         <label class="form-label" for="commanderWarName">Nome de guerra</label><input id="commanderWarName" class="form-control text-uppercase mb-3" maxlength="100" required>
+        <div id="substituteReasonGroup" class="d-none mb-3"><label class="form-label" for="substituteReason">Motivo do encerramento por substituto</label><textarea id="substituteReason" class="form-control" rows="3" maxlength="500" placeholder="Ex.: comandante anterior precisou se ausentar por ocorrência emergencial."></textarea><small class="form-text">Obrigatório somente para encerrar um turno anterior por outro militar.</small></div>
         <button id="confirmCloseShiftButton" class="btn btn-danger btn-lg w-100" type="submit">Confirmar dados e fechar turno</button>
       </form>
       <p class="stage-note mt-2 mb-0">O PDF será integrado na etapa específica de relatórios; o fechamento e os dados do comandante já ficam gravados.</p>
@@ -178,6 +187,6 @@
 
   <script src="../admin/assets/js/api.js?v=1.20.16-rc1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="assets/js/guarda.js?v=0.4.0"></script>
+  <script src="assets/js/guarda.js?v=0.5.0"></script>
 </body>
 </html>
