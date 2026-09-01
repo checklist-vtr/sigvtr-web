@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.26-RC1
+ * Versão do pacote: 1.20.27-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -30,7 +30,7 @@ function doPost(e){
     // Demais ações da Guarda reutilizam a sessão administrativa existente, sem token na URL.
     let guardaRequestCtx=null;
     if(action.indexOf("guarda")===0&&!guardaPublicAction){
-      guardaRequestCtx=guardRequireOperator_(token);
+      guardaRequestCtx=guardRequireOperator_(token,action!=="guardaStatusMovimentacao");
       const guardaUser=guardaRequestCtx.user;
       if(action==="guardaContexto")return json_({success:true,data:getGuardContext_(guardaUser)});
       if(action==="guardaListarViaturas")return json_({success:true,data:{viaturas:getGuardVehicles_()}});

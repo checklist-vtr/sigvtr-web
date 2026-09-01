@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.6',
+  MODULE_VERSION: '0.6.7',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -59,10 +59,12 @@ const GUARDA_CACHE = Object.freeze({
   MILITARY:'SIGVTR_GUARDA_MILITARY_V1',
   OTHER_VEHICLES:'SIGVTR_GUARDA_OTHER_VEHICLES_V1',
   CONTEXT:'SIGVTR_GUARDA_CONTEXT_V1',
+  MOVEMENT_STATUS_PREFIX:'SIGVTR_GUARDA_MOV_STATUS_',
   VEHICLES_SECONDS:300,
   MILITARY_SECONDS:180,
   OTHER_SECONDS:300,
-  CONTEXT_SECONDS:8
+  CONTEXT_SECONDS:8,
+  MOVEMENT_STATUS_SECONDS:45
 });
 function guardCacheGetJson_(key){try{const raw=CacheService.getScriptCache().get(key);return raw?JSON.parse(raw):null}catch(_){return null}}
 function guardCachePutJson_(key,value,seconds){try{const raw=JSON.stringify(value);if(raw.length<95000)CacheService.getScriptCache().put(key,raw,seconds)}catch(_){}}
@@ -71,6 +73,10 @@ function guardInvalidateMilitaryCache_(){guardCacheRemove_(GUARDA_CACHE.MILITARY
 function guardInvalidateVehicleHistoryCache_(){guardCacheRemove_([GUARDA_CACHE.OTHER_VEHICLES])}
 function guardInvalidateContextCache_(){guardCacheRemove_([GUARDA_CACHE.CONTEXT])}
 function guardInvalidateOperationalCaches_(){guardCacheRemove_([GUARDA_CACHE.CONTEXT,GUARDA_CACHE.OTHER_VEHICLES])}
+function guardMovementStatusCacheKey_(id){return GUARDA_CACHE.MOVEMENT_STATUS_PREFIX+guardText_(id,100)}
+function guardMovementStatusPayload_(m){m=m||{};return {id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,kmDevolucao:m.kmDevolucao,confirmacaoDevolucaoEm:m.confirmacaoDevolucaoEm,kmPercorrido:m.kmPercorrido,vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}}}
+function guardMovementStatusCachePut_(m){if(!m||!m.id)return;guardCachePutJson_(guardMovementStatusCacheKey_(m.id),guardMovementStatusPayload_(m),GUARDA_CACHE.MOVEMENT_STATUS_SECONDS)}
+function guardMovementStatusCacheRemove_(id){if(id)guardCacheRemove_(guardMovementStatusCacheKey_(id))}
 function guardBatchUpdateRow_(sheet,rowIndex,map,row,updates){
   const next=(row||[]).slice();Object.keys(updates||{}).forEach(function(key){if(map[key]!==undefined)next[map[key]]=updates[key]});
   sheet.getRange(rowIndex,1,1,next.length).setValues([next]);return next;
@@ -635,10 +641,13 @@ function guardContextSnapshot_(forceFresh){
 function getGuardContext_(operator) {
   ensureGuardStructure_();const snap=guardContextSnapshot_(),vehicles=getGuardVehicles_();
   let history=guardCacheGetJson_(GUARDA_CACHE.OTHER_VEHICLES);if(!Array.isArray(history)){history=snap._movRows?guardBuildHistoricalOtherVehicles_(snap._movRows,snap._movMap):getGuardHistoricalOtherVehicles_();guardCachePutJson_(GUARDA_CACHE.OTHER_VEHICLES,history,GUARDA_CACHE.OTHER_SECONDS)}
+  // A base da Guarda é pequena (~centenas de registros). Enviá-la uma única vez no
+  // contexto elimina uma chamada de rede/Apps Script a cada termo digitado.
+  const militaresBusca=guardMilitaryList_().map(function(m){return {id:m.id,rg:m.rg,nomeCompleto:m.nomeCompleto,nomeGuerra:m.nomeGuerra,postoGraduacao:m.postoGraduacao,opm:m.opm};});
   return {
     moduleVersion:GUARDA.MODULE_VERSION,
     operator:{id:guardText_(operator&&operator.id,100),login:guardText_(operator&&operator.login,80),name:guardText_(operator&&operator.name,160),role:guardText_(operator&&operator.role,30)},
-    turno:snap.turno,turnosPendentes:snap.turnosPendentes,viaturas:vehicles,vtrsOutrosHistorico:history,movimentacoes:snap.movimentacoes
+    turno:snap.turno,turnosPendentes:snap.turnosPendentes,viaturas:vehicles,vtrsOutrosHistorico:history,movimentacoes:snap.movimentacoes,militaresBusca:militaresBusca
   };
 }
 
@@ -661,8 +670,8 @@ function prepareGuardWithdrawal_(data) {
   };
 }
 
-function guardRequireOperator_(token) {
-  const ctx=adminValidateSession_(token,true,true);
+function guardRequireOperator_(token,touch) {
+  const ctx=adminValidateSession_(token,touch===undefined?true:touch,true);
   if(ctx.user&&ctx.user.mustChangePassword)throw new Error('PASSWORD_CHANGE_REQUIRED');
   const role=guardUpper_(ctx.user&&ctx.user.role,30);
   if(role!=='GUARDA'&&role!=='DEV')throw new Error('FORBIDDEN_GUARDA');
@@ -747,13 +756,14 @@ function guardNewRawToken_() {
 }
 
 function guardInvalidateActiveTokens_(movementId,type,status) {
-  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),targets=[];
   for(let r=1;r<rows.length;r++){
     if(guardText_(guardRowValue_(rows[r],hm.map,'ID_MOVIMENTACAO'),100)!==movementId)continue;
     if(guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20)!==type)continue;
     if(guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),20)!=='ATIVO')continue;
-    sh.getRange(r+1,hm.map.STATUS+1).setValue(status||'SUBSTITUIDO');
+    targets.push(sh.getRange(r+1,hm.map.STATUS+1).getA1Notation());
   }
+  if(targets.length)sh.getRangeList(targets).setValue(status||'SUBSTITUIDO');
 }
 
 function guardIssueToken_(movementId,type) {
@@ -855,6 +865,7 @@ function createGuardWithdrawal_(data,operator) {
     movement=guardMovementFromRow_(sh.getRange(insertedRow,1,1,hm.headers.length).getDisplayValues()[0],hm.map);
   }
   guardInvalidateContextCache_();
+  guardMovementStatusCachePut_(movement);
   const issued=guardIssueToken_(movement.id,GUARDA.TOKEN_TIPOS.RETIRADA);
   return {movimentacao:movement,token:issued.token,expiraEm:issued.expiraEm,tokenValidadeMinutos:GUARDA.TOKEN_TTL_MINUTES};
 }
@@ -895,7 +906,8 @@ function confirmGuardWithdrawalPublic_(data) {
   const km=guardParseKm_(data.km),last=guardVehicleLastKnownKm_(loc.movimento);
   if(last!==null&&km<last)throw new Error('O KM informado ('+km+') é menor que o último KM conhecido da VTR ('+last+'). Revise o valor.');
   const now=new Date();
-  guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{KM_RETIRADA:km,CONFIRMACAO_RETIRADA_EM:now,STATUS:GUARDA.STATUS_MOV.EM_USO,ATUALIZADA_EM:now});
+  const nextRow=guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{KM_RETIRADA:km,CONFIRMACAO_RETIRADA_EM:now,STATUS:GUARDA.STATUS_MOV.EM_USO,ATUALIZADA_EM:now});
+  const updatedMovement=guardMovementFromRow_(nextRow,loc.map);guardMovementStatusCachePut_(updatedMovement);
   guardBatchUpdateRow_(ti.sheet,ti.rowIndex,ti.map,ti.row,{CONSUMIDO_EM:now,STATUS:'CONSUMIDO'});
   if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId){updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);guardCacheRemove_(GUARDA_CACHE.VEHICLES)}
   if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.OUTROS)guardInvalidateVehicleHistoryCache_();
@@ -925,15 +937,16 @@ function startGuardReturn_(data,operator) {
   const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
   if(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA)throw new Error('Esta VTR já foi devolvida.');
   if(loc.movimento.status!==GUARDA.STATUS_MOV.EM_USO&&loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A retirada ainda não foi confirmada para esta VTR.');
-  const now=new Date(),returnTurn=loc.movimento.turnoDevolucaoId;
+  const now=new Date(),returnTurn=loc.movimento.turnoDevolucaoId;let refreshed=loc.movimento;
   if(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO||returnTurn!==turno.id){
-    guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{
+    const nextRow=guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{
       STATUS:GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO,SOLICITACAO_DEVOLUCAO_EM:now,ID_TURNO_DEVOLUCAO:turno.id,
       OPERADOR_DEVOLUCAO_ID:guardText_(operator&&operator.id||operator&&operator.login,100),OPERADOR_DEVOLUCAO_NOME:guardText_(operator&&operator.name||operator&&operator.login,160),ATUALIZADA_EM:now
     });
-    guardInvalidateContextCache_();
+    refreshed=guardMovementFromRow_(nextRow,loc.map);guardInvalidateContextCache_();
   }
-  const refreshed=guardMovementLocator_(id).movimento,issued=guardIssueToken_(id,GUARDA.TOKEN_TIPOS.DEVOLUCAO);
+  guardMovementStatusCachePut_(refreshed);
+  const issued=guardIssueToken_(id,GUARDA.TOKEN_TIPOS.DEVOLUCAO);
   return {movimentacao:refreshed,token:issued.token,expiraEm:issued.expiraEm,tokenValidadeMinutos:GUARDA.TOKEN_TTL_MINUTES,operacao:'DEVOLUCAO'};
 }
 
@@ -943,7 +956,8 @@ function confirmGuardReturnPublic_(data) {
   if(loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
   const km=guardParseKm_(data.km),kmInicial=Number(guardDigits_(loc.movimento.kmRetirada,12)||0);if(km<kmInicial)throw new Error('O KM final ('+km+') não pode ser menor que o KM inicial ('+kmInicial+'). Revise o valor.');
   const now=new Date(),percorrido=km-kmInicial;
-  guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{KM_DEVOLUCAO:km,CONFIRMACAO_DEVOLUCAO_EM:now,KM_PERCORRIDO:percorrido,STATUS:GUARDA.STATUS_MOV.ENCERRADA,ATUALIZADA_EM:now});
+  const nextRow=guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{KM_DEVOLUCAO:km,CONFIRMACAO_DEVOLUCAO_EM:now,KM_PERCORRIDO:percorrido,STATUS:GUARDA.STATUS_MOV.ENCERRADA,ATUALIZADA_EM:now});
+  const updatedMovement=guardMovementFromRow_(nextRow,loc.map);guardMovementStatusCachePut_(updatedMovement);
   guardBatchUpdateRow_(ti.sheet,ti.rowIndex,ti.map,ti.row,{CONSUMIDO_EM:now,STATUS:'CONSUMIDO'});
   if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.CADASTRADA&&loc.movimento.vtrId){updateVehicleKm_(getSpreadsheet_(),loc.movimento.vtrId,km);guardCacheRemove_(GUARDA_CACHE.VEHICLES)}
   if(loc.movimento.vtrOrigem===GUARDA.VTR_ORIGEM.OUTROS)guardInvalidateVehicleHistoryCache_();
@@ -952,8 +966,10 @@ function confirmGuardReturnPublic_(data) {
 }
 
 function getGuardMovementStatus_(data) {
-  const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');const m=loc.movimento;
-  return {id:m.id,status:m.status,kmRetirada:m.kmRetirada,confirmacaoRetiradaEm:m.confirmacaoRetiradaEm,kmDevolucao:m.kmDevolucao,confirmacaoDevolucaoEm:m.confirmacaoDevolucaoEm,kmPercorrido:m.kmPercorrido,vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca},militar:{postoGraduacao:m.militarPostoGraduacao,nomeGuerra:m.militarNomeGuerra}};
+  const id=guardText_(data&&data.movimentacaoId||data&&data.id,100);if(!id)throw new Error('Movimentação não informada.');
+  const cached=guardCacheGetJson_(guardMovementStatusCacheKey_(id));if(cached&&cached.id===id)return cached;
+  const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
+  const payload=guardMovementStatusPayload_(loc.movimento);guardCachePutJson_(guardMovementStatusCacheKey_(id),payload,GUARDA_CACHE.MOVEMENT_STATUS_SECONDS);return payload;
 }
 
 function guardOpenShiftLocator_() {
@@ -1250,4 +1266,10 @@ function testarControleGuardaPerformance066(){
   ensureGuardStructure_();guardInvalidateContextCache_();const t0=Date.now(),a=guardContextSnapshot_(true),t1=Date.now(),b=guardContextSnapshot_(),t2=Date.now();
   const stamp=Utilities.formatDate(new Date('2026-09-01T14:31:00-03:00'),SIGVTR.TIMEZONE,'dd-MM-yyyy_HH-mm'),nome=sanitizeFilename_('controle-da-guarda_'+stamp+'.pdf');
   return {success:GUARDA.MODULE_VERSION==='0.6.6'&&nome==='controle-da-guarda_01-09-2026_14-31.pdf',moduleVersion:GUARDA.MODULE_VERSION,nomePdf:nome,contextoPrimeiraMs:t1-t0,contextoCacheMs:t2-t1,contextoCacheAtivo:!!b.cached,escritasConfirmacaoAgrupadas:true};
+}
+
+function testarControleGuardaPerformance067(){
+  const a=Date.now(),ctx1=guardContextSnapshot_(true),first=Date.now()-a,b=Date.now(),ctx2=guardContextSnapshot_(),second=Date.now()-b;
+  const militares=guardMilitaryList_();
+  return {success:true,moduleVersion:GUARDA.MODULE_VERSION,contextoPrimeiraMs:first,contextoCacheMs:second,militaresBusca:militares.length,pollingCacheSegundos:GUARDA_CACHE.MOVEMENT_STATUS_SECONDS,observacao:'Nome/RG são pesquisados localmente; CPF permanece consultado sob demanda no backend. O polling usa cache curto por movimentação.'};
 }
