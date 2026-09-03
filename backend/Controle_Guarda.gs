@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.6.8.1',
+  MODULE_VERSION: '0.7.0',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -1178,6 +1178,57 @@ function generateGuardShiftPdf_(turnoId,opts){
 }
 function getGuardShiftPdf_(data){data=data||{};const id=guardText_(data.turnoId,100);if(!id)throw new Error('Informe o turno.');const loc=guardShiftLocatorById_(id);if(!loc)throw new Error('Turno não encontrado.');if(!loc.turno.pdfFileId)return generateGuardShiftPdf_(id,{returnBase64:true});try{const file=DriveApp.getFileById(loc.turno.pdfFileId),blob=file.getBlob();return {turnoId:id,fileId:file.getId(),filename:file.getName(),geradoEm:loc.turno.pdfGeradoEm,mimeType:'application/pdf',base64:Utilities.base64Encode(blob.getBytes())}}catch(_){return generateGuardShiftPdf_(id,{returnBase64:true})}}
 function regenerateGuardShiftPdf_(data){data=data||{};try{return generateGuardShiftPdf_(guardText_(data.turnoId,100),{returnBase64:data.returnBase64!==false})}catch(error){throw new Error(guardPdfFriendlyError_(error))}}
+
+
+
+/******************************************************************
+ * Controle da Guarda - integração com Admin > Relatórios
+ * v0.7.0
+ ******************************************************************/
+function buildReportGuardV2_(p){
+  p=p||{};ensureGuardStructure_();
+  const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS);
+  const hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
+  const start=String(p.dataInicial||'').trim()?new Date(String(p.dataInicial)+'T00:00:00'):null;
+  const end=String(p.dataFinal||'').trim()?new Date(String(p.dataFinal)+'T23:59:59.999'):null;
+  const defs=[['dataServico','Data'],['inicio','Início'],['termino','Término'],['status','Situação'],['responsavel','Responsável pelo encerramento'],['movimentacoes','Movimentações'],['devolvidas','Devolvidas'],['emUso','Em uso no encerramento'],['recebidasTurnoAnterior','Recebidas de turno anterior'],['pdf','PDF']];
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const turno=guardShiftFromRow_(rows[r],hm.map);
+    if(!turno||!turno.id||!turno.inicioEm)continue;
+    const dt=new Date(turno.inicioEm);if(isNaN(dt.getTime()))continue;
+    if(start&&dt<start)continue;if(end&&dt>end)continue;
+    const resumo=getGuardShiftSummary_(turno.id);
+    const isSub=turno.status===GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO;
+    const responsavel=isSub?[turno.encerradoPorPostoGraduacao,turno.encerradoPorNome].filter(Boolean).join(' '):[turno.comandantePostoGraduacao,turno.comandanteNome].filter(Boolean).join(' ');
+    const statusMap={ABERTO:'ABERTO',PENDENTE_ENCERRAMENTO:'PENDENTE',FECHADO:'FECHADO',FECHADO_POR_SUBSTITUTO:'FECHADO POR OUTRO MILITAR'};
+    out.push({
+      turnoId:turno.id,
+      dataServico:guardPdfDate_(turno.inicioEm,false),
+      inicio:guardPdfDate_(turno.inicioEm,true),
+      termino:turno.fimEm?guardPdfDate_(turno.fimEm,true):'—',
+      status:statusMap[turno.status]||turno.status||'—',
+      responsavel:responsavel||'—',
+      movimentacoes:Number(resumo.movimentacoes||0),
+      devolvidas:Number(resumo.devolvidas||0),
+      emUso:Number(resumo.emUso||0),
+      recebidasTurnoAnterior:Number(resumo.devolucoesTurnoAnterior||0),
+      pdf:turno.pdfFileId?'DISPONÍVEL':((turno.status===GUARDA.STATUS_TURNO.FECHADO||turno.status===GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO)?'GERAR':'INDISPONÍVEL'),
+      pdfGerado:!!turno.pdfFileId,
+      fechado:turno.status===GUARDA.STATUS_TURNO.FECHADO||turno.status===GUARDA.STATUS_TURNO.FECHADO_SUBSTITUTO,
+      _time:dt.getTime()
+    });
+  }
+  out.sort(function(a,b){return b._time-a._time;});out.forEach(function(x){delete x._time;});
+  const summary={registros:out.length,fechados:out.filter(function(x){return x.fechado;}).length,pendentes:out.filter(function(x){return x.status==='PENDENTE';}).length,abertos:out.filter(function(x){return x.status==='ABERTO';}).length};
+  return reportFinishV2_('Controle da Guarda',defs,out,p,summary);
+}
+
+function testarControleGuardaEtapa7(){
+  ensureGuardStructure_();
+  const r=buildReportGuardV2_({dataInicial:'',dataFinal:'',colunas:[]});
+  return {success:GUARDA.MODULE_VERSION==='0.7.0'&&Array.isArray(r.registros),moduleVersion:GUARDA.MODULE_VERSION,integracaoAdminRelatorios:true,turnosEncontrados:r.registros.length,pdfRegeneravel:true};
+}
 
 function testarControleGuardaEtapa6(){
   ensureGuardStructure_();const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_SHIFTS),hm=guardHeaderMap_(sh).map,required=['PDF_FILE_ID','PDF_GERADO_EM'];const cols=required.every(function(k){return hm[k]!==undefined});

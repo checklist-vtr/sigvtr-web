@@ -1,7 +1,7 @@
 /******************************************************************
  * SIGVTR - Checklist Mobile
  * Arquivo: Complemento_Mobile_v4.gs
- * Versão do pacote: 1.20.27-RC1
+ * Versão do pacote: 1.20.28-RC1
  * Checklist do condutor simplificado e avarias persistentes.
  ******************************************************************/
 function doPost(e){
@@ -61,6 +61,7 @@ function doPost(e){
       if(action==="adminHistoricoViatura")return json_({success:true,data:getAdminVehicleHistory_(String(data.prefixo||""))});
       if(action==="adminBuscaGlobal")return json_({success:true,data:globalAdminSearch_(data)});
       if(action==="adminRelatorios")return json_({success:true,data:getAdminReports_(data)});
+      if(action==="adminGuardaBaixarPdfTurno")return json_({success:true,data:getGuardShiftPdf_(data)});
       if(action==="adminAiAsk")return json_({success:true,data:adminAiAsk_(data,adminReadCtx.user)});
       if(action==="adminCapacidade")return json_({success:true,data:getAdminCapacityStatus_()});
       if(action==="adminCartoes")return json_({success:true,data:getAdminCards_(adminReadCtx.user)});
@@ -122,6 +123,7 @@ function doPost(e){
         if(action==="adminAtualizarAvaria")return json_({success:true,data:updateAdminDamage_(data)});
         if(action==="adminGerarPacoteArquivamento")return json_({success:true,data:generateArchiveDataPackage_(data)});
         if(action==="adminConfirmarArquivoFisico")return json_({success:true,data:confirmPhysicalArchive_(data)});
+        if(action==="adminGuardaRegenerarPdfTurno")return json_({success:true,data:regenerateGuardShiftPdf_(data)});
         if(action==="adminSalvarCartao")return json_({success:true,data:saveAdminCard_(data,adminWriteCtx.user)});
       }
       throw new Error("Ação não reconhecida.");

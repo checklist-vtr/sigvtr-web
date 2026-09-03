@@ -1,6 +1,6 @@
 /******************************************************************
  * SIGVTR - Autenticação e autorização administrativa
- * Versão: 1.20.22-RC1
+ * Versão: 1.20.28-RC1
  *
  * Observação criptográfica:
  * Google Apps Script não possui bcrypt/Argon2/PBKDF2 nativos. Para não
@@ -29,21 +29,21 @@ const ADMIN_AUTH = Object.freeze({
     CMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminRelatorios','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminRelatorios','adminGuardaBaixarPdfTurno','adminGuardaRegenerarPdfTurno','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminAlterarMinhaSenha'
     ],
     SUBCMD: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminRelatorios','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
+      'adminBuscaGlobal','adminRelatorios','adminGuardaBaixarPdfTurno','adminGuardaRegenerarPdfTurno','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas',
       'adminSalvarViatura','adminRegistrarRevisaoViatura','adminImportarFrotaOficial','adminAtualizarViaturasEmMassa',
       'adminAtualizarAvaria','adminAlterarMinhaSenha'
     ],
     FISCAL: [
       'adminDashboard','adminAlertas','adminAlertasRecentes','adminChecklists','adminChecklistDetalhe',
       'adminAvarias','adminAvariaDetalhe','adminViaturas','adminViaturaDetalhe','adminHistoricoViatura',
-      'adminBuscaGlobal','adminRelatorios','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
+      'adminBuscaGlobal','adminRelatorios','adminGuardaBaixarPdfTurno','adminGuardaRegenerarPdfTurno','adminAiAsk','adminCartoes','adminSalvarCartao','adminAtualizarStatusAlerta','adminConsumirNotificacoesNovas','adminAtualizarAvaria',
       'adminSalvarViatura','adminRegistrarRevisaoViatura',
       'adminAlterarMinhaSenha'
     ],

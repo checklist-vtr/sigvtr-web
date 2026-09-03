@@ -545,6 +545,44 @@ function ensureAdminDamageColumns_(sheet){
 
 /* ===== Gestão de Viaturas v1.18.0-RC1 ===== */
 const ADMIN_VEHICLE_HEADERS=["ID-VTR","Prefixo","Placa","Chassi","Nº do Motor","RENAVAM","Marca","Modelo","Ano","Combustível","Tipo Combustível","Tipo","Lotação","KM Inicial","KM Atual","Próxima Revisão KM","Antecedência Alerta KM","Status","Data do Status","Cadastro","Observações","Data Cadastro","Última Atualização","Atualizado Por"];
+
+/**
+ * Normaliza o prefixo administrativo sem remover zeros à esquerda.
+ * Aceita a frota fixa 50-2001..50-2021 e prefixos externos numéricos
+ * de até 20 dígitos. Retorna string vazia somente quando não informado.
+ */
+function normalizeVehiclePrefix_(value){
+  const raw=String(value==null?"":value).trim().toUpperCase();
+  if(!raw)return "";
+  if(/^50-(200[1-9]|201[0-9]|202[0-1])$/.test(raw))return raw;
+  if(/^\d{1,20}$/.test(raw))return raw;
+  throw new Error("Prefixo inválido. Use 50-2001 a 50-2021 ou somente números para prefixos externos.");
+}
+
+/**
+ * Classifica o cadastro mestre sem bloquear salvamentos parciais.
+ * A classificação é apenas informativa: viaturas reserva podem permanecer
+ * PENDENTE e ser completadas posteriormente, conforme regra já existente.
+ */
+function vehicleRegistrationStatus_(vehicle){
+  const v=vehicle||{};
+  const has=function(value){return String(value==null?"":value).trim()!=="";};
+  const fuel=v["Tipo Combustível"]||v["Combustível"]||v.tipoCombustivel||v.combustivel||"";
+  const required=[
+    v.Prefixo||v.prefixo,
+    v.Placa||v.placa,
+    v.Chassi||v.chassi,
+    v["Nº do Motor"]||v.motor,
+    v.RENAVAM||v.renavam,
+    v.Marca||v.marca,
+    v.Modelo||v.modelo,
+    v.Ano||v.ano,
+    fuel,
+    v.Tipo||v.tipo,
+    v["Lotação"]||v.lotacao
+  ];
+  return required.every(has)?"COMPLETO":"PENDENTE";
+}
 const ADMIN_VEHICLE_STATUS_HISTORY_HEADERS=["ID_HISTORICO","ID_VTR","Prefixo","Placa","Status Anterior","Novo Status","Data/Hora Alteração","ID Usuário","Responsável","Perfil","Observação","Origem"];
 function ensureAdminVehicleStatusHistorySheet_(){return ensureSheetWithHeaders_(getSpreadsheet_(),SIGVTR.SHEETS.STATUS_HISTORY,ADMIN_VEHICLE_STATUS_HISTORY_HEADERS);}
 function statusHistorySafeText_(value,max){let text=String(value==null?"":value).replace(/[\u0000-\u001F\u007F]/g," ").replace(/\s+/g," ").trim();text=text.slice(0,Math.max(1,Number(max)||500));if(/^[=+@]/.test(text))text="'"+text;return text;}
@@ -577,19 +615,6 @@ function buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews){
   return (rows||[]).filter(function(r){return String(r.Prefixo||"").trim();}).map(function(r){const id=String(r["ID-VTR"]||""),prefix=String(r.Prefixo||""),active=(reviewByVehicle[id]||{}).row||{},last=lastByVehicle[id]||null;return {id:id,prefixo:prefix,placa:r.Placa||"",chassi:r.Chassi||"",motor:r["Nº do Motor"]||"",renavam:r.RENAVAM||"",marca:r.Marca||"",modelo:r.Modelo||"",ano:r.Ano||"",combustivel:r.Combustível||"",tipoCombustivel:r["Tipo Combustível"]||"",tipo:r.Tipo||"",lotacao:r.Lotação||"",kmInicial:Number(r["KM Inicial"]||0),kmAtual:Number(r["KM Atual"]||0),proximaRevisao:Number(active["Próxima Revisão KM"]||r["Próxima Revisão KM"]||0),antecedenciaAlerta:Number(active["Antecedência Alerta KM"]||r["Antecedência Alerta KM"]||200),statusRevisao:String(active.Status||"NAO_CONFIGURADA").toUpperCase(),idRevisao:active.ID_REVISAO||"",status:r.Status||"ATIVA",dataStatus:formatDateForApi_(r["Data do Status"]),cadastro:r.Cadastro||vehicleRegistrationStatus_(r),observacoes:r.Observações||"",ultimaAtualizacao:formatDateForApi_(r["Última Atualização"]),avariasAbertas:openByVehicle[id]||0,ultimoChecklist:last};});
 }
 function getAdminVehicles_(params){const perfTotal=Date.now(),forceFresh=String((params||{}).fresh||"")==="1";if(!forceFresh){const cached=adminCacheGetJson_(ADMIN_VEHICLES_CACHE_KEY_);if(cached){adminPerfMark_('adminViaturas CACHE HIT',perfTotal);cached.backendCache=true;return cached;}}const ss=getSpreadsheet_(),sh=getAdminVehicleSheetForRead_(ss),perfRead=Date.now(),rows=readSheetObjects_(sh),damages=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.DAMAGES)),withdrawals=readSheetObjects_(ss.getSheetByName(SIGVTR.SHEETS.WITHDRAWALS)),reviews=readSheetObjects_(ss.getSheetByName("REVISOES"));adminPerfMark_('adminViaturas leituras Sheets',perfRead);const perfBuild=Date.now(),result={items:buildAdminVehiclesFromRows_(rows,damages,withdrawals,reviews)};adminCachePutJson_(ADMIN_VEHICLES_CACHE_KEY_,result,30);adminPerfMark_('adminViaturas processamento',perfBuild);adminPerfMark_('adminViaturas TOTAL',perfTotal);return result;}
-/**
- * Normaliza prefixos administrativos sem perder zeros a esquerda.
- * Frota fixa: 50-2001 a 50-2021.
- * Viaturas externas/reserva: somente digitos, ate 20 caracteres.
- */
-function normalizeVehiclePrefix_(v){
-  const p=String(v==null?"":v).trim().toUpperCase();
-  if(!p)return "";
-  if(/^50-(200[1-9]|201[0-9]|202[0-1])$/.test(p))return p;
-  if(/^\d{1,20}$/.test(p))return p;
-  throw new Error("Prefixo invalido. Use 50-2001 a 50-2021 ou somente numeros.");
-}
-
 function getAdminVehicleDetail_(id,prefixo){const data=getAdminVehicles_().items;const p=normalizeVehiclePrefix_(prefixo);const vehicle=data.find(function(v){return (id&&String(v.id)===String(id))||(p&&normalizeVehiclePrefix_(v.prefixo)===p);});if(!vehicle)throw new Error("Viatura não encontrada.");return vehicle;}
 function saveAdminVehicle_(p){const sh=ensureAdminVehicleSheet_(),headers=getHeaders_(sh),rows=sh.getDataRange().getValues(),prefix=normalizeVehiclePrefix_(p.prefixo);if(!prefix)throw new Error("Informe o prefixo.");let rowIndex=-1;const idCol=headers.indexOf("ID-VTR"),preCol=headers.indexOf("Prefixo");for(let i=1;i<rows.length;i++){if((p.id&&String(rows[i][idCol])===String(p.id))||normalizeVehiclePrefix_(rows[i][preCol])===prefix){rowIndex=i+1;break;}}const now=new Date(),id=rowIndex>0?String(sh.getRange(rowIndex,idCol+1).getValue()||""):"VTR-"+Utilities.getUuid(),oldStatus=rowIndex>0?String(sh.getRange(rowIndex,headers.indexOf("Status")+1).getValue()||"ATIVA").trim().toUpperCase():"",newStatus=String(p.status||"ATIVA").trim().toUpperCase(),next=Math.max(0,Number(p.proximaRevisao||0)),advance=Math.max(0,Number(p.antecedenciaAlerta===""||p.antecedenciaAlerta==null?200:p.antecedenciaAlerta));const statusChanged=rowIndex>0&&oldStatus!==newStatus;if(statusChanged)ensureAdminVehicleStatusHistoryInitialized_();const values={"ID-VTR":id,"Prefixo":prefix,"Placa":String(p.placa||"").toUpperCase(),"Chassi":String(p.chassi||"").toUpperCase(),"Nº do Motor":String(p.motor||"").toUpperCase(),"RENAVAM":String(p.renavam||""),"Marca":p.marca||"","Modelo":p.modelo||"","Ano":p.ano||"","Tipo Combustível":p.tipoCombustivel||"","Tipo":p.tipo||"","Lotação":p.lotacao||"20º BPM","KM Inicial":Number(p.kmInicial||0),"KM Atual":Number(p.kmAtual||0),"Próxima Revisão KM":next,"Antecedência Alerta KM":advance,"Status":newStatus,"Data do Status":(!rowIndex||rowIndex<0||oldStatus!==newStatus)?now:(rowIndex>0&&headers.indexOf("Data do Status")>=0?sh.getRange(rowIndex,headers.indexOf("Data do Status")+1).getValue():""),"Observações":p.observacoes||"","Última Atualização":now,"Atualizado Por":p.admin||"Administrador"};values.Cadastro=vehicleRegistrationStatus_(values);if(rowIndex<0){values["Data Cadastro"]=now;appendByHeaders_(sh,headers,values);rowIndex=sh.getLastRow();}else{headers.forEach(function(h,i){if(Object.prototype.hasOwnProperty.call(values,h))sh.getRange(rowIndex,i+1).setValue(values[h]);});}sh.getRange(rowIndex,preCol+1).setNumberFormat("@").setValue(prefix);
   if(statusChanged)appendVehicleStatusHistory_({idVtr:id,prefixo:prefix,placa:values.Placa,statusAnterior:oldStatus,novoStatus:newStatus,dataHora:now,idUsuario:p.adminId||"",responsavel:p.admin||"Administrador",perfil:p.adminPerfil||"",observacao:values.Observações,origem:p.origemStatus||"EDICAO_INDIVIDUAL"});
@@ -702,9 +727,9 @@ function normalizeReportFuel_(value){const v=String(value||'').trim().toUpperCas
 function getAdminReportsV2_(params){
   params=params||{};
   const type=String(params.tipoRelatorio||'CHECKLISTS').trim().toUpperCase();
-  const allowed=['CHECKLISTS','FROTA','MOVIMENTACOES_STATUS','CARTOES','AVARIAS','COMBUSTIVEL','QUILOMETRAGEM','PERSONALIZADO'];
+  const allowed=['CHECKLISTS','FROTA','MOVIMENTACOES_STATUS','CARTOES','AVARIAS','COMBUSTIVEL','QUILOMETRAGEM','CONTROLE_GUARDA','PERSONALIZADO'];
   if(allowed.indexOf(type)<0)throw new Error('Tipo de relatório inválido.');
-  const builders={CHECKLISTS:buildReportChecklistsV2_,FROTA:buildReportFleetV2_,MOVIMENTACOES_STATUS:buildReportStatusMovementsV2_,CARTOES:buildReportCardsV2_,AVARIAS:buildReportDamagesV2_,COMBUSTIVEL:buildReportFuelV2_,QUILOMETRAGEM:buildReportReviewsV2_,PERSONALIZADO:buildReportCustomV2_};
+  const builders={CHECKLISTS:buildReportChecklistsV2_,FROTA:buildReportFleetV2_,MOVIMENTACOES_STATUS:buildReportStatusMovementsV2_,CARTOES:buildReportCardsV2_,AVARIAS:buildReportDamagesV2_,COMBUSTIVEL:buildReportFuelV2_,QUILOMETRAGEM:buildReportReviewsV2_,CONTROLE_GUARDA:buildReportGuardV2_,PERSONALIZADO:buildReportCustomV2_};
   const result=builders[type](params,createAdminReadContext_(getSpreadsheet_()))||{};
   result.tipoRelatorio=type;
   result.geradoEm=Utilities.formatDate(new Date(),SIGVTR.TIMEZONE,'dd/MM/yyyy HH:mm:ss');
