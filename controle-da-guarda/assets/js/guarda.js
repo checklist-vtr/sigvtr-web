@@ -31,7 +31,7 @@ const GuardPage=(()=>{
   function renderApp(){
     hide('loginView');show('appView');
     $('operatorName').textContent=state.context?.operator?.name||state.context?.operator?.login||'Operador';
-    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.6.8.1'}`;
+    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'1.0.0'}`;
     renderPendingShifts(state.context?.turnosPendentes||[]);
     if(state.context?.turno){
       hide('noShiftView');show('shiftView');$('shiftStartedAt').textContent=`Iniciado em ${formatDateTime(state.context.turno.inicioEm)}`;
@@ -130,10 +130,10 @@ const GuardPage=(()=>{
     $('qrStatus').className='qr-status confirmed';$('qrStatus').innerHTML=`<i class="bi bi-check-circle-fill me-2"></i>${isReturn?'Devolução confirmada':'Retirada confirmada'}`;
     $('qrSuccessDetails').innerHTML=isReturn?`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM final: ${escapeHtml(data.kmDevolucao||'')}</span><span>Percorrido: ${escapeHtml(data.kmPercorrido||'0')} km</span><span>${escapeHtml(formatDateTime(data.confirmacaoDevolucaoEm))}</span>`:`<strong>VTR ${escapeHtml(data.vtr?.prefixo||'')}</strong><span>KM registrado: ${escapeHtml(data.kmRetirada||'')}</span><span>${escapeHtml(formatDateTime(data.confirmacaoRetiradaEm))}</span>`;
     if(!isReturn)resetWithdrawalForm(false);
-    $('qrContinueButton').textContent=isReturn?'Fechar':'Registrar próxima retirada';show('qrSuccess');await refreshMovements(false)
+    $('qrContinueButton').textContent='Fechar';show('qrSuccess');await refreshMovements(false)
   }
   function closeQr(){stopPolling();hide('qrOverlay');state.currentMovement=null;state.currentOperation='RETIRADA';hide('qrSuccess');show('qrWaiting');$('qrStatus').className='qr-status waiting';$('qrStatus').innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Aguardando confirmação do condutor...'}
-  async function qrContinue(){if(state.currentOperation==='DEVOLUCAO'){closeQr();return}closeQr();resetWithdrawalForm(true);alertBox('Retirada confirmada. Pronto para registrar a próxima VTR.','success')}
+  async function qrContinue(){closeQr()}
 
   function clearCommanderFields(){
     $('commanderMilitaryId').value='';$('commanderSearch').value='';$('commanderSearchResults').innerHTML='';hide('commanderSearchResults');
