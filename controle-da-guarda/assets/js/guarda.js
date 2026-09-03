@@ -30,7 +30,7 @@ const GuardPage=(()=>{
   function renderApp(){
     hide('loginView');show('appView');
     $('operatorName').textContent=state.context?.operator?.name||state.context?.operator?.login||'Operador';
-    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.6.8'}`;
+    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'0.6.8.1'}`;
     renderPendingShifts(state.context?.turnosPendentes||[]);
     if(state.context?.turno){
       hide('noShiftView');show('shiftView');$('shiftStartedAt').textContent=`Iniciado em ${formatDateTime(state.context.turno.inicioEm)}`;
@@ -169,7 +169,7 @@ const GuardPage=(()=>{
   function downloadPdf(pdf){if(!pdf?.base64)return false;try{const binary=atob(pdf.base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);const blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=pdf.filename||'controle-da-guarda.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);return true}catch(_){return false}}
   async function handleDownloadPdf(){const btn=$('downloadShiftPdfButton');if(!state.lastPdf?.turnoId){alertBox('PDF indisponível para download.','warning');return}btn.disabled=true;const old=btn.innerHTML;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Preparando PDF...';try{let pdf=state.lastPdf;if(!pdf.base64)pdf=await ApiService.post('guardaBaixarPdfTurno',{turnoId:state.lastPdf.turnoId},{timeout:30000,retries:0});state.lastPdf=pdf;if(!downloadPdf(pdf))throw new Error('Não foi possível preparar o arquivo.')}catch(error){alertBox(error.message||'PDF indisponível para download.','warning')}finally{btn.disabled=false;btn.innerHTML=old}}
   async function submitCloseShift(event){event.preventDefault();clearAlert('closeShiftAlert');const pending=state.closeMode==='PENDENTE',btn=$('confirmCloseShiftButton');let encerramentoPorOutro=false;
-    if(pending){const chosen=document.querySelector('input[name="pendingCloserType"]:checked');if(!chosen){alertBox('Informe se o encerramento está sendo feito pelo próprio Comandante da Guarda deste turno ou por outro militar.','warning','closeShiftAlert');return}encerramentoPorOutro=chosen.value==='OUTRO';if(encerramentoPorOutro&&!$('substituteReason').value.trim()){alertBox('Informe o motivo do encerramento por outro militar.','warning','closeShiftAlert');$('substituteReason').focus();return}}
+    if(pending){const chosen=document.querySelector('input[name="pendingCloserType"]:checked');if(!chosen){alertBox('Informe se quem está encerrando é o Comandante da Guarda deste turno.','warning','closeShiftAlert');return}encerramentoPorOutro=chosen.value==='OUTRO';if(encerramentoPorOutro&&!$('substituteReason').value.trim()){alertBox('Informe o motivo do encerramento por outro militar.','warning','closeShiftAlert');$('substituteReason').focus();return}}
     btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Fechando turno...';
     const payload={turnoId:state.closeTurnId,militarId:$('commanderMilitaryId').value,postoGraduacao:$('commanderRank').value,rg:$('commanderRg').value,nomeCompleto:$('commanderName').value,nomeGuerra:$('commanderWarName').value,motivo:$('substituteReason').value.trim(),encerramentoPorOutro:encerramentoPorOutro};
     try{
