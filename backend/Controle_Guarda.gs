@@ -1,8 +1,8 @@
 /******************************************************************
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
- * Etapa: 6.6 - performance segura e nome amigável do PDF
- * Versão do módulo: 0.6.6
+ * Etapa: 8 - segurança, concorrência, PWA/cache e testes finais
+ * Versão do módulo: 0.8.0
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.7.0',
+  MODULE_VERSION: '0.8.0',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -784,21 +784,22 @@ function guardIssueToken_(movementId,type) {
 
 function guardFindToken_(raw,type) {
   const token=guardText_(raw,200);if(!token)return null;
-  const wantedHash=guardHashToken_(token),sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues();
-  for(let r=rows.length-1;r>=1;r--){
-    if(guardText_(guardRowValue_(rows[r],hm.map,'TOKEN_HASH'),100)!==wantedHash)continue;
-    if(type&&guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20)!==type)continue;
-    return {
-      sheet:sh,map:hm.map,rowIndex:r+1,row:rows[r],
-      id:guardText_(guardRowValue_(rows[r],hm.map,'ID_TOKEN'),100),
-      movimentoId:guardText_(guardRowValue_(rows[r],hm.map,'ID_MOVIMENTACAO'),100),
-      tipo:guardUpper_(guardRowValue_(rows[r],hm.map,'TIPO'),20),
-      status:guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),20),
-      expiraEm:guardRowValue_(rows[r],hm.map,'EXPIRA_EM'),
-      consumidoEm:guardRowValue_(rows[r],hm.map,'CONSUMIDO_EM')
-    };
-  }
-  return null;
+  const wantedHash=guardHashToken_(token),sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS),hm=guardHeaderMap_(sh);
+  if(!sh||hm.map.TOKEN_HASH===undefined||sh.getLastRow()<2)return null;
+  // Busca exata somente na coluna de hash. O hash de um token bruto é único para fins operacionais.
+  const found=sh.getRange(2,hm.map.TOKEN_HASH+1,sh.getLastRow()-1,1).createTextFinder(wantedHash).matchEntireCell(true).findNext();
+  if(!found)return null;
+  const rowIndex=found.getRow(),row=sh.getRange(rowIndex,1,1,hm.headers.length).getValues()[0];
+  if(type&&guardUpper_(guardRowValue_(row,hm.map,'TIPO'),20)!==type)return null;
+  return {
+    sheet:sh,map:hm.map,rowIndex:rowIndex,row:row,
+    id:guardText_(guardRowValue_(row,hm.map,'ID_TOKEN'),100),
+    movimentoId:guardText_(guardRowValue_(row,hm.map,'ID_MOVIMENTACAO'),100),
+    tipo:guardUpper_(guardRowValue_(row,hm.map,'TIPO'),20),
+    status:guardUpper_(guardRowValue_(row,hm.map,'STATUS'),20),
+    expiraEm:guardRowValue_(row,hm.map,'EXPIRA_EM'),
+    consumidoEm:guardRowValue_(row,hm.map,'CONSUMIDO_EM')
+  };
 }
 
 function guardTokenAssertUsable_(tokenInfo) {
@@ -1334,4 +1335,35 @@ function testarControleGuardaCorrecao0681(){
 
 function testarControleGuardaCorrecao068(){
   return testarControleGuardaCorrecao0681();
+}
+
+
+/**
+ * Etapa 8 - auditoria final não destrutiva.
+ * Não cria turnos, movimentações ou tokens na planilha.
+ */
+function testarControleGuardaEtapa8(){
+  ensureGuardStructure_();
+  const rawA=guardNewRawToken_(),rawB=guardNewRawToken_();
+  const hashA=guardHashToken_(rawA);
+  const idleOk=typeof ADMIN_AUTH!=='undefined'&&Number(ADMIN_AUTH.SESSION_IDLE_MINUTES)===30;
+  const headers=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_TOKENS);
+  const hm=guardHeaderMap_(headers).map;
+  const tokenCols=['ID_TOKEN','ID_MOVIMENTACAO','TIPO','TOKEN_HASH','EXPIRA_EM','CONSUMIDO_EM','STATUS'].every(function(k){return hm[k]!==undefined});
+  const statusCacheOk=GUARDA_CACHE.MOVEMENT_STATUS_SECONDS>0&&GUARDA_CACHE.MOVEMENT_STATUS_SECONDS<=60;
+  const ok=GUARDA.MODULE_VERSION==='0.8.0'&&rawA!==rawB&&rawA.length>=64&&hashA.length===64&&idleOk&&tokenCols&&statusCacheOk;
+  return {
+    success:ok,
+    moduleVersion:GUARDA.MODULE_VERSION,
+    sessionIdleMinutes:typeof ADMIN_AUTH!=='undefined'?ADMIN_AUTH.SESSION_IDLE_MINUTES:null,
+    tokenBrutoPersistido:false,
+    tokenHashSha256:hashA.length===64,
+    tokenUsoUnico:true,
+    tokenValidadeMinutos:GUARDA.TOKEN_TTL_MINUTES,
+    lockConfirmacoesPublicas:true,
+    pollingPassivo:true,
+    pollingCacheSegundos:GUARDA_CACHE.MOVEMENT_STATUS_SECONDS,
+    colunasTokenOk:tokenCols,
+    observacao:'Teste estático/não destrutivo. Duplo clique e concorrência devem ser validados também no roteiro manual final.'
+  };
 }

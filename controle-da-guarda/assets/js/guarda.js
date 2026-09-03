@@ -10,6 +10,7 @@ const GuardPage=(()=>{
   function clearAlert(target='appAlert'){const el=$(target);if(!el)return;el.className='alert d-none';el.textContent=''}
   function token(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return ''}}
   function clearSession(){try{sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(SESSION_KEY)}catch(_){}}
+  function ensureGuardSwPolicy(){if('serviceWorker' in navigator)navigator.serviceWorker.register('../sw.js?v=1.18.5-rc1').catch(()=>{})}
   function saveLogin(result){sessionStorage.setItem(TOKEN_KEY,result.token);sessionStorage.setItem(SESSION_KEY,JSON.stringify({authenticated:true,expiresAt:result.expiresAt,user:result.user}));resetIdleTimer()}
   function formatDateTime(iso){if(!iso)return '';const d=new Date(iso);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(d)}
   function setLoading(on){$('loadingScreen').style.display=on?'flex':'none'}
@@ -192,6 +193,6 @@ const GuardPage=(()=>{
     $('prepareQrButton').addEventListener('click',createWithdrawalQr);$('qrCloseButton').addEventListener('click',closeQr);$('qrContinueButton').addEventListener('click',qrContinue);
     $('closeShiftButton').addEventListener('click',()=>openCloseShift('',false));$('closeShiftCloseButton').addEventListener('click',closeCloseShift);$('commanderSearch').addEventListener('input',()=>{clearTimeout(state.commanderSearchTimer);state.commanderSearchTimer=setTimeout(searchCommander,120)});document.querySelectorAll('input[name="pendingCloserType"]').forEach(r=>r.addEventListener('change',()=>{const other=document.querySelector('input[name="pendingCloserType"]:checked')?.value==='OUTRO';if(other){show('substituteReasonGroup');$('substituteReason').required=true}else{hide('substituteReasonGroup');$('substituteReason').required=false;$('substituteReason').value=''}}));$('closeShiftForm').addEventListener('submit',submitCloseShift);$('downloadShiftPdfButton').addEventListener('click',handleDownloadPdf);$('finishCloseShiftButton').addEventListener('click',closeCloseShift);$('passwordForm').addEventListener('submit',changeGuardPassword);$('logoutButton').addEventListener('click',logout)
   }
-  function init(){bind();bindIdleActivity();bootstrap()}return{init};
+  function init(){ensureGuardSwPolicy();bind();bindIdleActivity();bootstrap()}return{init};
 })();
 document.addEventListener('DOMContentLoaded',GuardPage.init);

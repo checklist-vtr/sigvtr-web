@@ -1,3 +1,11 @@
+# Controle da Guarda — v0.6.1 — PDF robusto e performance
+
+O PDF é gerado após o fechamento e permanece regenerável pelos dados estruturados. A cópia final é salva no Drive, mas o arquivo não é a fonte oficial. Para manter fidelidade histórica, uma regeneração considera o horário de fechamento do turno: uma VTR devolvida somente em turno posterior continua aparecendo como **EM USO NO ENCERRAMENTO** no relatório do turno de origem.
+
+Ações backend adicionadas: `guardaBaixarPdfTurno` e `guardaRegenerarPdfTurno`. Ambas exigem sessão válida do perfil GUARDA/DEV.
+
+---
+
 # Controle da Guarda — Etapa 1
 
 Versão do módulo: `0.1.0`.
@@ -58,3 +66,76 @@ A confirmação valida token, expiração, uso anterior, status da movimentaçã
 Enquanto o QR estiver aberto, a tela da Guarda consulta apenas aquela movimentação em intervalo leve de 5 segundos. Ao confirmar, o polling é encerrado e a Guarda recebe a confirmação automaticamente.
 
 Se o QR expirar, o operador pode gerar novamente para a mesma retirada pendente; o token anterior é invalidado e um novo token é emitido sem duplicar a movimentação.
+
+
+### Controle da Guarda 0.3.1 — correções pós-teste
+- Novo perfil `GUARDA`, exclusivo do módulo e sem permissões do painel administrativo.
+- Redirecionamento de contas GUARDA para `/controle-da-guarda/`.
+- Prefixos de VTR reserva preservados como texto, inclusive zeros à esquerda (ex.: `025`).
+- Adicionado fechamento de turno com confirmação de Posto/Graduação, RG, nome completo e nome de guerra do Comandante da Guarda.
+- Logout agora exibe feedback visual imediato “Saindo...”.
+- Troca obrigatória de senha do primeiro acesso ocorre dentro do próprio Controle da Guarda.
+
+
+## Etapa 4 — Retirada e devolução
+A tela operacional apresenta as movimentações do turno. Após confirmação da retirada, a VTR fica em **Em uso** e pode iniciar a devolução. A devolução gera novo QR de uso único, solicita KM final ao condutor, valida KM final >= KM inicial, calcula o percurso e encerra a movimentação. O botão Fechar turno oferece resposta visual imediata enquanto o resumo é consultado no backend.
+
+## Login funcional e identificação do Comandante da Guarda
+A conta GUARDA é funcional/compartilhada e não representa o militar escalado. O operador inicia e conduz o turno com essa conta. No encerramento, o militar que exerceu a função deve ser identificado separadamente. A tela permite pesquisar MILITARES_GUARDA por RG, CPF, nome completo ou nome de guerra, preenchendo Posto/Graduação, RG, Nome completo e Nome de guerra. Os campos permanecem editáveis e podem ser preenchidos manualmente caso o militar não esteja localizado. O turno fechado mantém snapshot desses dados; o PDF deve apresentar o nome do responsável e a função "Comandante da Guarda", além da confirmação eletrônica e respectiva data/hora.
+
+## Continuidade de serviço e turno pendente (v0.5.0)
+Se um comandante deixar o serviço sem encerrar seu turno, o próximo operador da conta funcional pode iniciar um novo turno. O turno anterior não é sobrescrito: passa ao status `PENDENTE_ENCERRAMENTO`.
+
+O encerramento posterior por outro militar exige identificação do responsável e motivo do encerramento por substituto. Esse caso é registrado como `FECHADO_POR_SUBSTITUTO`.
+
+As movimentações preservam `ID_TURNO_RETIRADA` e `ID_TURNO_DEVOLUCAO`. Assim, uma VTR retirada no turno anterior pode ser devolvida durante o turno atual sem mover ou adulterar a retirada original.
+
+
+## Controle da Guarda v0.6.1 — PDF e performance
+- A verificação/migração das quatro abas do Controle da Guarda agora é versionada e não reaplica formatação em todas as requisições.
+- O fechamento do turno foi separado da geração do PDF: o turno é encerrado primeiro e o PDF é gerado em chamada própria com feedback visual contínuo.
+- O fechamento grava a linha do turno em lote, reduzindo chamadas `setValue`.
+- Adicionada `autorizarControleGuardaPdf()` para solicitar explicitamente as permissões de Google Docs/Drive antes do uso do PDF no Web App.
+- Removidas atualizações redundantes da lista durante abertura/fechamento do modal de QR.
+
+### Sessão e inatividade
+A conta funcional do Controle da Guarda utiliza timeout de 30 minutos por inatividade. O backend invalida a sessão após esse período e o frontend também encerra a tela operacional após 30 minutos sem interação, retornando ao login com aviso ao operador.
+
+
+### v0.6.3
+O fechamento passa a enriquecer `MILITARES_GUARDA` quando o comandante informado ainda não existir. A carga inicial do painel reconcilia automaticamente VTRs em uso de turnos anteriores. PDFs usam somente data e hora no nome do arquivo.
+
+
+## v0.6.4 — Reaproveitamento de VTR `OUTROS`
+
+O histórico de `MOVIMENTACOES_GUARDA` é a memória operacional das VTRs reserva/temporárias. A interface consulta esse histórico para sugerir Prefixo, Placa e último KM confirmado. O último KM é obtido prioritariamente da devolução confirmada; na ausência dela, da retirada confirmada. A escolha de uma sugestão apenas reutiliza os dados no novo serviço e **não cria cadastro em `VIATURAS`**.
+
+Para desempenho, o contexto inicial consolida a leitura de turnos/movimentações e listas estáveis usam cache de curta duração. O cache de militares é invalidado ao salvar/complementar cadastro e o cache de reservas é invalidado quando uma retirada/devolução de VTR `OUTROS` é confirmada.
+
+
+### v0.6.5
+O PDF e o resumo do fechamento usam a mesma visão operacional do painel, incluindo VTRs herdadas de turnos anteriores que permaneciam em uso no encerramento.
+
+## v0.6.6 — performance e nome do PDF
+O arquivo PDF usa `controle-da-guarda_DD-MM-AAAA_HH-mm.pdf`. O contexto operacional usa cache de 8 segundos, invalidado sempre que turno ou movimentação é alterado. Escritas críticas de confirmação foram agrupadas para reduzir chamadas ao Google Sheets, sem reduzir validações, locks ou segurança.
+
+### Otimização adicional v0.6.6
+Buscas pontuais por ID de movimentação e turno passaram a usar pesquisa exata na coluna identificadora, evitando leitura completa das abas em chamadas de status/retorno/PDF. As confirmações de retirada/devolução usam escrita agrupada de linha. O login não teve redução de segurança nem alteração no cálculo de senha.
+
+
+## v0.6.7 — performance
+Pesquisa de militares passou a ocorrer localmente após o contexto inicial; polling usa cache curto por movimentação e não renova sessão; início da devolução não relê a mesma linha após gravar.
+
+
+## Etapa 7 — Integração com Admin > Relatórios
+O painel Admin passa a oferecer o tipo **Controle da Guarda**, com filtro por período, listagem dos turnos, resumo operacional e ações para baixar/regenerar o PDF do serviço usando a mesma fonte de dados estruturados.
+
+
+## Controle da Guarda v0.8.0 — segurança, concorrência e PWA/cache
+- Mantém confirmações críticas sob `LockService`, protegendo contra confirmações concorrentes e duplo processamento.
+- Otimiza a localização de tokens usando busca exata na coluna `TOKEN_HASH`, sem carregar toda `TOKENS_GUARDA`.
+- Exclui toda a rota `/controle-da-guarda/` do cache do service worker principal.
+- A página pública remove o token da barra de endereço após capturá-lo, reduzindo exposição em histórico/cópias de URL.
+- Mantém token opaco, hash SHA-256 no banco, validade de 10 minutos e uso único.
+- Mantém sessão funcional com timeout de 30 minutos e polling passivo sem renovação de atividade.
+- Adiciona `testarControleGuardaEtapa8()` e roteiro manual `docs/CONTROLE_DA_GUARDA_TESTES_FINAIS.md`.
