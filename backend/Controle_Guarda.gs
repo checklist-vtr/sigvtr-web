@@ -2,7 +2,7 @@
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
  * Etapa: 8 - segurança, concorrência, PWA/cache e testes finais
- * Versão do módulo: 0.8.0
+ * Versão do módulo: 0.8.1
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '0.8.0',
+  MODULE_VERSION: '0.8.1',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -847,6 +847,9 @@ function createGuardWithdrawal_(data,operator) {
     if(status===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA&&rowTurno===turno.id&&rowMil===military.id){
       reusable={rowIndex:r+1,row:rows[r],movimento:guardMovementFromRow_(rows[r],hm.map)};break;
     }
+    if(status===GUARDA.STATUS_MOV.EM_USO)throw new Error('Esta VTR já está em uso. Registre a devolução antes de iniciar uma nova retirada.');
+    if(status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A devolução desta VTR já foi iniciada. Conclua a devolução antes de iniciar uma nova retirada.');
+    if(status===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)throw new Error('Já existe uma retirada aguardando confirmação para esta VTR.');
     throw new Error('Já existe uma movimentação aberta para esta VTR.');
   }
   let movement;
@@ -873,10 +876,35 @@ function createGuardWithdrawal_(data,operator) {
 
 function getGuardPublicTokenInfo_(data) {
   ensureGuardStructure_();data=data||{};
-  const ti=guardTokenAssertUsable_(guardFindToken_(data.token)),loc=guardMovementLocator_(ti.movimentoId);
-  if(!loc)throw new Error('QR_CODE_INVALIDO');
+  const ti=guardFindToken_(data.token);if(!ti)throw new Error('QR_CODE_INVALIDO');
+  const loc=guardMovementLocator_(ti.movimentoId);if(!loc)throw new Error('QR_CODE_INVALIDO');
   const m=loc.movimento;
 
+  // Reconciliação pós-falha de rede: se o backend concluiu a operação, mas a resposta
+  // não chegou ao celular, o mesmo token consumido ainda permite consultar apenas o
+  // resultado daquela confirmação. Nenhuma nova gravação é autorizada por este caminho.
+  if(ti.status==='CONSUMIDO'){
+    if(ti.tipo===GUARDA.TOKEN_TIPOS.RETIRADA&&m.confirmacaoRetiradaEm){
+      return {
+        confirmado:true,operacao:'RETIRADA',jaProcessado:true,
+        vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
+        km:Number(guardDigits_(m.kmRetirada,12)||0),
+        confirmacaoEm:m.confirmacaoRetiradaEm
+      };
+    }
+    if(ti.tipo===GUARDA.TOKEN_TIPOS.DEVOLUCAO&&m.confirmacaoDevolucaoEm){
+      const kmInicial=Number(guardDigits_(m.kmRetirada,12)||0),kmFinal=Number(guardDigits_(m.kmDevolucao,12)||0);
+      return {
+        confirmado:true,operacao:'DEVOLUCAO',jaProcessado:true,
+        vtr:{prefixo:m.vtrPrefixo,placa:m.vtrPlaca,modelo:m.vtrModelo},
+        km:kmFinal,kmInicial:kmInicial,kmPercorrido:Number(m.kmPercorrido||Math.max(0,kmFinal-kmInicial)),
+        confirmacaoEm:m.confirmacaoDevolucaoEm
+      };
+    }
+    throw new Error('QR_CODE_JA_UTILIZADO');
+  }
+
+  guardTokenAssertUsable_(ti);
   if(ti.tipo===GUARDA.TOKEN_TIPOS.RETIRADA){
     if(m.status!==GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA)throw new Error(m.status===GUARDA.STATUS_MOV.EM_USO?'QR_CODE_JA_UTILIZADO':'QR_CODE_INVALIDO');
     return {
@@ -1351,7 +1379,7 @@ function testarControleGuardaEtapa8(){
   const hm=guardHeaderMap_(headers).map;
   const tokenCols=['ID_TOKEN','ID_MOVIMENTACAO','TIPO','TOKEN_HASH','EXPIRA_EM','CONSUMIDO_EM','STATUS'].every(function(k){return hm[k]!==undefined});
   const statusCacheOk=GUARDA_CACHE.MOVEMENT_STATUS_SECONDS>0&&GUARDA_CACHE.MOVEMENT_STATUS_SECONDS<=60;
-  const ok=GUARDA.MODULE_VERSION==='0.8.0'&&rawA!==rawB&&rawA.length>=64&&hashA.length===64&&idleOk&&tokenCols&&statusCacheOk;
+  const ok=GUARDA.MODULE_VERSION==='0.8.1'&&rawA!==rawB&&rawA.length>=64&&hashA.length===64&&idleOk&&tokenCols&&statusCacheOk;
   return {
     success:ok,
     moduleVersion:GUARDA.MODULE_VERSION,
@@ -1364,6 +1392,13 @@ function testarControleGuardaEtapa8(){
     pollingPassivo:true,
     pollingCacheSegundos:GUARDA_CACHE.MOVEMENT_STATUS_SECONDS,
     colunasTokenOk:tokenCols,
-    observacao:'Teste estático/não destrutivo. Duplo clique e concorrência devem ser validados também no roteiro manual final.'
+    reconciliacaoQrPosFalhaRede:true,
+    tokenRecuperavelSomenteNaAba:true,
+    observacao:'Teste estático/não destrutivo. Duplo clique, concorrência e reconciliação após oscilação de rede devem ser validados também no roteiro manual final.'
   };
+}
+
+function testarControleGuardaCorrecao081(){
+  const r=testarControleGuardaEtapa8();
+  return Object.assign({},r,{success:r.success&&r.reconciliacaoQrPosFalhaRede===true,correcaoRede081:true});
 }
