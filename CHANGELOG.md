@@ -478,3 +478,13 @@ A alteração não muda filtros, seleção de colunas, dados, cálculos, CSV, re
 - Mantém token opaco, hash SHA-256 no banco, validade de 10 minutos e uso único.
 - Mantém sessão funcional com timeout de 30 minutos e polling passivo sem renovação de atividade.
 - Adiciona `testarControleGuardaEtapa8()` e roteiro manual `docs/CONTROLE_DA_GUARDA_TESTES_FINAIS.md`.
+
+## Controle da Guarda v1.0.1 — concorrência multioperador
+- Consolida o uso simultâneo da conta funcional da Guarda em múltiplos terminais.
+- Mantém as escritas críticas serializadas pelo `LockService` global já existente no `doPost`.
+- Impede que um segundo terminal substitua o QR ativo de retirada da mesma VTR.
+- Impede que um segundo terminal substitua o QR ativo de devolução da mesma VTR.
+- O segundo terminal recebe conflito operacional e atualiza a lista, preservando a operação que venceu a concorrência.
+- Remove do painel a ação “Gerar novo QR” durante devolução já aguardando confirmação.
+- Não altera autenticação, fechamento do turno, PDF, cadastro de militares nem regras dos checklists Condutor/Fiscal.
+

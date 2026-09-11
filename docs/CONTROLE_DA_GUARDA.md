@@ -139,3 +139,26 @@ O painel Admin passa a oferecer o tipo **Controle da Guarda**, com filtro por pe
 - Mantém token opaco, hash SHA-256 no banco, validade de 10 minutos e uso único.
 - Mantém sessão funcional com timeout de 30 minutos e polling passivo sem renovação de atividade.
 - Adiciona `testarControleGuardaEtapa8()` e roteiro manual `docs/CONTROLE_DA_GUARDA_TESTES_FINAIS.md`.
+
+## Concorrência multioperador — v1.0.1
+
+O login do Controle da Guarda continua funcional/compartilhado e pode ser usado simultaneamente em dois, três ou mais terminais durante o mesmo turno. O backend mantém as escritas críticas serializadas pelo `LockService` do `doPost`, evitando gravações simultâneas sobre a planilha.
+
+Regras consolidadas:
+- operações em VTRs diferentes podem ser iniciadas por terminais diferentes sem interferência funcional;
+- antes de gravar uma retirada ou devolução, o backend revalida o estado atual da movimentação dentro da região protegida pelo lock;
+- uma VTR com retirada aguardando confirmação não pode receber uma segunda retirada nem ter o QR ativo substituído por outro terminal;
+- uma VTR com devolução aguardando confirmação não pode receber uma segunda solicitação nem ter o QR ativo substituído por outro terminal;
+- o segundo terminal recebe mensagem informando que a operação já está em andamento e atualiza o painel;
+- confirmações públicas continuam de uso único e protegidas contra duplo processamento;
+- após o encerramento do turno, terminais com tela desatualizada não conseguem criar novas movimentações naquele turno, pois a existência do turno aberto é validada novamente no backend;
+- a identificação pessoal permanece somente no fechamento do turno, conforme a regra da conta funcional da Guarda.
+
+### Cenário mínimo de validação
+1. Abrir a mesma conta da Guarda em dois navegadores/dispositivos.
+2. Em cada dispositivo, iniciar operações de VTRs diferentes e confirmar que ambas são registradas.
+3. Nos dois dispositivos, tentar gerar retirada para a mesma VTR quase ao mesmo tempo; apenas uma deve gerar QR.
+4. Repetir o teste para devolução; apenas uma solicitação deve permanecer ativa.
+5. Confirmar o QR válido e verificar atualização do outro terminal.
+6. Fechar o turno em um terminal e tentar nova gravação a partir de outro terminal ainda desatualizado; a operação deve ser recusada.
+

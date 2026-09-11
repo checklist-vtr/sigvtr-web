@@ -2,7 +2,7 @@
  * SIGVTR - Controle da Guarda
  * Arquivo: Controle_Guarda.gs
  * Etapa: 8 - segurança, concorrência, PWA/cache e testes finais
- * Versão do módulo: 1.0.0
+ * Versão do módulo: 1.0.1
  *
  * IMPORTANTE:
  * - Não altera o fluxo dos checklists Condutor/Fiscal.
@@ -12,7 +12,7 @@
  ******************************************************************/
 
 const GUARDA = Object.freeze({
-  MODULE_VERSION: '1.0.0',
+  MODULE_VERSION: '1.0.1',
   SCHEMA_VERSION: '0.6.1',
   TOKEN_TTL_MINUTES: 10,
   STATUS_TURNO: Object.freeze({ABERTO:'ABERTO',PENDENTE:'PENDENTE_ENCERRAMENTO',FECHADO:'FECHADO',FECHADO_SUBSTITUTO:'FECHADO_POR_SUBSTITUTO'}),
@@ -838,14 +838,13 @@ function guardParseKm_(value) {
 function createGuardWithdrawal_(data,operator) {
   const prepared=prepareGuardWithdrawal_(data),turno=prepared.turno,vehicle=prepared.viatura,military=prepared.militar;
   const sh=getSpreadsheet_().getSheetByName(SIGVTR.SHEETS.GUARD_MOVEMENTS),hm=guardHeaderMap_(sh),rows=sh.getDataRange().getValues(),key=guardVehicleMovementKey_(vehicle);
-  let reusable=null;
   for(let r=1;r<rows.length;r++){
     const status=guardUpper_(guardRowValue_(rows[r],hm.map,'STATUS'),50);
     if([GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA,GUARDA.STATUS_MOV.EM_USO,GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO].indexOf(status)<0)continue;
     if(guardMovementKeyFromRow_(rows[r],hm.map)!==key)continue;
     const rowTurno=guardText_(guardRowValue_(rows[r],hm.map,'ID_TURNO'),100),rowMil=guardText_(guardRowValue_(rows[r],hm.map,'MILITAR_ID'),100);
     if(status===GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA&&rowTurno===turno.id&&rowMil===military.id){
-      reusable={rowIndex:r+1,row:rows[r],movimento:guardMovementFromRow_(rows[r],hm.map)};break;
+      throw new Error('Esta VTR já possui uma retirada aguardando confirmação em outro terminal. Aguarde a confirmação ou atualize o painel.');
     }
     if(status===GUARDA.STATUS_MOV.EM_USO)throw new Error('Esta VTR já está em uso. Registre a devolução antes de iniciar uma nova retirada.');
     if(status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A devolução desta VTR já foi iniciada. Conclua a devolução antes de iniciar uma nova retirada.');
@@ -853,8 +852,7 @@ function createGuardWithdrawal_(data,operator) {
     throw new Error('Já existe uma movimentação aberta para esta VTR.');
   }
   let movement;
-  if(reusable){movement=reusable.movimento;}
-  else{
+  {
     const row=new Array(hm.headers.length).fill(''),now=new Date(),id='MGU-'+Utilities.getUuid();
     row[hm.map.ID_MOVIMENTACAO]=id;row[hm.map.ID_TURNO]=turno.id;if(hm.map.ID_TURNO_RETIRADA!==undefined)row[hm.map.ID_TURNO_RETIRADA]=turno.id;row[hm.map.STATUS]=GUARDA.STATUS_MOV.AGUARDANDO_RETIRADA;
     row[hm.map.CRIADA_EM]=now;row[hm.map.ATUALIZADA_EM]=now;
@@ -965,7 +963,8 @@ function startGuardReturn_(data,operator) {
   const id=guardText_(data.movimentacaoId||data.id,100);if(!id)throw new Error('Movimentação não informada.');
   const loc=guardMovementLocator_(id);if(!loc)throw new Error('Movimentação não encontrada.');
   if(loc.movimento.status===GUARDA.STATUS_MOV.ENCERRADA)throw new Error('Esta VTR já foi devolvida.');
-  if(loc.movimento.status!==GUARDA.STATUS_MOV.EM_USO&&loc.movimento.status!==GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('A retirada ainda não foi confirmada para esta VTR.');
+  if(loc.movimento.status===GUARDA.STATUS_MOV.AGUARDANDO_DEVOLUCAO)throw new Error('Esta VTR já possui uma devolução aguardando confirmação em outro terminal. Aguarde a confirmação ou atualize o painel.');
+  if(loc.movimento.status!==GUARDA.STATUS_MOV.EM_USO)throw new Error('A retirada ainda não foi confirmada para esta VTR.');
   const now=new Date(),returnTurn=loc.movimento.turnoDevolucaoId;let refreshed=loc.movimento;
   if(loc.movimento.status===GUARDA.STATUS_MOV.EM_USO||returnTurn!==turno.id){
     const nextRow=guardBatchUpdateRow_(loc.sheet,loc.rowIndex,loc.map,loc.row,{
@@ -1379,7 +1378,7 @@ function testarControleGuardaEtapa8(){
   const hm=guardHeaderMap_(headers).map;
   const tokenCols=['ID_TOKEN','ID_MOVIMENTACAO','TIPO','TOKEN_HASH','EXPIRA_EM','CONSUMIDO_EM','STATUS'].every(function(k){return hm[k]!==undefined});
   const statusCacheOk=GUARDA_CACHE.MOVEMENT_STATUS_SECONDS>0&&GUARDA_CACHE.MOVEMENT_STATUS_SECONDS<=60;
-  const ok=GUARDA.MODULE_VERSION==='1.0.0'&&rawA!==rawB&&rawA.length>=64&&hashA.length===64&&idleOk&&tokenCols&&statusCacheOk;
+  const ok=GUARDA.MODULE_VERSION==='1.0.1'&&rawA!==rawB&&rawA.length>=64&&hashA.length===64&&idleOk&&tokenCols&&statusCacheOk;
   return {
     success:ok,
     moduleVersion:GUARDA.MODULE_VERSION,
@@ -1403,17 +1402,19 @@ function testarControleGuardaCorrecao081(){
   return Object.assign({},r,{success:r.success&&r.reconciliacaoQrPosFalhaRede===true,correcaoRede081:true});
 }
 
-/** Consolidação estável do módulo Controle da Guarda v1.0.0. */
-function testarControleGuardaV100(){
+/** Consolidação estável do módulo Controle da Guarda v1.0.1. */
+function testarControleGuardaV101(){
   const r=testarControleGuardaEtapa8();
   return Object.assign({},r,{
-    success:r.success&&GUARDA.MODULE_VERSION==='1.0.0',
-    release:'1.0.0',
+    success:r.success&&GUARDA.MODULE_VERSION==='1.0.1',
+    release:'1.0.1',
     fluxoOperacionalConsolidado:true,
     adminRelatoriosIntegrado:true,
     pdfRegeneravel:true,
     sessaoInatividadeMinutos:30,
-    mensagem:'Controle da Guarda v1.0.0 pronto para validação final de implantação.'
+    concorrenciaMultioperador:true,
+    qrAtivoNaoSubstituidoPorOutroTerminal:true,
+    mensagem:'Controle da Guarda v1.0.1 pronto para validação de concorrência multioperador.'
   });
 }
 

@@ -755,3 +755,16 @@ Após a confirmação da retirada, o formulário de nova retirada é limpo imedi
 - Mantém token opaco, hash SHA-256 no banco, validade de 10 minutos e uso único.
 - Mantém sessão funcional com timeout de 30 minutos e polling passivo sem renovação de atividade.
 - Adiciona `testarControleGuardaEtapa8()` e roteiro manual `docs/CONTROLE_DA_GUARDA_TESTES_FINAIS.md`.
+
+## Controle da Guarda v1.0.1 — concorrência multioperador
+
+A conta funcional do Controle da Guarda passa a ter suporte operacional explícito para uso simultâneo em múltiplos dispositivos. A proteção global de escrita por `LockService` já existente foi preservada. A correção elimina a regeneração concorrente de QR para a mesma movimentação: se outro terminal já iniciou retirada ou devolução da VTR, o backend mantém a operação existente e recusa a segunda tentativa. O frontend atualiza a lista após o conflito.
+
+### Publicação
+1. Substituir `backend/Controle_Guarda.gs` no Apps Script.
+2. Salvar e criar nova versão da implantação do Web App.
+3. Publicar no GitHub Pages `controle-da-guarda/index.html` e `controle-da-guarda/assets/js/guarda.js`.
+4. `backend/Complemento_Mobile_v4.gs` não precisa ser alterado nesta correção; o `doPost` atual já protege as ações de escrita da Guarda com `ScriptLock`.
+5. Executar `testarControleGuardaEtapa8()` e `testarControleGuardaV101()` no editor do Apps Script.
+6. Realizar o teste manual com pelo menos dois terminais.
+

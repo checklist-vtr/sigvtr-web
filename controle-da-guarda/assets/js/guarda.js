@@ -31,7 +31,7 @@ const GuardPage=(()=>{
   function renderApp(){
     hide('loginView');show('appView');
     $('operatorName').textContent=state.context?.operator?.name||state.context?.operator?.login||'Operador';
-    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'1.0.0'}`;
+    $('moduleVersion').textContent=`v${state.context?.moduleVersion||'1.0.1'}`;
     renderPendingShifts(state.context?.turnosPendentes||[]);
     if(state.context?.turno){
       hide('noShiftView');show('shiftView');$('shiftStartedAt').textContent=`Iniciado em ${formatDateTime(state.context.turno.inicioEm)}`;
@@ -65,8 +65,8 @@ const GuardPage=(()=>{
     $('movementsSummary').innerHTML=`<span><strong>${list.length}</strong> movimentações</span><span><strong>${emUso}</strong> em uso</span><span><strong>${devolvidas}</strong> devolvidas</span>`;
     if(!list.length){$('movementsList').innerHTML='<div class="text-secondary small py-2">Nenhuma movimentação registrada neste turno.</div>';return}
     $('movementsList').innerHTML=list.map(m=>{
-      const canReturn=m.status==='EM_USO'||m.status==='AGUARDANDO_CONFIRMACAO_DEVOLUCAO';
-      const button=canReturn?`<button class="btn btn-sm ${m.status==='EM_USO'?'btn-primary':'btn-outline-primary'}" type="button" data-return-id="${escapeHtml(m.id)}"><i class="bi bi-qr-code me-1"></i>${m.status==='EM_USO'?'Iniciar devolução':'Gerar novo QR'}</button>`:'';
+      const canReturn=m.status==='EM_USO';
+      const button=canReturn?`<button class="btn btn-sm btn-primary" type="button" data-return-id="${escapeHtml(m.id)}"><i class="bi bi-qr-code me-1"></i>Iniciar devolução</button>`:'';
       const km=m.status==='ENCERRADA'?`KM ${escapeHtml(m.kmRetirada||'—')} → ${escapeHtml(m.kmDevolucao||'—')} • ${escapeHtml(m.kmPercorrido||'0')} km`:m.kmRetirada?`KM inicial ${escapeHtml(m.kmRetirada)}`:'Retirada ainda não confirmada';
       const originNote=m.retiradaEmTurnoAnterior?'<small class="movement-origin-note"><i class="bi bi-arrow-left-right"></i> Retirada em turno anterior</small>':'';return `<div class="movement-item"><div class="movement-main"><div class="movement-top"><strong>VTR ${escapeHtml(m.vtrPrefixo||'')}</strong><span class="movement-badge ${movementClass(m.status)}">${escapeHtml(movementLabel(m.status))}</span></div><span>${escapeHtml([m.militarPostoGraduacao,m.militarNomeGuerra].filter(Boolean).join(' '))}</span><small>${escapeHtml(km)}</small>${originNote}</div>${button}</div>`;
     }).join('');
@@ -117,7 +117,7 @@ const GuardPage=(()=>{
     $('qrStatus').className='qr-status waiting';$('qrStatus').innerHTML=`<span class="spinner-border spinner-border-sm me-2"></span>Aguardando confirmação ${isReturn?'da devolução':'do condutor'}...`;
     hide('qrSuccess');show('qrWaiting');show('qrOverlay');startPolling(movement.id,state.currentOperation)
   }
-  async function createWithdrawalQr(){clearAlert();const btn=$('prepareQrButton');if(btn.disabled)return;btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Gerando QR...';try{const data=await ApiService.post('guardaCriarRetirada',{viatura:state.selectedVehicle,militarId:state.selectedMilitary?.id});renderQr(data,'RETIRADA')}catch(error){alertBox(error.message||'Não foi possível gerar o QR de retirada.')}finally{btn.disabled=false;btn.innerHTML='<i class="bi bi-qr-code me-2"></i>Gerar QR de retirada'}}
+  async function createWithdrawalQr(){clearAlert();const btn=$('prepareQrButton');if(btn.disabled)return;btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Gerando QR...';try{const data=await ApiService.post('guardaCriarRetirada',{viatura:state.selectedVehicle,militarId:state.selectedMilitary?.id});renderQr(data,'RETIRADA')}catch(error){alertBox(error.message||'Não foi possível gerar o QR de retirada.');await refreshMovements(false)}finally{btn.disabled=false;btn.innerHTML='<i class="bi bi-qr-code me-2"></i>Gerar QR de retirada'}}
   async function startReturn(movementId,btn){clearAlert();if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Gerando...'}try{const data=await ApiService.post('guardaIniciarDevolucao',{movimentacaoId:movementId});renderQr(data,'DEVOLUCAO')}catch(error){alertBox(error.message||'Não foi possível iniciar a devolução.');await refreshMovements(false)}finally{if(btn)btn.disabled=false}}
   function startPolling(movementId,operation){stopPolling();const poll=async()=>{try{const data=await ApiService.post('guardaStatusMovimentacao',{movimentacaoId:movementId},{timeout:15000,retries:0});const done=operation==='DEVOLUCAO'?data.status==='ENCERRADA':data.status==='EM_USO';if(done){showConfirmed(data,operation);return}}catch(_){}state.pollTimer=setTimeout(poll,5000)};state.pollTimer=setTimeout(poll,2500)}
   function resetWithdrawalForm(scrollToTop){
