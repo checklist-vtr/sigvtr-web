@@ -360,3 +360,15 @@ button:focus-visible,.file-capture-button:focus-visible,input:focus-visible,sele
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+
+/* SIGVTR_SUCCESS_MODAL_MOBILE */
+.success-actions{flex-wrap:wrap}
+.success-actions button{min-width:0;white-space:normal}
+@media(max-width:650px){
+  .modal{padding:12px;align-items:center}
+  .modal-panel{width:100%;max-width:440px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:22px 16px}
+  .success-actions{display:grid;grid-template-columns:1fr;gap:10px;width:100%;margin-top:18px}
+  .success-actions button{width:100%;min-height:52px;padding:12px 14px}
+  .success-icon{width:58px;height:58px}
+}
