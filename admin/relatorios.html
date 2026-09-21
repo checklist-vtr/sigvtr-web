@@ -20,7 +20,7 @@
     <header id="navbar"></header>
     <main class="content-wrapper">
       <div class="container-fluid px-3 px-lg-4 py-4">
-        <section class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <section class="page-header no-print d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
           <div><p class="eyebrow mb-1">ANÁLISE OPERACIONAL</p><h1 class="h3 mb-1">Relatórios</h1><p class="text-secondary mb-0">Gerador de relatórios com filtros e informações escolhidos pelo usuário.</p></div>
         </section>
 
@@ -38,7 +38,7 @@
           <div id="dynamicFilters" class="row g-3 align-items-end">
             <div class="col-6 col-lg-2 filter-date"><label class="form-label fw-semibold" for="reportStart">Data inicial</label><input id="reportStart" class="form-control" type="date"></div>
             <div class="col-6 col-lg-2 filter-date"><label class="form-label fw-semibold" for="reportEnd">Data final</label><input id="reportEnd" class="form-control" type="date"></div>
-            <div class="col-12 col-lg-2 filter-prefix"><label class="form-label fw-semibold" for="reportVehicle">Viatura</label><input id="reportVehicle" class="form-control" placeholder="Prefixo"></div>
+            <div class="col-12 col-lg-2 filter-prefix"><label class="form-label fw-semibold" for="reportVehicle">Viatura</label><input id="reportVehicle" class="form-control" placeholder="Todas as viaturas" list="reportVehicleList" autocomplete="off"><datalist id="reportVehicleList"></datalist></div>
             <div class="col-6 col-lg-2 filter-checklist"><label class="form-label fw-semibold" for="reportType">Checklist</label><select id="reportType" class="form-select"><option value="">Todos</option><option value="CONDUTOR">Condutor</option><option value="FISCAL">Fiscal</option></select></div>
             <div class="col-6 col-lg-2 filter-fuel"><label class="form-label fw-semibold" for="reportFuel">Combustível</label><select id="reportFuel" class="form-select"><option value="">Todos os níveis</option><option value="RESERVA">Reserva</option><option value="1/4">1/4</option><option value="1/2">1/2</option><option value="3/4">3/4</option><option value="CHEIO">Cheio</option></select></div>
             <div class="col-6 col-lg-2 filter-fuel-class"><label class="form-label fw-semibold" for="reportFuelClass">Classificação</label><select id="reportFuelClass" class="form-select"><option value="">Todas</option><option value="CRÍTICO">Crítico</option><option value="ATENÇÃO">Atenção</option><option value="NORMAL">Normal</option></select></div>
@@ -65,9 +65,9 @@
         <div id="reportState" aria-live="polite"></div>
         <div id="reportContent" class="d-none">
           <section class="report-print-header mb-3"><div class="report-institutional-header"><img src="assets/images/brasao-20bpm.png" alt="Brasão do 20º BPM"><div>GOVERNO DO ESTADO DO PARÁ<br>SECRETARIA DE ESTADO DE SEGURANÇA PÚBLICA E DEFESA SOCIAL<br>POLÍCIA MILITAR DO PARÁ<br><strong>20º BATALHÃO DA POLÍCIA MILITAR - “BATALHÃO COMUNITÁRIO”</strong></div><h2 id="reportPrintTitle">RELATÓRIO</h2><div id="reportPrintMeta" class="report-print-meta"></div></div></section>
-          <section id="reportSummary" class="report-summary d-none mb-4" aria-label="Resumo do relatório"></section>
+          <section id="reportSummary" class="report-summary d-none mb-4" aria-label="Resumo do relatório"></section><section id="reportVehicleSummary" class="report-summary d-none mb-4" aria-label="Resumo por viatura"></section>
           <section class="panel-card mb-4"><div class="panel-card-header"><div><h2 id="resultTitle" class="h5 mb-1">Relatório</h2><p id="resultSubtitle" class="small text-secondary mb-0"></p></div><span id="resultCount" class="badge text-bg-primary"></span></div><div class="table-responsive"><table class="table align-middle mb-0 report-table"><thead><tr id="resultHead"></tr></thead><tbody id="resultRows"></tbody></table></div></section>
-          <p id="reportGeneratedAt" class="small text-secondary text-end mb-0"></p>
+          <p id="reportGeneratedAt" class="small text-secondary text-end mb-0 no-print"></p>
         </div>
       </div>
     </main>

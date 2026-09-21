@@ -139,3 +139,5 @@ body.page-relatorios #quickReports{row-gap:.55rem!important}
 /* Relatórios 2.4 - cabeçalho institucional padrão */
 .report-institutional-header{width:100%;text-align:center;color:#000}.report-institutional-header img{width:48px;height:auto;display:block;margin:0 auto 8px}.report-institutional-header h2{font-size:12pt;margin:10px 0 2px;font-weight:700}.report-print-meta{text-align:center;font-size:9pt}
 @media print{body.page-relatorios .report-print-header{display:block!important;border-bottom:0;padding-bottom:.25cm}.report-institutional-header{font-size:9pt;line-height:1.2}.report-institutional-header img{width:42px}.report-institutional-header h2{font-size:11pt}.report-print-meta{font-size:8.5pt}}
+
+.vehicle-summary-table th,.vehicle-summary-table td{white-space:nowrap}.vehicle-summary-table td:nth-child(5){font-weight:700}@media print{.content-wrapper .container-fluid{padding:10mm!important}.report-print-header{border-bottom:0!important;display:block!important}.vehicle-summary-table{font-size:8pt}.vehicle-summary-table th,.vehicle-summary-table td{white-space:normal!important}.page-header,#reportGeneratedAt{display:none!important}}
