@@ -84,3 +84,117 @@ const API='https://script.google.com/macros/s/AKfycbzuEEeAptN9MenKWY1oynX6c3gmGY
 })();
 /* PWA_OPTIONAL_INSTALL_END */
 
+
+
+/* ABAST_INACTIVITY_TIMEOUT_START */
+(() => {
+  // Segurança local: encerra a tela após 15 minutos sem interação.
+  // A sessão do servidor continua sujeita à validade definida no Apps Script.
+  const IDLE_LIMIT_MS = 15 * 60 * 1000;
+  const WARNING_BEFORE_MS = 60 * 1000;
+  const STORAGE_KEY = 'sigvtr_abast_last_activity';
+  let warningTimer = null;
+  let logoutTimer = null;
+  let warningEl = null;
+
+  const now = () => Date.now();
+  const setLastActivity = () => {
+    try { localStorage.setItem(STORAGE_KEY, String(now())); } catch (_) {}
+  };
+  const getLastActivity = () => {
+    try { return Number(localStorage.getItem(STORAGE_KEY) || now()); } catch (_) { return now(); }
+  };
+
+  function removeWarning() {
+    if (warningEl) warningEl.remove();
+    warningEl = null;
+  }
+
+  function showWarning() {
+    if (warningEl || document.hidden) return;
+    warningEl = document.createElement('div');
+    warningEl.setAttribute('role','alertdialog');
+    warningEl.setAttribute('aria-modal','true');
+    warningEl.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:1200;display:flex;align-items:center;justify-content:center;padding:18px">
+        <div style="background:#fff;border-radius:14px;max-width:430px;width:100%;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,.25);color:#172033">
+          <h3 style="margin:0 0 8px">Sessão prestes a expirar</h3>
+          <p style="margin:0 0 16px;line-height:1.45">Por segurança, o Controle de Abastecimento será bloqueado após 15 minutos sem atividade.</p>
+          <button type="button" id="abastContinueSession" style="width:100%;min-height:44px;border:0;border-radius:9px;background:#0d6efd;color:#fff;font-weight:600">Continuar sessão</button>
+        </div>
+      </div>`;
+    document.body.appendChild(warningEl);
+    warningEl.querySelector('#abastContinueSession')?.addEventListener('click', () => {
+      touch();
+    });
+  }
+
+  async function expireSession() {
+    clearTimeout(warningTimer);
+    clearTimeout(logoutTimer);
+    removeWarning();
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+
+    // Usa a rotina de logout já existente quando disponível.
+    try {
+      if (typeof window.abastecLogout === 'function') {
+        await window.abastecLogout();
+      } else if (typeof window.logoutAbastecimento === 'function') {
+        await window.logoutAbastecimento();
+      }
+    } catch (_) {}
+
+    // Remove tokens locais conhecidos sem depender de um nome único.
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (/abast.*(token|session)|sigvtr.*abast.*(token|session)/i.test(k)) localStorage.removeItem(k);
+      });
+      Object.keys(sessionStorage).forEach(k => {
+        if (/abast.*(token|session)|sigvtr.*abast.*(token|session)/i.test(k)) sessionStorage.removeItem(k);
+      });
+    } catch (_) {}
+
+    alert('Sessão encerrada por inatividade. Faça login novamente para continuar.');
+    location.reload();
+  }
+
+  function schedule() {
+    clearTimeout(warningTimer);
+    clearTimeout(logoutTimer);
+    const elapsed = now() - getLastActivity();
+    const remaining = Math.max(0, IDLE_LIMIT_MS - elapsed);
+    if (remaining <= 0) return expireSession();
+    if (remaining <= WARNING_BEFORE_MS) showWarning();
+    else warningTimer = setTimeout(showWarning, remaining - WARNING_BEFORE_MS);
+    logoutTimer = setTimeout(expireSession, remaining);
+  }
+
+  function touch() {
+    setLastActivity();
+    removeWarning();
+    schedule();
+  }
+
+  // Eventos reais de uso; limitados para não reiniciar timers em excesso.
+  let lastTouch = 0;
+  const activity = () => {
+    const t = now();
+    if (t - lastTouch < 1000) return;
+    lastTouch = t;
+    touch();
+  };
+  ['click','keydown','touchstart','pointerdown'].forEach(evt =>
+    document.addEventListener(evt, activity, {passive:true})
+  );
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) schedule();
+  });
+  window.addEventListener('storage', e => {
+    if (e.key === STORAGE_KEY) schedule();
+  });
+
+  if (!localStorage.getItem(STORAGE_KEY)) setLastActivity();
+  schedule();
+})();
+/* ABAST_INACTIVITY_TIMEOUT_END */
+
