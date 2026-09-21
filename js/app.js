@@ -222,7 +222,7 @@ async function submit(event){
   const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
   clearDraft();
   $("#successMessage").textContent=`Protocolo ${result.protocolo}. Registro concluído com sucesso.${detail}`;
-  $("#successModal").hidden=false;
+  window.__lastChecklistRequestId=state.requestId;$("#successModal").hidden=false;
   toast("Checklist registrado com sucesso.");
  }catch(err){
   // A API pode concluir a gravação e a confirmação HTTP se perder durante o
@@ -234,7 +234,7 @@ async function submit(event){
    const detail=novas?` ${novas===1?"Uma nova avaria foi registrada e permanecerá pendente até a baixa administrativa.":`${novas} novas avarias foram registradas e permanecerão pendentes até a baixa administrativa.`}`:"";
    clearDraft();
    $("#successMessage").textContent=`Protocolo ${recovered.protocolo}. O registro foi localizado e confirmado com sucesso após uma oscilação na comunicação.${detail}`;
-   $("#successModal").hidden=false;
+   window.__lastChecklistRequestId=state.requestId;$("#successModal").hidden=false;
    toast("Checklist confirmado no banco de dados.");
    return;
   }
@@ -253,3 +253,7 @@ function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._id);t._id=setTimeout(()=>t.classList.remove("show"),3200)}
 function detectDevice(){state.device={tipo:/Mobi|Android/i.test(navigator.userAgent)?"MOBILE":"DESKTOP",navegador:navigator.userAgent.slice(0,100),idioma:navigator.language,resolucao:`${screen.width}x${screen.height}`}}
 function registerSW(){if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js?v=1.18.5-rc1").catch(()=>{})}
+
+
+// Comprovante PDF do checklist concluído.
+(()=>{const btn=document.getElementById('downloadChecklistPdf');if(!btn)return;btn.addEventListener('click',async()=>{const requestId=window.__lastChecklistRequestId||state.requestId;if(!requestId){toast('Não foi possível identificar o checklist concluído.');return;}if(btn.disabled)return;btn.disabled=true;const old=btn.textContent;btn.textContent='GERANDO PDF...';try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'checklistComprovantePdf',data:{idRequisicao:requestId}}),cache:'no-store'}),j=await r.json();if(!j.success)throw new Error(j.message||'Falha ao gerar PDF.');const d=j.data||{},bytes=Uint8Array.from(atob(d.pdfBase64),c=>c.charCodeAt(0)),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download=d.pdfNome||'checklist.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){toast(e.message||'Não foi possível gerar o PDF.');}finally{btn.disabled=false;btn.textContent=old;}});})();
