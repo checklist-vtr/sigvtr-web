@@ -1,4 +1,4 @@
-const CACHE="sigvtr-abastecimento-v1";
+const CACHE="sigvtr-abastecimento-v2";
 const STATIC=["./","./index.html","./app.js","./manifest.json"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
