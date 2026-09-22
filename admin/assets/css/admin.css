@@ -429,3 +429,23 @@ body.dark-mode .session-idle-indicator.session-ok{background:rgba(25,135,84,.16)
 @keyframes sessionPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,35,24,0)}50%{box-shadow:0 0 0 5px rgba(180,35,24,.08)}}
 @media(max-width:767.98px){.session-idle-label{display:none}.session-idle-indicator{height:38px;padding:0 .5rem}.session-idle-modal .modal-footer{display:grid;grid-template-columns:1fr 1.2fr;gap:.5rem}.session-idle-modal .modal-footer>*{margin:0;width:100%}}
 @media(max-width:575.98px){.session-idle-indicator{font-size:.7rem}.session-idle-countdown{font-size:2.2rem}.session-idle-modal{border-radius:16px}}
+
+
+/* Mobile topbar compacto — v1.20.33-RC1 */
+@media(max-width:767.98px){
+  .topbar{min-height:64px;padding:.55rem .65rem;gap:.4rem;overflow:visible}
+  .topbar-left,.topbar-right{gap:.35rem;min-width:0}
+  .topbar-left{flex:1 1 auto}
+  .topbar-center{flex:0 0 auto}
+  .topbar-right{flex:0 0 auto}
+  .user-chip{padding:.22rem;border-radius:11px;gap:0}
+  .user-chip .desktop-only{display:none!important}
+  .user-avatar{width:36px;height:36px;border-radius:9px}
+  .session-idle-indicator{height:36px;padding:0 .42rem}
+  #topbarLogoutButton{display:none!important}
+}
+@media(max-width:575.98px){
+  .topbar-title,.topbar-date{display:none!important}
+  .topbar-left{flex:0 0 auto}
+  .topbar{justify-content:space-between}
+}
