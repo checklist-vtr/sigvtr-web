@@ -43,6 +43,30 @@ const FINAL_PHOTOS=[{type:"frontal",label:"Frente"},{type:"traseira",label:"Tras
 const MULTI_OTHER_KEYS=new Set(["outras_alteracoes_externas","outras_alteracoes_internas","outras_alteracoes_mecanica"]);
 const state={step:1,status:{},descriptions:{},multiAlterations:{},photos:{},pending:[],decisions:{},device:{},pendingPhoto:null,isSubmitting:false,sendingTimer:null,requestId:""};
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
+
+// Preenchimento automático da identificação a partir do cadastro já existente.
+let militaryLookupTimer=null,militaryLookupSeq=0,militaryLookupApplying=false;
+const RANK_VALUE_BY_LABEL={"SD":"SD","CB":"CB","3º SGT":"3_SGT","3° SGT":"3_SGT","3 SGT":"3_SGT","2º SGT":"2_SGT","2° SGT":"2_SGT","2 SGT":"2_SGT","1º SGT":"1_SGT","1° SGT":"1_SGT","1 SGT":"1_SGT","SUB TEN":"SUB_TEN","SUBTEN":"SUB_TEN","2º TEN":"2_TEN","2° TEN":"2_TEN","2 TEN":"2_TEN","1º TEN":"1_TEN","1° TEN":"1_TEN","1 TEN":"1_TEN","CAP":"CAP","MAJ":"MAJ","TEN CEL":"TEN_CEL","TEN. CEL.":"TEN_CEL","CEL":"CEL"};
+function normalizeRankLookup(value){const k=String(value||"").trim().toUpperCase().replace(/\s+/g," ");return RANK_VALUE_BY_LABEL[k]||""}
+function scheduleMilitaryLookup(type){
+  if(militaryLookupApplying)return;
+  clearTimeout(militaryLookupTimer);
+  const value=type==="rg"?$("#rg").value.trim():$("#condutor").value.trim();
+  if((type==="rg"&&value.length<3)||(type==="nome"&&value.length<2))return;
+  const seq=++militaryLookupSeq;
+  militaryLookupTimer=setTimeout(()=>lookupMilitary(type,value,seq),450);
+}
+async function lookupMilitary(type,value,seq){
+  try{
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"checklistMilitarLookup",data:{type,value}})});
+    const out=await r.json();if(seq!==militaryLookupSeq||!out.success||!out.data||!out.data.found)return;
+    const m=out.data;militaryLookupApplying=true;
+    if(m.nomeGuerra)$("#condutor").value=m.nomeGuerra;
+    if(m.rg)$("#rg").value=String(m.rg).replace(/\D/g,"");
+    const rank=normalizeRankLookup(m.postoGraduacao);if(rank&&RANK_LABELS[rank])$("#postoGraduacao").value=rank;
+    militaryLookupApplying=false;scheduleDraftSave();
+  }catch(_){militaryLookupApplying=false}
+}
 const DRAFT_KEY="SIGVTR_CHECKLIST_FISCAL_DRAFT";
 let draftTimer=null,draftRestoring=false,draftFinalized=false;
 function draftFields(){return ["prefixoSelect","otherPrefix","condutor","postoGraduacao","rg","kmInicial","turno","otherOperation","combustivel","finalConfirmation"]}
@@ -85,7 +109,7 @@ function bind(){
     if(removeOther){removeMultiAlteration(removeOther.dataset.removeOther,removeOther.dataset.removeOtherId)}
   });
   document.addEventListener("change",async e=>{if(e.target.id==="turno"){const other=e.target.value==="OUTROS";$("#otherOperationWrap").hidden=!other;if(!other)$("#otherOperation").value=""}if(e.target.id==="prefixoSelect"){const other=e.target.value==="OUTRO";$("#otherPrefixWrap").hidden=!other;if(!other)$("#otherPrefix").value="";await loadPending()}if(e.target.type==="file"&&e.target.id.startsWith("photo_")){const type=e.target.id.replace("photo_","");if(e.target.files[0])await loadPhoto(type,e.target.files[0]);e.target.value=""}scheduleDraftSave()});
-  document.addEventListener("input",e=>{if(e.target.id==="condutor")e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches("[data-multi-description]")){const card=e.target.closest(".inspection-card"),key=card&&card.dataset.key,id=e.target.dataset.multiDescription;e.target.value=sanitizeDescription(e.target.value);const item=(state.multiAlterations[key]||[]).find(x=>String(x.id)===String(id));if(item)item.description=e.target.value.trim()}else if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}scheduleDraftSave()});
+  document.addEventListener("input",e=>{if(e.target.id==="condutor"){e.target.value=e.target.value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g,"").replace(/\s+/g," ");scheduleMilitaryLookup("nome")}if(["rg","kmInicial","otherPrefix"].includes(e.target.id))e.target.value=e.target.value.replace(/\D/g,"");if(e.target.id==="rg")scheduleMilitaryLookup("rg");if(e.target.id==="otherOperation")e.target.value=sanitizeDescription(e.target.value).slice(0,100);if(e.target.matches("[data-multi-description]")){const card=e.target.closest(".inspection-card"),key=card&&card.dataset.key,id=e.target.dataset.multiDescription;e.target.value=sanitizeDescription(e.target.value);const item=(state.multiAlterations[key]||[]).find(x=>String(x.id)===String(id));if(item)item.description=e.target.value.trim()}else if(e.target.matches(".change-panel textarea")){const key=e.target.closest(".inspection-card").dataset.key;e.target.value=sanitizeDescription(e.target.value);state.descriptions[key]=e.target.value.trim()}scheduleDraftSave()});
   $("#checklistForm").addEventListener("submit",submit);
   window.addEventListener("pagehide",saveDraftNow);
   $("#newChecklistButton").addEventListener("click",()=>location.reload());
