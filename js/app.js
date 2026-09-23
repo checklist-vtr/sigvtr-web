@@ -153,12 +153,12 @@ function compressImage(file){return new Promise((resolve,reject)=>{
  img.onload=()=>{
   try{
    // Compressão adaptativa: mantém legibilidade documental e reduz tráfego/armazenamento.
-   const maxDimension=1600,targetBytes=900*1024,scale=Math.min(1,maxDimension/Math.max(img.width,img.height)),canvas=document.createElement("canvas");
+   const maxDimension=1280,targetBytes=480*1024,scale=Math.min(1,maxDimension/Math.max(img.width,img.height)),canvas=document.createElement("canvas");
    canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
    const ctx=canvas.getContext("2d",{alpha:false});ctx.drawImage(img,0,0,canvas.width,canvas.height);
    let quality=.78,dataUrl=canvas.toDataURL("image/jpeg",quality);
    // Base64 ocupa ~4/3 do binário. Reduz qualidade gradualmente apenas quando necessário.
-   while(dataUrl.length*0.75>targetBytes&&quality>.52){quality=Math.max(.52,quality-.06);dataUrl=canvas.toDataURL("image/jpeg",quality)}
+   while(dataUrl.length*0.75>targetBytes&&quality>.50){quality=Math.max(.50,quality-.06);dataUrl=canvas.toDataURL("image/jpeg",quality)}
    resolve({tipo:"",name:(file.name||"foto.jpg").replace(/[^A-Za-z0-9._-]/g,"_").replace(/\.[^.]+$/,"")+".jpg",mimeType:"image/jpeg",data:dataUrl.split(",")[1],width:canvas.width,height:canvas.height,quality:Number(quality.toFixed(2)),compressed:true});
   }catch(err){reject(err)}finally{URL.revokeObjectURL(url)}
  };
